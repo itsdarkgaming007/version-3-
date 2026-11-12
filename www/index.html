@@ -126,3 +126,302 @@
     <!-- Settings Modal -->
     <div class="modal" id="settingsModal">
         <div class="modal-content">
+            <div class="modal-title">Settings</div>
+            
+            <label>Language</label>
+            <select id="langSelect" onchange="changeLanguage(this.value)">
+                <option value="ta">தமிழ்</option>
+                <option value="en">English</option>
+                <option value="hi">हिंदी</option>
+            </select>
+
+            <label>Theme</label>
+            <select id="themeSelect" onchange="toggleTheme(this.value)">
+                <option value="dark">Dark Theme</option>
+                <option value="light">Light Theme</option>
+            </select>
+
+            <label>Server Base URL (Laptop IP or Tunnel)</label>
+            <input type="text" id="cfgServerUrl" placeholder="http://192.168.1.15:3000">
+
+            <label>API Bearer Token</label>
+            <input type="password" id="cfgApiToken" value="marketing_engine_secret_2026">
+
+            <label>Session ID</label>
+            <input type="text" id="cfgSessionId" value="main_account">
+
+            <label>WhatsApp Link Pairing</label>
+            <div style="display: flex; gap: 8px;">
+                <input type="text" id="cfgPhoneNumber" placeholder="919876543210" style="margin-bottom: 0;">
+                <button class="btn btn-primary" style="width: auto; padding: 0 16px;" onclick="requestPairCode()">Pair</button>
+            </div>
+            <div id="pairCodeResult" style="font-size: 1.3rem; font-weight: bold; color: var(--primary); text-align: center; margin-top: 10px; display: none;"></div>
+
+            <button class="btn btn-primary" style="margin-top: 14px;" onclick="saveSettings()">Save Configuration</button>
+            <button class="btn btn-secondary" onclick="closeModal('settingsModal')">Close</button>
+        </div>
+    </div>
+
+    <script>
+        var i18n = {
+            ta: {
+                appTitle: "WA Campaign",
+                emptyTitle: "குரூப் எதுவும் இல்லை",
+                emptyDesc: "கீழே உள்ள '+' பட்டனை அழுத்தி புதிய குரூப் உருவாக்கவும்",
+                newGroupTitle: "புதிய குரூப் உருவாக்கு",
+                lblGroupName: "குரூப் பெயர்",
+                lblGroupContacts: "தொடர்புகள் (வரிசையாக அல்லது கமாவுடன்)",
+                save: "சேமி",
+                cancel: "ரத்து"
+            },
+            en: {
+                appTitle: "WA Campaign",
+                emptyTitle: "No Groups Yet",
+                emptyDesc: "Tap the '+' button below to create your first group",
+                newGroupTitle: "Create New Group",
+                lblGroupName: "Group Name",
+                lblGroupContacts: "Contacts (Newline or comma separated)",
+                save: "Save Group",
+                cancel: "Cancel"
+            },
+            hi: {
+                appTitle: "WA Campaign",
+                emptyTitle: "कोई समूह नहीं है",
+                emptyDesc: "नया समूह बनाने के लिए नीचे '+' बटन दबाएं",
+                newGroupTitle: "नया समूह बनाएं",
+                lblGroupName: "समूह का नाम",
+                lblGroupContacts: "संपर्क (नई पंक्ति या अल्पविराम)",
+                save: "सुरक्षित करें",
+                cancel: "रद्द करें"
+            }
+        };
+
+        var currentLang = localStorage.getItem('app_lang') || 'ta';
+        var groups = [];
+        try {
+            groups = JSON.parse(localStorage.getItem('app_groups') || '[]');
+        } catch(e) {
+            groups = [];
+        }
+
+        var activeGroupId = null;
+        var pollTimer = null;
+
+        function applyLanguage(lang) {
+            currentLang = lang;
+            localStorage.setItem('app_lang', lang);
+            var t = i18n[lang] || i18n['ta'];
+            document.getElementById('appTitle').innerText = t.appTitle;
+            document.getElementById('txtNewGroupTitle').innerText = t.newGroupTitle;
+            document.getElementById('lblGroupName').innerText = t.lblGroupName;
+            document.getElementById('lblGroupContacts').innerText = t.lblGroupContacts;
+            document.getElementById('btnSaveGroup').innerText = t.save;
+            document.getElementById('btnCancel').innerText = t.cancel;
+            document.getElementById('langSelect').value = lang;
+            renderGroups();
+        }
+
+        function changeLanguage(val) { applyLanguage(val); }
+
+        function toggleTheme(theme) {
+            localStorage.setItem('app_theme', theme);
+            if (theme === 'light') {
+                document.body.classList.add('light-theme');
+            } else {
+                document.body.classList.remove('light-theme');
+            }
+            document.getElementById('themeSelect').value = theme;
+        }
+
+        function openModal(id) { document.getElementById(id).style.display = 'flex'; }
+        function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+
+        function openCreateGroupModal() {
+            document.getElementById('newGroupName').value = '';
+            document.getElementById('newGroupContacts').value = '';
+            openModal('createGroupModal');
+        }
+
+        function saveGroup() {
+            var name = document.getElementById('newGroupName').value.trim();
+            var rawContacts = document.getElementById('newGroupContacts').value.trim();
+            if (!name) return alert('Enter group name');
+
+            var contacts = rawContacts.split(/[\r\n,]+/).map(function(c) {
+                return c.replace(/[^0-9]/g, '');
+            }).filter(Boolean);
+
+            if (contacts.length === 0) return alert('Enter at least one valid phone number');
+
+            var newGroup = {
+                id: 'grp_' + Date.now(),
+                name: name,
+                contacts: contacts,
+                createdAt: new Date().toLocaleDateString()
+            };
+
+            groups.push(newGroup);
+            localStorage.setItem('app_groups', JSON.stringify(groups));
+            closeModal('createGroupModal');
+            renderGroups();
+        }
+
+        function renderGroups() {
+            var container = document.getElementById('groupListContainer');
+            if (!groups || groups.length === 0) {
+                var t = i18n[currentLang] || i18n['ta'];
+                container.innerHTML = '<div class="empty-state"><h2>' + t.emptyTitle + '</h2><p>' + t.emptyDesc + '</p></div>';
+                return;
+            }
+
+            var html = '';
+            for (var i = 0; i < groups.length; i++) {
+                var g = groups[i];
+                html += '<div class="group-card" onclick="openCampaignScreen(\'' + g.id + '\')">' +
+                    '<div class="group-card-header">' +
+                        '<div class="group-card-title">' + g.name + '</div>' +
+                        '<div class="group-card-badge">' + g.contacts.length + ' Contacts</div>' +
+                    '</div>' +
+                    '<div class="group-card-sub">Created: ' + g.createdAt + '</div>' +
+                '</div>';
+            }
+            container.innerHTML = html;
+        }
+
+        function openCampaignScreen(id) {
+            activeGroupId = id;
+            var group = groups.find(function(g) { return g.id === id; });
+            if (!group) return;
+            document.getElementById('campGroupTitle').innerText = group.name + ' (' + group.contacts.length + ')';
+            document.getElementById('campMessage').value = '';
+            document.getElementById('liveProgressCard').style.display = 'none';
+            openModal('campaignModal');
+        }
+
+        function deleteActiveGroup() {
+            if (!confirm('Delete this group?')) return;
+            groups = groups.filter(function(g) { return g.id !== activeGroupId; });
+            localStorage.setItem('app_groups', JSON.stringify(groups));
+            closeModal('campaignModal');
+            renderGroups();
+        }
+
+        async function triggerCampaign() {
+            var group = groups.find(function(g) { return g.id === activeGroupId; });
+            if (!group || group.contacts.length === 0) return alert('No contacts in group');
+            var message = document.getElementById('campMessage').value.trim();
+            var mediaInput = document.getElementById('campMedia');
+
+            var serverUrl = (localStorage.getItem('cfg_server_url') || document.getElementById('cfgServerUrl').value).trim().replace(/\/$/, '');
+            var token = (localStorage.getItem('cfg_api_token') || document.getElementById('cfgApiToken').value).trim();
+            var session = (localStorage.getItem('cfg_session_id') || document.getElementById('cfgSessionId').value).trim();
+
+            if (!serverUrl) return alert('Configure Server URL in Settings first');
+
+            var formData = new FormData();
+            formData.append('sessionId', session);
+            formData.append('recipients', JSON.stringify(group.contacts));
+            formData.append('message', message);
+            if (mediaInput.files[0]) formData.append('media', mediaInput.files[0]);
+
+            document.getElementById('btnStartCamp').disabled = true;
+
+            try {
+                var res = await fetch(serverUrl + '/api/message/send-bulk', {
+                    method: 'POST',
+                    headers: { 'Authorization': 'Bearer ' + token },
+                    body: formData
+                });
+                var data = await res.json();
+                if (data.status === 'QUEUED') {
+                    document.getElementById('liveProgressCard').style.display = 'block';
+                    startProgressPolling(serverUrl, session, token);
+                } else {
+                    alert(data.error || 'Campaign start failed');
+                    document.getElementById('btnStartCamp').disabled = false;
+                }
+            } catch (err) {
+                alert('Connection Error: ' + err.message);
+                document.getElementById('btnStartCamp').disabled = false;
+            }
+        }
+
+        function startProgressPolling(serverUrl, session, token) {
+            if (pollTimer) clearInterval(pollTimer);
+            pollTimer = setInterval(async function() {
+                try {
+                    var res = await fetch(serverUrl + '/api/queue-status/' + session, {
+                        headers: { 'Authorization': 'Bearer ' + token }
+                    });
+                    var d = await res.json();
+                    if (!d || d.error) return;
+
+                    document.getElementById('statTotal').innerText = d.total;
+                    document.getElementById('statSent').innerText = d.sent;
+                    document.getElementById('statFailed').innerText = d.failed;
+                    document.getElementById('statPending').innerText = d.remaining;
+                    document.getElementById('progressBar').style.width = d.progressPercent + '%';
+                    document.getElementById('progressPercent').innerText = d.progressPercent + '%';
+
+                    if (!d.isRunning && d.total > 0 && d.remaining === 0) {
+                        clearInterval(pollTimer);
+                        document.getElementById('btnStartCamp').disabled = false;
+                    }
+                } catch (e) {
+                    console.error(e);
+                }
+            }, 2000);
+        }
+
+        async function requestPairCode() {
+            var phone = document.getElementById('cfgPhoneNumber').value.trim();
+            var serverUrl = (localStorage.getItem('cfg_server_url') || document.getElementById('cfgServerUrl').value).trim().replace(/\/$/, '');
+            var token = (localStorage.getItem('cfg_api_token') || document.getElementById('cfgApiToken').value).trim();
+            var session = (localStorage.getItem('cfg_session_id') || document.getElementById('cfgSessionId').value).trim();
+            var resBox = document.getElementById('pairCodeResult');
+
+            if (!phone) return alert('Enter phone number');
+            if (!serverUrl) return alert('Enter server URL first');
+            resBox.style.display = 'block';
+            resBox.innerText = 'Requesting...';
+
+            try {
+                var res = await fetch(serverUrl + '/api/pair', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                    body: JSON.stringify({ sessionId: session, phoneNumber: phone })
+                });
+                var d = await res.json();
+                resBox.innerText = d.pairingCode || d.error || 'Failed';
+            } catch (err) {
+                resBox.innerText = 'Connection Failed: ' + err.message;
+            }
+        }
+
+        function saveSettings() {
+            localStorage.setItem('cfg_server_url', document.getElementById('cfgServerUrl').value.trim());
+            localStorage.setItem('cfg_api_token', document.getElementById('cfgApiToken').value.trim());
+            localStorage.setItem('cfg_session_id', document.getElementById('cfgSessionId').value.trim());
+            alert('Settings Saved');
+            closeModal('settingsModal');
+        }
+
+        function shareApp() {
+            if (navigator.share) {
+                navigator.share({ title: 'WA Campaign', text: 'WhatsApp Marketing Engine App', url: window.location.href });
+            } else {
+                alert('App installed and ready.');
+            }
+        }
+
+        window.onload = function() {
+            var savedTheme = localStorage.getItem('app_theme') || 'dark';
+            toggleTheme(savedTheme);
+            applyLanguage(currentLang);
+            if (localStorage.getItem('cfg_server_url')) document.getElementById('cfgServerUrl').value = localStorage.getItem('cfg_server_url');
+            if (localStorage.getItem('cfg_api_token')) document.getElementById('cfgApiToken').value = localStorage.getItem('cfg_api_token');
+            if (localStorage.getItem('cfg_session_id')) document.getElementById('cfgSessionId').value = localStorage.getItem('cfg_session_id');
+        };
+    </script>
+</body>
+</html>
