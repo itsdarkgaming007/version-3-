@@ -24,18 +24,15 @@ jobs:
           distribution: 'zulu'
           java-version: '17'
 
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Install NPM Dependencies
+      - name: Install Dependencies
         run: npm install
 
-      - name: Initialize Capacitor Android Project
+      - name: Add and Sync Android Platform
         run: |
           npx cap add android
           npx cap sync android
 
-      - name: Build Debug APK via Gradle
+      - name: Build Debug APK
         run: |
           cd android
           chmod +x gradlew
