@@ -59,6 +59,7 @@
         .btn-primary { background: var(--primary); color: #000; }
         .btn-danger { background: var(--danger); color: #fff; }
         .btn-secondary { background: var(--border); color: var(--text); margin-top: 8px; }
+        .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); margin-top: 8px; }
         .btn-action-row { display: flex; gap: 8px; margin-bottom: 12px; }
         .btn-action-row .btn { padding: 8px 10px; font-size: 0.82rem; background: var(--surface-card); border: 1px solid var(--border); color: var(--text); }
 
@@ -93,16 +94,16 @@
             <div class="modal-title" id="txtNewGroupTitle">Create Group</div>
             
             <label id="lblGroupName">Group Name</label>
-            <input type="text" id="newGroupName" placeholder="e.g. VIP Customers">
+            <input type="text" id="newGroupName" placeholder="e.g. November Customers">
 
             <label>Add Contacts</label>
             <div class="btn-action-row">
-                <button type="button" class="btn" onclick="pickNativeContacts()">📱 Pick Contacts</button>
-                <button type="button" class="btn" onclick="document.getElementById('csvFileInput').click()">📁 Import CSV</button>
-                <input type="file" id="csvFileInput" accept=".csv,.txt" style="display: none;" onchange="handleCsvFile(event)">
+                <button type="button" class="btn" onclick="pickNativeContacts('newGroupContacts')">📱 Pick Contacts</button>
+                <button type="button" class="btn" onclick="triggerCsv('csvFileInputCreate')">📁 Import CSV</button>
+                <input type="file" id="csvFileInputCreate" accept=".csv,.txt" style="display: none;" onchange="handleCsvFile(event, 'newGroupContacts')">
             </div>
 
-            <label id="lblGroupContacts">Phone Numbers (Direct Paste / Imported)</label>
+            <label id="lblGroupContacts">Phone Numbers (One per line)</label>
             <textarea id="newGroupContacts" rows="5" placeholder="919876543210&#10;919876543211"></textarea>
 
             <button class="btn btn-primary" onclick="saveGroup()" id="btnSaveGroup">Save Group</button>
@@ -110,16 +111,19 @@
         </div>
     </div>
 
-    <!-- Campaign Execution Modal -->
+    <!-- Campaign Execution & Group View Modal -->
     <div class="modal" id="campaignModal">
         <div class="modal-content">
             <div class="modal-title" id="campGroupTitle">Group Campaign</div>
+            
             <label>Message Content</label>
             <textarea id="campMessage" rows="4" placeholder="Enter message text..."></textarea>
+            
             <label>Attachment (Image, PDF, Document)</label>
             <input type="file" id="campMedia">
             
             <button class="btn btn-primary" id="btnStartCamp" onclick="triggerCampaign()">Start Campaign</button>
+            <button class="btn btn-outline" onclick="openEditGroupModal()">✏️ View / Edit Members</button>
             <button class="btn btn-secondary" onclick="closeModal('campaignModal')">Close</button>
 
             <div id="liveProgressCard" style="display: none; margin-top: 14px;">
@@ -134,6 +138,29 @@
             </div>
             
             <button class="btn btn-danger" style="margin-top: 18px;" onclick="deleteActiveGroup()">Delete Group</button>
+        </div>
+    </div>
+
+    <!-- Edit Group Members Modal -->
+    <div class="modal" id="editGroupModal">
+        <div class="modal-content">
+            <div class="modal-title">Edit Group Members</div>
+            
+            <label>Group Name</label>
+            <input type="text" id="editGroupName">
+
+            <label>Manage Numbers</label>
+            <div class="btn-action-row">
+                <button type="button" class="btn" onclick="pickNativeContacts('editGroupContacts')">📱 Add More</button>
+                <button type="button" class="btn" onclick="triggerCsv('csvFileInputEdit')">📁 Import CSV</button>
+                <input type="file" id="csvFileInputEdit" accept=".csv,.txt" style="display: none;" onchange="handleCsvFile(event, 'editGroupContacts')">
+            </div>
+
+            <label>Member Phone Numbers (Edit, add, or delete lines)</label>
+            <textarea id="editGroupContacts" rows="8"></textarea>
+
+            <button class="btn btn-primary" onclick="saveEditedGroup()">Save Changes</button>
+            <button class="btn btn-secondary" onclick="closeModal('editGroupModal')">Cancel</button>
         </div>
     </div>
 
@@ -170,43 +197,9 @@
     </div>
 
     <script>
-        // HARDCODED SECURE CLOUDFLARE ENDPOINT
         const CLOUD_SERVER_URL = "https://counters-infringement-fully-quote.trycloudflare.com";
         const API_BEARER_TOKEN = "marketing_engine_secret_2026";
         const SESSION_ID = "main_account";
-
-        const i18n = {
-            ta: {
-                appTitle: "WA Campaign",
-                emptyTitle: "குரூப் எதுவும் இல்லை",
-                emptyDesc: "கீழே உள்ள '+' பட்டனை அழுத்தி புதிய குரூப் உருவாக்கவும்",
-                newGroupTitle: "புதிய குரூப் உருவாக்கு",
-                lblGroupName: "குரூப் பெயர்",
-                lblGroupContacts: "தொடர்புகள் (நேரடியாக / இறக்குமதி செய்தவை)",
-                save: "சேமி",
-                cancel: "ரத்து"
-            },
-            en: {
-                appTitle: "WA Campaign",
-                emptyTitle: "No Groups Yet",
-                emptyDesc: "Tap the '+' button below to create your first group",
-                newGroupTitle: "Create New Group",
-                lblGroupName: "Group Name",
-                lblGroupContacts: "Contacts (Direct Paste / Imported)",
-                save: "Save Group",
-                cancel: "Cancel"
-            },
-            hi: {
-                appTitle: "WA Campaign",
-                emptyTitle: "कोई समूह नहीं है",
-                emptyDesc: "नया समूह बनाने के लिए नीचे '+' बटन दबाएं",
-                newGroupTitle: "नया समूह बनाएं",
-                lblGroupName: "समूह का नाम",
-                lblGroupContacts: "संपर्क (प्रत्यक्ष पेस्ट / आयातित)",
-                save: "सुरक्षित करें",
-                cancel: "रद्द करें"
-            }
-        };
 
         let currentLang = localStorage.getItem('app_lang') || 'en';
         let groups = [];
@@ -218,22 +211,6 @@
 
         let activeGroupId = null;
         let pollTimer = null;
-
-        function applyLanguage(lang) {
-            currentLang = lang;
-            localStorage.setItem('app_lang', lang);
-            const t = i18n[lang] || i18n['en'];
-            document.getElementById('appTitle').innerText = t.appTitle;
-            document.getElementById('txtNewGroupTitle').innerText = t.newGroupTitle;
-            document.getElementById('lblGroupName').innerText = t.lblGroupName;
-            document.getElementById('lblGroupContacts').innerText = t.lblGroupContacts;
-            document.getElementById('btnSaveGroup').innerText = t.save;
-            document.getElementById('btnCancel').innerText = t.cancel;
-            document.getElementById('langSelect').value = lang;
-            renderGroups();
-        }
-
-        function changeLanguage(val) { applyLanguage(val); }
 
         function toggleTheme(theme) {
             localStorage.setItem('app_theme', theme);
@@ -254,7 +231,12 @@
             openModal('createGroupModal');
         }
 
-        async function pickNativeContacts() {
+        function triggerCsv(id) {
+            document.getElementById(id).click();
+        }
+
+        // Contact Picker with fallback error clarity
+        async function pickNativeContacts(targetElementId) {
             if ('contacts' in navigator && 'select' in navigator.contacts) {
                 try {
                     const selected = await navigator.contacts.select(['tel', 'name'], { multiple: true });
@@ -268,31 +250,33 @@
                                 });
                             }
                         });
-                        appendNumbersToBox(extracted);
+                        appendNumbersToTarget(targetElementId, extracted);
                     }
                 } catch (e) {
-                    alert('Contact picker cancelled.');
+                    if (e.name !== 'AbortError') {
+                        alert('Contact access notice: If system dialog did not open, allow Contacts permission for "WA Campaign" in Android App Settings.');
+                    }
                 }
             } else {
-                alert('Native picker not available on this web client. Use CSV import or paste directly.');
+                alert('Native Contact Picker API is not enabled in this WebView. Please use "Import CSV" or paste phone numbers directly.');
             }
         }
 
-        function handleCsvFile(e) {
+        function handleCsvFile(e, targetElementId) {
             const file = e.target.files[0];
             if (!file) return;
             const reader = new FileReader();
             reader.onload = function(evt) {
                 const text = evt.target.result;
                 const rawNumbers = text.split(/[\r\n,;]+/).map(n => n.replace(/[^0-9]/g, '')).filter(n => n.length >= 10);
-                appendNumbersToBox(rawNumbers);
+                appendNumbersToTarget(targetElementId, rawNumbers);
                 e.target.value = '';
             };
             reader.readAsText(file);
         }
 
-        function appendNumbersToBox(nums) {
-            const box = document.getElementById('newGroupContacts');
+        function appendNumbersToTarget(targetId, nums) {
+            const box = document.getElementById(targetId);
             const existing = box.value.trim();
             box.value = existing ? (existing + '\n' + nums.join('\n')) : nums.join('\n');
             alert('Added ' + nums.length + ' contacts.');
@@ -322,8 +306,7 @@
         function renderGroups() {
             const container = document.getElementById('groupListContainer');
             if (!groups || groups.length === 0) {
-                const t = i18n[currentLang] || i18n['en'];
-                container.innerHTML = `<div class="empty-state"><h2>${t.emptyTitle}</h2><p>${t.emptyDesc}</p></div>`;
+                container.innerHTML = '<div class="empty-state"><h2>No Groups Yet</h2><p>Tap the \'+\' button below to create your first group</p></div>';
                 return;
             }
 
@@ -346,6 +329,36 @@
             document.getElementById('campMessage').value = '';
             document.getElementById('liveProgressCard').style.display = 'none';
             openModal('campaignModal');
+        }
+
+        // Edit Existing Group Members
+        function openEditGroupModal() {
+            const group = groups.find(g => g.id === activeGroupId);
+            if (!group) return;
+            document.getElementById('editGroupName').value = group.name;
+            document.getElementById('editGroupContacts').value = group.contacts.join('\n');
+            closeModal('campaignModal');
+            openModal('editGroupModal');
+        }
+
+        function saveEditedGroup() {
+            const group = groups.find(g => g.id === activeGroupId);
+            if (!group) return;
+
+            const name = document.getElementById('editGroupName').value.trim();
+            const rawContacts = document.getElementById('editGroupContacts').value.trim();
+            if (!name) return alert('Enter group name');
+
+            const contacts = rawContacts.split(/[\r\n,]+/).map(c => c.replace(/[^0-9]/g, '')).filter(Boolean);
+            if (contacts.length === 0) return alert('Group must contain at least one number');
+
+            group.name = name;
+            group.contacts = contacts;
+
+            localStorage.setItem('app_groups', JSON.stringify(groups));
+            closeModal('editGroupModal');
+            renderGroups();
+            openCampaignScreen(activeGroupId);
         }
 
         function deleteActiveGroup() {
@@ -456,7 +469,7 @@
         window.onload = () => {
             const savedTheme = localStorage.getItem('app_theme') || 'dark';
             toggleTheme(savedTheme);
-            applyLanguage(currentLang);
+            renderGroups();
         };
     </script>
 </body>
