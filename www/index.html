@@ -49,7 +49,9 @@
 
         .fab { position: fixed; bottom: 24px; right: 24px; width: 60px; height: 60px; border-radius: 30px; background: var(--primary); color: #000; border: none; font-size: 2rem; font-weight: bold; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 14px rgba(0,0,0,0.4); cursor: pointer; z-index: 90; }
 
-        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 200; align-items: center; justify-content: center; padding: 16px; }
+        /* Unified Modals with proper z-index stacks */
+        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 200; align-items: center; justify-content: center; padding: 16px; }
+        .modal-high { z-index: 300; }
         .modal-content { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; width: 100%; max-width: 500px; padding: 20px; max-height: 90vh; display: flex; flex-direction: column; }
         .modal-title { font-size: 1.15rem; font-weight: 700; margin-bottom: 14px; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
 
@@ -61,22 +63,26 @@
         .btn-secondary { background: var(--border); color: var(--text); margin-top: 8px; }
         .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); margin-top: 8px; }
         .btn-action-row { display: flex; gap: 8px; margin-bottom: 12px; }
-        .btn-action-row .btn { padding: 9px 10px; font-size: 0.85rem; background: var(--surface-card); border: 1px solid var(--border); color: var(--text); }
+        .btn-action-row .btn { padding: 9px 10px; font-size: 0.82rem; background: var(--surface-card); border: 1px solid var(--border); color: var(--text); }
 
+        /* Member List & Selector Components */
         .member-controls-bar { display: flex; justify-content: space-between; align-items: center; background: var(--surface-card); padding: 8px 12px; border-radius: 8px; margin-bottom: 10px; border: 1px solid var(--border); font-size: 0.85rem; }
         .member-list-scroll { flex: 1; overflow-y: auto; max-height: 320px; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 14px; background: var(--bg); }
         .member-item { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; border-bottom: 1px solid var(--border); gap: 10px; }
         .member-item:last-child { border-bottom: none; }
         .member-item.selected { background: rgba(37, 211, 102, 0.08); }
         .member-item input[type="checkbox"] { width: 18px; height: 18px; margin-bottom: 0; cursor: pointer; }
-        .member-info { flex: 1; display: flex; flex-direction: column; }
-        .member-name { font-size: 0.95rem; font-weight: 600; }
+        .member-info { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+        .member-name { font-size: 0.95rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .member-phone { font-size: 0.8rem; color: var(--text-muted); }
         .member-actions { display: flex; gap: 8px; }
         .member-btn { background: none; border: none; font-size: 1.1rem; cursor: pointer; padding: 4px; border-radius: 4px; }
         .member-btn:hover { background: var(--surface-card); }
 
-        .pairing-banner { background: var(--surface-card); border: 1px solid var(--border); border-radius: 10px; padding: 14px; margin-bottom: 16px; }
+        /* Connected WhatsApp Banner */
+        .login-banner { background: var(--surface-card); border: 1px solid var(--border); border-radius: 10px; padding: 14px; margin-bottom: 16px; }
+        .logged-in-view { display: flex; flex-direction: column; gap: 10px; }
+        .status-pill { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: 700; background: rgba(37, 211, 102, 0.15); color: var(--primary); }
         .pairing-code-box { font-size: 1.6rem; letter-spacing: 5px; font-weight: 800; color: var(--primary); text-align: center; margin-top: 10px; padding: 10px; background: rgba(37, 211, 102, 0.1); border-radius: 8px; border: 1px dashed var(--primary); display: none; }
 
         .progress-box { background: var(--surface-card); border: 1px solid var(--border); border-radius: 8px; height: 12px; overflow: hidden; margin: 12px 0 6px 0; }
@@ -90,7 +96,7 @@
 <body>
 
     <header>
-        <button class="icon-btn" onclick="openModal('settingsModal')">⚙️</button>
+        <button class="icon-btn" onclick="openSettingsModal()">⚙️</button>
         <div class="header-title" id="appTitle">WA Campaign</div>
         <div class="header-actions">
             <button class="icon-btn" onclick="shareApp()">📤</button>
@@ -119,19 +125,19 @@
             <!-- Staged Contacts Badge Summary -->
             <div id="createStagedCount" style="font-size: 0.85rem; color: var(--primary); font-weight: 600; margin-bottom: 8px;">0 Contacts Staged</div>
 
-            <label>Direct Entry (One per line, Name,Phone OR Phone)</label>
-            <textarea id="newGroupContacts" rows="4" placeholder="919791833275&#10;John,917904220952"></textarea>
+            <label>Add Unsaved Numbers (Single or Multiple)</label>
+            <textarea id="newGroupContacts" rows="3" placeholder="Paste numbers: 919791833275&#10;917904220952"></textarea>
 
             <button class="btn btn-primary" onclick="saveGroup()">Save Group</button>
             <button class="btn btn-secondary" onclick="closeModal('createGroupModal')">Cancel</button>
         </div>
     </div>
 
-    <!-- Phonebook Selector Modal (Search & Manual Multi-Select) -->
-    <div class="modal" id="phonebookModal">
+    <!-- Phonebook Selector Modal -->
+    <div class="modal modal-high" id="phonebookModal">
         <div class="modal-content">
             <div class="modal-title">Select Contacts</div>
-            <input type="text" id="phonebookSearch" placeholder="🔍 Search by name or phone..." oninput="filterPhonebook()">
+            <input type="text" id="phonebookSearch" placeholder="🔍 Search name or number..." oninput="filterPhonebook()">
             
             <div class="member-controls-bar">
                 <span id="pbSelectedCount">0 selected</span>
@@ -141,7 +147,7 @@
             <div class="member-list-scroll" id="phonebookListContainer"></div>
 
             <button class="btn btn-primary" onclick="confirmPhonebookSelection()">Add Selected Contacts</button>
-            <button class="btn btn-secondary" onclick="closeModal('phonebookModal')">Cancel</button>
+            <button class="btn btn-secondary" onclick="closePhonebookModal()">Back</button>
         </div>
     </div>
 
@@ -183,16 +189,19 @@
             <label>Group Name</label>
             <input type="text" id="editGroupNameInput">
 
-            <label>Add More Contacts</label>
+            <label>Add Contacts</label>
             <div class="btn-action-row">
                 <button type="button" class="btn" onclick="openPhonebookSelector('edit')">📱 Select Contacts</button>
                 <button type="button" class="btn" onclick="document.getElementById('csvFileInputEdit').click()">📁 Import File</button>
                 <input type="file" id="csvFileInputEdit" accept=".csv,.txt,.vcf" style="display: none;" onchange="handleFileImport(event, 'edit')">
             </div>
 
-            <div style="display: flex; gap: 8px; margin-bottom: 12px;">
-                <input type="tel" id="quickAddInput" placeholder="Add single: 91XXXXXXXXXX" style="margin-bottom: 0;">
-                <button class="btn btn-primary" style="width: auto; padding: 0 16px;" onclick="addSingleContact()">Add</button>
+            <!-- Add Unsaved Contact Row -->
+            <label>Add Unsaved Contact (Optional Name + Number)</label>
+            <div style="display: flex; gap: 6px; margin-bottom: 12px;">
+                <input type="text" id="quickAddName" placeholder="Name (optional)" style="flex: 1; margin-bottom: 0;">
+                <input type="tel" id="quickAddPhone" placeholder="Phone (91XXXXXXXXXX)" style="flex: 1.4; margin-bottom: 0;">
+                <button class="btn btn-primary" style="width: auto; padding: 0 14px;" onclick="addSingleContact()">Add</button>
             </div>
 
             <div class="member-controls-bar">
@@ -216,14 +225,27 @@
         <div class="modal-content" style="overflow-y: auto;">
             <div class="modal-title">Settings & Pairing</div>
             
-            <div class="pairing-banner">
-                <label style="color: var(--text); font-weight: 600; margin-bottom: 8px;">Link WhatsApp Account</label>
-                <p style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 10px;">Enter phone number with country code (e.g. 919876543210):</p>
-                <div style="display: flex; gap: 8px;">
-                    <input type="text" id="cfgPhoneNumber" placeholder="919876543210" style="margin-bottom: 0;">
-                    <button class="btn btn-primary" style="width: auto; padding: 0 16px;" onclick="requestPairCode()">Pair</button>
+            <div class="login-banner">
+                <!-- Logged In State Screen -->
+                <div id="loggedInView" class="logged-in-view" style="display: none;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span class="status-pill">● CONNECTED</span>
+                        <span id="displayConnectedNumber" style="font-size: 0.95rem; font-weight: 700;"></span>
+                    </div>
+                    <p style="font-size: 0.8rem; color: var(--text-muted);">This device is securely linked and ready to run background campaigns.</p>
+                    <button class="btn btn-danger" style="margin-top: 6px;" onclick="unlinkWhatsAppSession()">Unlink Account</button>
                 </div>
-                <div id="pairCodeResult" class="pairing-code-box"></div>
+
+                <!-- Logged Out / Pairing Screen -->
+                <div id="loggedOutView">
+                    <label style="color: var(--text); font-weight: 600; margin-bottom: 8px;">Link WhatsApp Account</label>
+                    <p style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 10px;">Enter phone number with country code (e.g. 919876543210):</p>
+                    <div style="display: flex; gap: 8px;">
+                        <input type="text" id="cfgPhoneNumber" placeholder="919876543210" style="margin-bottom: 0;">
+                        <button class="btn btn-primary" style="width: auto; padding: 0 16px;" onclick="requestPairCode()">Pair</button>
+                    </div>
+                    <div id="pairCodeResult" class="pairing-code-box"></div>
+                </div>
             </div>
 
             <label>Theme</label>
@@ -278,18 +300,22 @@
         }
 
         function updateStagedBadge() {
-            document.getElementById('createStagedCount').innerText = `${stagedContacts.length} Contacts Selected`;
+            document.getElementById('createStagedCount').innerText = `${stagedContacts.length} Contacts Staged`;
         }
 
-        // --- In-App Manual Contact Picker ---
+        // --- Clean Hierarchy Modal Switching for Phonebook ---
         async function openPhonebookSelector(mode) {
             pbTargetMode = mode;
             selectedPbContacts.clear();
 
+            // Temporarily hide underlying modals to avoid overlap
+            if (mode === 'create') closeModal('createGroupModal');
+            if (mode === 'edit') closeModal('membersModal');
+
             const ContactsPlugin = window.Capacitor?.Plugins?.Contacts;
             if (!ContactsPlugin) {
-                alert('Contact plugin bridge loading. Use Import File or direct input if running on web.');
-                return;
+                alert('Native contact bridge unavailable in this view.');
+                return closePhonebookModal();
             }
 
             try {
@@ -301,7 +327,7 @@
 
                     cachedDeviceContacts = [];
                     (result.contacts || []).forEach(c => {
-                        const name = c.name?.display || c.name?.given || 'Unknown';
+                        const name = c.name?.display || c.name?.given || '';
                         (c.phones || []).forEach(p => {
                             const clean = p.number.replace(/[^0-9]/g, '');
                             if (clean.length >= 10) {
@@ -318,11 +344,19 @@
                     renderPhonebook(cachedDeviceContacts);
                     openModal('phonebookModal');
                 } else {
-                    alert('Contacts permission was denied.');
+                    alert('Contacts permission not granted.');
+                    closePhonebookModal();
                 }
             } catch (err) {
                 alert('Contacts error: ' + err.message);
+                closePhonebookModal();
             }
+        }
+
+        function closePhonebookModal() {
+            closeModal('phonebookModal');
+            if (pbTargetMode === 'create') openModal('createGroupModal');
+            if (pbTargetMode === 'edit') openModal('membersModal');
         }
 
         function renderPhonebook(list) {
@@ -340,7 +374,7 @@
                     <div class="member-item ${isSelected ? 'selected' : ''}" onclick="togglePbSelection('${c.phone}')" style="cursor: pointer;">
                         <input type="checkbox" ${isSelected ? 'checked' : ''} onclick="event.stopPropagation(); togglePbSelection('${c.phone}')">
                         <div class="member-info">
-                            <span class="member-name">${c.name}</span>
+                            <span class="member-name">${c.name || 'Unsaved'}</span>
                             <span class="member-phone">${c.phone}</span>
                         </div>
                     </div>
@@ -369,7 +403,7 @@
         function filterPhonebook() {
             const query = (document.getElementById('phonebookSearch').value || '').toLowerCase();
             const filtered = cachedDeviceContacts.filter(c => 
-                c.name.toLowerCase().includes(query) || c.phone.includes(query)
+                (c.name || '').toLowerCase().includes(query) || c.phone.includes(query)
             );
             renderPhonebook(filtered);
         }
@@ -397,7 +431,7 @@
                 }
             }
 
-            closeModal('phonebookModal');
+            closePhonebookModal();
             alert(`Added ${chosen.length} contacts.`);
         }
 
@@ -454,7 +488,7 @@
                 });
             }
 
-            if (contacts.length === 0) return alert('Select or enter at least one contact');
+            if (contacts.length === 0) return alert('Add at least one phone number');
 
             const newGroup = {
                 id: 'grp_' + Date.now(),
@@ -497,7 +531,6 @@
             openModal('campaignModal');
         }
 
-        // --- Members Manager Display (Shows Name + Phone) ---
         function openMembersManager() {
             const group = groups.find(g => g.id === activeGroupId);
             if (!group) return;
@@ -527,7 +560,7 @@
                     <div class="member-item ${isSelected ? 'selected' : ''}">
                         <input type="checkbox" ${isSelected ? 'checked' : ''} onchange="toggleSelectMember(${index})">
                         <div class="member-info">
-                            ${name ? `<span class="member-name">${name}</span>` : ''}
+                            ${name ? `<span class="member-name">${name}</span>` : '<span class="member-name" style="color: var(--text-muted); font-weight: normal;">Unsaved</span>'}
                             <span class="member-phone">${phone}</span>
                         </div>
                         <div class="member-actions">
@@ -558,15 +591,16 @@
         }
 
         function addSingleContact() {
-            const input = document.getElementById('quickAddInput');
-            const clean = input.value.trim().replace(/[^0-9]/g, '');
-            if (!clean || clean.length < 10) return alert('Enter a valid phone number');
+            const name = document.getElementById('quickAddName').value.trim();
+            const phone = document.getElementById('quickAddPhone').value.trim().replace(/[^0-9]/g, '');
+            if (!phone || phone.length < 10) return alert('Enter a valid phone number (minimum 10 digits)');
 
             const group = groups.find(g => g.id === activeGroupId);
-            if (group.contacts.some(c => (c.phone || c) === clean)) return alert('Number already in group');
+            if (group.contacts.some(c => (c.phone || c) === phone)) return alert('Number already exists in this group');
 
-            group.contacts.unshift({ name: '', phone: clean });
-            input.value = '';
+            group.contacts.unshift({ name, phone });
+            document.getElementById('quickAddName').value = '';
+            document.getElementById('quickAddPhone').value = '';
             renderMembersList();
         }
 
@@ -686,6 +720,20 @@
             }, 2000);
         }
 
+        // --- Persistent WhatsApp Session & Pairing Logic ---
+        function openSettingsModal() {
+            const savedPhone = localStorage.getItem('connected_wa_phone');
+            if (savedPhone) {
+                document.getElementById('loggedInView').style.display = 'flex';
+                document.getElementById('loggedOutView').style.display = 'none';
+                document.getElementById('displayConnectedNumber').innerText = `+${savedPhone}`;
+            } else {
+                document.getElementById('loggedInView').style.display = 'none';
+                document.getElementById('loggedOutView').style.display = 'block';
+            }
+            openModal('settingsModal');
+        }
+
         async function requestPairCode() {
             const phone = document.getElementById('cfgPhoneNumber').value.trim();
             const resBox = document.getElementById('pairCodeResult');
@@ -706,12 +754,22 @@
                 const d = await res.json();
                 if (d.pairingCode) {
                     resBox.innerText = d.pairingCode;
+                    // Persist phone number locally upon successful pairing request
+                    localStorage.setItem('connected_wa_phone', phone.replace(/[^0-9]/g, ''));
                 } else {
                     resBox.innerText = d.error || 'Pairing failed';
                 }
             } catch (err) {
                 resBox.innerText = 'Error: ' + err.message;
             }
+        }
+
+        function unlinkWhatsAppSession() {
+            if (!confirm('Unlink this WhatsApp session? You will need to pair again to send campaigns.')) return;
+            localStorage.removeItem('connected_wa_phone');
+            document.getElementById('pairCodeResult').style.display = 'none';
+            document.getElementById('cfgPhoneNumber').value = '';
+            openSettingsModal();
         }
 
         function shareApp() {
