@@ -61,9 +61,8 @@
         .btn-secondary { background: var(--border); color: var(--text); margin-top: 8px; }
         .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); margin-top: 8px; }
         .btn-action-row { display: flex; gap: 8px; margin-bottom: 12px; }
-        .btn-action-row .btn { padding: 8px 10px; font-size: 0.82rem; background: var(--surface-card); border: 1px solid var(--border); color: var(--text); }
+        .btn-action-row .btn { padding: 9px 10px; font-size: 0.85rem; background: var(--surface-card); border: 1px solid var(--border); color: var(--text); }
 
-        /* Member Management List Components */
         .member-controls-bar { display: flex; justify-content: space-between; align-items: center; background: var(--surface-card); padding: 8px 12px; border-radius: 8px; margin-bottom: 10px; border: 1px solid var(--border); font-size: 0.85rem; }
         .member-list-scroll { flex: 1; overflow-y: auto; max-height: 320px; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 14px; background: var(--bg); }
         .member-item { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; border-bottom: 1px solid var(--border); gap: 10px; }
@@ -110,11 +109,12 @@
 
             <label>Add Numbers</label>
             <div class="btn-action-row">
-                <button type="button" class="btn" onclick="document.getElementById('csvFileInputCreate').click()">📁 Import CSV / File</button>
+                <button type="button" class="btn" onclick="requestAndPickContacts('newGroupContacts')">📱 Pick Contacts</button>
+                <button type="button" class="btn" onclick="document.getElementById('csvFileInputCreate').click()">📁 Import File</button>
                 <input type="file" id="csvFileInputCreate" accept=".csv,.txt,.vcf" style="display: none;" onchange="handleFileImport(event, 'newGroupContacts')">
             </div>
 
-            <label>Enter Numbers (one per line, spaces/dashes automatically sanitized)</label>
+            <label>Numbers Preview / Direct Paste</label>
             <textarea id="newGroupContacts" rows="5" placeholder="919791833275&#10;917904220952"></textarea>
 
             <button class="btn btn-primary" onclick="saveGroup()">Save Group</button>
@@ -152,23 +152,26 @@
         </div>
     </div>
 
-    <!-- Group Members Manager Modal (List View with Checkboxes, Edit, and Delete) -->
+    <!-- Group Members Manager Modal -->
     <div class="modal" id="membersModal">
         <div class="modal-content">
             <div class="modal-title">Group Members</div>
 
-            <!-- Group Rename Header -->
             <label>Group Name</label>
             <input type="text" id="editGroupNameInput">
 
-            <!-- Fast Quick-Add Row -->
-            <label>Add New Contact</label>
+            <label>Add More Contacts</label>
+            <div class="btn-action-row">
+                <button type="button" class="btn" onclick="requestAndPickContacts('quickAdd')">📱 Pick Contacts</button>
+                <button type="button" class="btn" onclick="document.getElementById('csvFileInputEdit').click()">📁 Import File</button>
+                <input type="file" id="csvFileInputEdit" accept=".csv,.txt,.vcf" style="display: none;" onchange="handleFileImport(event, 'quickAdd')">
+            </div>
+
             <div style="display: flex; gap: 8px; margin-bottom: 12px;">
                 <input type="tel" id="quickAddInput" placeholder="91XXXXXXXXXX" style="margin-bottom: 0;">
                 <button class="btn btn-primary" style="width: auto; padding: 0 16px;" onclick="addSingleContact()">Add</button>
             </div>
 
-            <!-- Multi-Select Action Controls -->
             <div class="member-controls-bar">
                 <label style="display: flex; align-items: center; gap: 6px; margin-bottom: 0; cursor: pointer; color: var(--text);">
                     <input type="checkbox" id="selectAllCheckbox" onchange="toggleSelectAll(this.checked)">
@@ -179,7 +182,6 @@
                 </button>
             </div>
 
-            <!-- Scrollable Contacts List -->
             <div class="member-list-scroll" id="membersListContainer"></div>
 
             <button class="btn btn-primary" onclick="saveAndCloseMembers()">Save & Return</button>
@@ -246,17 +248,91 @@
             openModal('createGroupModal');
         }
 
-        function handleFileImport(e, targetId) {
+        // Native Capacitor Contacts Bridge (Direct permission prompt)
+        async function requestAndPickContacts(target) {
+            const ContactsPlugin = window.Capacitor?.Plugins?.Contacts;
+
+            if (ContactsPlugin) {
+                try {
+                    // Check and prompt native OS permission
+                    const perm = await ContactsPlugin.requestPermissions();
+                    if (perm.contacts === 'granted') {
+                        const result = await ContactsPlugin.getContacts({
+                            projection: { name: true, phones: true }
+                        });
+                        
+                        if (result.contacts && result.contacts.length > 0) {
+                            const numbers = [];
+                            result.contacts.forEach(c => {
+                                if (c.phones && c.phones.length > 0) {
+                                    c.phones.forEach(p => {
+                                        const clean = p.number.replace(/[^0-9]/g, '');
+                                        if (clean.length >= 10) numbers.push(clean);
+                                    });
+                                }
+                            });
+                            appendExtractedContacts(target, [...new Set(numbers)]);
+                            return;
+                        }
+                    }
+                } catch (e) {
+                    console.log('Plugin error:', e);
+                }
+            }
+
+            // Web fallback if running without plugin bridge
+            if ('contacts' in navigator && 'select' in navigator.contacts) {
+                try {
+                    const selected = await navigator.contacts.select(['tel', 'name'], { multiple: true });
+                    if (selected && selected.length > 0) {
+                        const extracted = [];
+                        selected.forEach(c => {
+                            if (c.tel) {
+                                c.tel.forEach(num => {
+                                    const clean = num.replace(/[^0-9]/g, '');
+                                    if (clean.length >= 10) extracted.push(clean);
+                                });
+                            }
+                        });
+                        appendExtractedContacts(target, extracted);
+                        return;
+                    }
+                } catch (e) {}
+            }
+
+            // Manual prompt fallback if OS blocks silent access
+            const manual = prompt('Enter numbers separated by comma or space:');
+            if (manual) {
+                const manualNums = manual.split(/[\s,]+/).map(n => n.replace(/[^0-9]/g, '')).filter(n => n.length >= 10);
+                appendExtractedContacts(target, manualNums);
+            }
+        }
+
+        function appendExtractedContacts(target, numbers) {
+            if (numbers.length === 0) return;
+            if (target === 'quickAdd') {
+                const group = groups.find(g => g.id === activeGroupId);
+                if (group) {
+                    group.contacts = [...new Set([...numbers, ...group.contacts])];
+                    renderMembersList();
+                    alert(`Added ${numbers.length} contacts to group.`);
+                }
+            } else {
+                const box = document.getElementById(target);
+                const existing = box.value.trim();
+                box.value = existing ? (existing + '\n' + numbers.join('\n')) : numbers.join('\n');
+                alert(`Added ${numbers.length} contacts.`);
+            }
+        }
+
+        function handleFileImport(e, target) {
             const file = e.target.files[0];
             if (!file) return;
             const reader = new FileReader();
             reader.onload = function(evt) {
                 const text = evt.target.result;
                 const rawNumbers = text.split(/[\r\n,;]+/).map(n => n.replace(/[^0-9]/g, '')).filter(n => n.length >= 10);
-                const box = document.getElementById(targetId);
-                const existing = box.value.trim();
-                box.value = existing ? (existing + '\n' + rawNumbers.join('\n')) : rawNumbers.join('\n');
-                alert(`Imported ${rawNumbers.length} valid phone numbers.`);
+                appendExtractedContacts(target, [...new Set(rawNumbers)]);
                 e.target.value = '';
             };
             reader.readAsText(file);
@@ -267,13 +343,13 @@
             const rawContacts = document.getElementById('newGroupContacts').value.trim();
             if (!name) return alert('Enter group name');
 
-            const contacts = rawContacts.split(/[\r\n,]+/).map(c => c.replace(/[^0-9]/g, '')).filter(Boolean);
+            const contacts = rawContacts.split(/[\r\n,]+/).map(c => c.replace(/[^0-9]/g, '')).filter(c => c.length >= 10);
             if (contacts.length === 0) return alert('Add at least one phone number');
 
             const newGroup = {
                 id: 'grp_' + Date.now(),
                 name: name,
-                contacts: [...new Set(contacts)], // Remove duplicates automatically
+                contacts: [...new Set(contacts)],
                 createdAt: new Date().toLocaleDateString()
             };
 
@@ -311,7 +387,6 @@
             openModal('campaignModal');
         }
 
-        // --- Interactive Members Manager (List, Edit, Delete, Multi-Select) ---
         function openMembersManager() {
             const group = groups.find(g => g.id === activeGroupId);
             if (!group) return;
