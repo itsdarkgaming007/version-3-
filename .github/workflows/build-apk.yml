@@ -32,6 +32,10 @@ jobs:
           npx cap add android
           npx cap sync android
 
+      - name: Enable Cleartext Traffic for Local IP Access
+        run: |
+          sed -i 's/<application/<application android:usesCleartextTraffic="true"/g' android/app/src/main/AndroidManifest.xml
+
       - name: Build Debug APK
         run: |
           cd android
