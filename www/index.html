@@ -40,7 +40,6 @@
         .container { flex: 1; padding: 16px; max-width: 600px; margin: 0 auto; width: 100%; position: relative; }
         .empty-state { text-align: center; margin-top: 50%; transform: translateY(-50%); color: var(--text-muted); }
         .empty-state h2 { font-size: 1.3rem; margin-bottom: 8px; color: var(--text); }
-        .empty-state p { font-size: 0.92rem; }
 
         .group-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 12px; cursor: pointer; }
         .group-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
@@ -55,11 +54,13 @@
         .modal-title { font-size: 1.15rem; font-weight: 700; margin-bottom: 14px; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
 
         label { display: block; font-size: 0.82rem; color: var(--text-muted); margin-bottom: 6px; }
-        input, textarea, select { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface-card); color: var(--text); font-size: 0.92rem; margin-bottom: 14px; outline: none; }
+        input, textarea, select { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface-card); color: var(--text); font-size: 0.92rem; margin-bottom: 12px; outline: none; }
         .btn { width: 100%; padding: 11px; border-radius: 8px; font-weight: 600; cursor: pointer; border: none; font-size: 0.95rem; }
         .btn-primary { background: var(--primary); color: #000; }
         .btn-danger { background: var(--danger); color: #fff; }
         .btn-secondary { background: var(--border); color: var(--text); margin-top: 8px; }
+        .btn-action-row { display: flex; gap: 8px; margin-bottom: 12px; }
+        .btn-action-row .btn { padding: 8px 10px; font-size: 0.82rem; background: var(--surface-card); border: 1px solid var(--border); color: var(--text); }
 
         .progress-box { background: var(--surface-card); border: 1px solid var(--border); border-radius: 8px; height: 12px; overflow: hidden; margin: 12px 0 6px 0; }
         .progress-bar { background: var(--primary); height: 100%; width: 0%; transition: width 0.3s; }
@@ -83,14 +84,24 @@
 
     <button class="fab" onclick="openCreateGroupModal()">+</button>
 
-    <!-- Create Group Modal -->
+    <!-- Create Group Modal with CSV & Native Contacts -->
     <div class="modal" id="createGroupModal">
         <div class="modal-content">
             <div class="modal-title" id="txtNewGroupTitle">Create Group</div>
+            
             <label id="lblGroupName">Group Name</label>
             <input type="text" id="newGroupName" placeholder="e.g. VIP Customers">
-            <label id="lblGroupContacts">Phone Numbers (One per line or comma-separated)</label>
-            <textarea id="newGroupContacts" rows="6" placeholder="919876543210&#10;919876543211"></textarea>
+
+            <label>Add Contacts</label>
+            <div class="btn-action-row">
+                <button type="button" class="btn" onclick="pickNativeContacts()">📱 Pick Contacts</button>
+                <button type="button" class="btn" onclick="document.getElementById('csvFileInput').click()">📁 Import CSV</button>
+                <input type="file" id="csvFileInput" accept=".csv,.txt" style="display: none;" onchange="handleCsvFile(event)">
+            </div>
+
+            <label id="lblGroupContacts">Phone Numbers (Direct Paste / Imported)</label>
+            <textarea id="newGroupContacts" rows="5" placeholder="919876543210&#10;919876543211"></textarea>
+
             <button class="btn btn-primary" onclick="saveGroup()" id="btnSaveGroup">Save Group</button>
             <button class="btn btn-secondary" onclick="closeModal('createGroupModal')" id="btnCancel">Cancel</button>
         </div>
@@ -141,8 +152,8 @@
                 <option value="light">Light Theme</option>
             </select>
 
-            <label>Server Base URL (Laptop IP or Tunnel)</label>
-            <input type="text" id="cfgServerUrl" placeholder="http://192.168.1.15:3000">
+            <label>Server Base URL (Laptop IP)</label>
+            <input type="text" id="cfgServerUrl" placeholder="http://192.168.1.8:3000">
 
             <label>API Bearer Token</label>
             <input type="password" id="cfgApiToken" value="marketing_engine_secret_2026">
@@ -170,7 +181,7 @@
                 emptyDesc: "கீழே உள்ள '+' பட்டனை அழுத்தி புதிய குரூப் உருவாக்கவும்",
                 newGroupTitle: "புதிய குரூப் உருவாக்கு",
                 lblGroupName: "குரூப் பெயர்",
-                lblGroupContacts: "தொடர்புகள் (வரிசையாக அல்லது கமாவுடன்)",
+                lblGroupContacts: "தொடர்புகள் (நேரடியாக / இறக்குமதி செய்தவை)",
                 save: "சேமி",
                 cancel: "ரத்து"
             },
@@ -180,7 +191,7 @@
                 emptyDesc: "Tap the '+' button below to create your first group",
                 newGroupTitle: "Create New Group",
                 lblGroupName: "Group Name",
-                lblGroupContacts: "Contacts (Newline or comma separated)",
+                lblGroupContacts: "Contacts (Direct Paste / Imported)",
                 save: "Save Group",
                 cancel: "Cancel"
             },
@@ -190,13 +201,13 @@
                 emptyDesc: "नया समूह बनाने के लिए नीचे '+' बटन दबाएं",
                 newGroupTitle: "नया समूह बनाएं",
                 lblGroupName: "समूह का नाम",
-                lblGroupContacts: "संपर्क (नई पंक्ति या अल्पविराम)",
+                lblGroupContacts: "संपर्क (प्रत्यक्ष पेस्ट / आयातित)",
                 save: "सुरक्षित करें",
                 cancel: "रद्द करें"
             }
         };
 
-        var currentLang = localStorage.getItem('app_lang') || 'ta';
+        var currentLang = localStorage.getItem('app_lang') || 'en';
         var groups = [];
         try {
             groups = JSON.parse(localStorage.getItem('app_groups') || '[]');
@@ -210,7 +221,7 @@
         function applyLanguage(lang) {
             currentLang = lang;
             localStorage.setItem('app_lang', lang);
-            var t = i18n[lang] || i18n['ta'];
+            var t = i18n[lang] || i18n['en'];
             document.getElementById('appTitle').innerText = t.appTitle;
             document.getElementById('txtNewGroupTitle').innerText = t.newGroupTitle;
             document.getElementById('lblGroupName').innerText = t.lblGroupName;
@@ -242,6 +253,57 @@
             openModal('createGroupModal');
         }
 
+        // Native Android Contacts Picker API
+        async function pickNativeContacts() {
+            if ('contacts' in navigator && 'select' in navigator.contacts) {
+                try {
+                    var selected = await navigator.contacts.select(['tel', 'name'], { multiple: true });
+                    if (selected && selected.length > 0) {
+                        var extracted = [];
+                        selected.forEach(function(c) {
+                            if (c.tel && c.tel.length > 0) {
+                                c.tel.forEach(function(num) {
+                                    var clean = num.replace(/[^0-9]/g, '');
+                                    if (clean) extracted.push(clean);
+                                });
+                            }
+                        });
+                        appendNumbersToBox(extracted);
+                    }
+                } catch (e) {
+                    alert('Contact picker cancelled or unsupported: ' + e.message);
+                }
+            } else {
+                alert('Native contact selector is not available in this browser/device mode. Use CSV Import or Direct Paste.');
+            }
+        }
+
+        // Handle CSV File Upload
+        function handleCsvFile(e) {
+            var file = e.target.files[0];
+            if (!file) return;
+            var reader = new FileReader();
+            reader.onload = function(evt) {
+                var text = evt.target.result;
+                var rawNumbers = text.split(/[\r\n,;]+/).map(function(n) {
+                    return n.replace(/[^0-9]/g, '');
+                }).filter(function(n) {
+                    return n.length >= 10;
+                });
+                appendNumbersToBox(rawNumbers);
+                e.target.value = '';
+            };
+            reader.readAsText(file);
+        }
+
+        function appendNumbersToBox(nums) {
+            var box = document.getElementById('newGroupContacts');
+            var existing = box.value.trim();
+            var combined = existing ? (existing + '\n' + nums.join('\n')) : nums.join('\n');
+            box.value = combined;
+            alert('Added ' + nums.length + ' contacts.');
+        }
+
         function saveGroup() {
             var name = document.getElementById('newGroupName').value.trim();
             var rawContacts = document.getElementById('newGroupContacts').value.trim();
@@ -251,7 +313,7 @@
                 return c.replace(/[^0-9]/g, '');
             }).filter(Boolean);
 
-            if (contacts.length === 0) return alert('Enter at least one valid phone number');
+            if (contacts.length === 0) return alert('Add at least one phone number');
 
             var newGroup = {
                 id: 'grp_' + Date.now(),
@@ -269,7 +331,7 @@
         function renderGroups() {
             var container = document.getElementById('groupListContainer');
             if (!groups || groups.length === 0) {
-                var t = i18n[currentLang] || i18n['ta'];
+                var t = i18n[currentLang] || i18n['en'];
                 container.innerHTML = '<div class="empty-state"><h2>' + t.emptyTitle + '</h2><p>' + t.emptyDesc + '</p></div>';
                 return;
             }
