@@ -1,0 +1,8 @@
+{
+  "appId": "com.wacampaign.controller",
+  "appName": "WA Campaign",
+  "webDir": "www",
+  "server": {
+    "cleartext": true
+  }
+}
