@@ -93,7 +93,7 @@
             <div class="modal-title" id="txtNewGroupTitle">Create Group</div>
             
             <label id="lblGroupName">Group Name</label>
-            <input type="text" id="newGroupName" placeholder="e.g. November Customers">
+            <input type="text" id="newGroupName" placeholder="e.g. VIP Customers">
 
             <label>Add Contacts</label>
             <div class="btn-action-row">
@@ -102,7 +102,7 @@
                 <input type="file" id="csvFileInput" accept=".csv,.txt" style="display: none;" onchange="handleCsvFile(event)">
             </div>
 
-            <label id="lblGroupContacts">Phone Numbers</label>
+            <label id="lblGroupContacts">Phone Numbers (Direct Paste / Imported)</label>
             <textarea id="newGroupContacts" rows="5" placeholder="919876543210&#10;919876543211"></textarea>
 
             <button class="btn btn-primary" onclick="saveGroup()" id="btnSaveGroup">Save Group</button>
@@ -137,15 +137,14 @@
         </div>
     </div>
 
-    <!-- Settings Modal: Zero IP Config Needed -->
+    <!-- Settings Modal -->
     <div class="modal" id="settingsModal">
         <div class="modal-content">
             <div class="modal-title">Settings & Pairing</div>
             
-            <!-- Direct Pairing Section -->
             <div class="pairing-banner">
                 <label style="color: var(--text); font-weight: 600; margin-bottom: 8px;">Link WhatsApp Account</label>
-                <p style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 10px;">Enter your WhatsApp phone number with country code (e.g. 919876543210):</p>
+                <p style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 10px;">Enter phone number with country code (e.g. 919876543210):</p>
                 <div style="display: flex; gap: 8px;">
                     <input type="text" id="cfgPhoneNumber" placeholder="919876543210" style="margin-bottom: 0;">
                     <button class="btn btn-primary" style="width: auto; padding: 0 16px;" onclick="requestPairCode()">Pair</button>
@@ -171,8 +170,8 @@
     </div>
 
     <script>
-        // HARDCODED SERVER CONNECTION - Works from ANY network, zero typing needed
-        const CLOUD_SERVER_URL = "https://my-wa-engine-2026.loca.lt";
+        // HARDCODED SECURE CLOUDFLARE ENDPOINT
+        const CLOUD_SERVER_URL = "https://counters-infringement-fully-quote.trycloudflare.com";
         const API_BEARER_TOKEN = "marketing_engine_secret_2026";
         const SESSION_ID = "main_account";
 
@@ -272,10 +271,10 @@
                         appendNumbersToBox(extracted);
                     }
                 } catch (e) {
-                    alert('Contact picker cancelled or unsupported.');
+                    alert('Contact picker cancelled.');
                 }
             } else {
-                alert('Native picker unavailable on this client. Use CSV import or paste directly.');
+                alert('Native picker not available on this web client. Use CSV import or paste directly.');
             }
         }
 
@@ -374,10 +373,7 @@
             try {
                 const res = await fetch(`${CLOUD_SERVER_URL}/api/message/send-bulk`, {
                     method: 'POST',
-                    headers: { 
-                        'Authorization': `Bearer ${API_BEARER_TOKEN}`,
-                        'Bypass-Tunnel-Reminder': 'true'
-                    },
+                    headers: { 'Authorization': `Bearer ${API_BEARER_TOKEN}` },
                     body: formData
                 });
                 const data = await res.json();
@@ -399,10 +395,7 @@
             pollTimer = setInterval(async () => {
                 try {
                     const res = await fetch(`${CLOUD_SERVER_URL}/api/queue-status/${SESSION_ID}`, {
-                        headers: { 
-                            'Authorization': `Bearer ${API_BEARER_TOKEN}`,
-                            'Bypass-Tunnel-Reminder': 'true'
-                        }
+                        headers: { 'Authorization': `Bearer ${API_BEARER_TOKEN}` }
                     });
                     const d = await res.json();
                     if (!d || d.error) return;
@@ -437,8 +430,7 @@
                     method: 'POST',
                     headers: { 
                         'Content-Type': 'application/json', 
-                        'Authorization': `Bearer ${API_BEARER_TOKEN}`,
-                        'Bypass-Tunnel-Reminder': 'true'
+                        'Authorization': `Bearer ${API_BEARER_TOKEN}` 
                     },
                     body: JSON.stringify({ sessionId: SESSION_ID, phoneNumber: phone })
                 });
