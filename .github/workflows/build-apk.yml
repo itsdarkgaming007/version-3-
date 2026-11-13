@@ -4,6 +4,12 @@ on:
   push:
     branches: [ "main" ]
   workflow_dispatch:
+    inputs:
+      publish_to_customers:
+        description: "Release this build to all customers as latest update?"
+        required: true
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -106,13 +112,16 @@ jobs:
           cp "$APK_DIR/app-debug.apk" "$APK_DIR/WA_Campaign_Latest.apk"
           echo "VERSIONED_NAME=$VERSIONED_NAME" >> $GITHUB_ENV
 
+      # Staging Step: Saves private APK artifact for your testing
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: wa-campaign-${{ env.VERSION_NAME }}
           path: android/app/build/outputs/apk/debug/${{ env.VERSIONED_NAME }}
 
+      # Production Step: Executes ONLY when manually approved
       - name: Publish Release
+        if: ${{ github.event.inputs.publish_to_customers == 'true' }}
         uses: softprops/action-gh-release@v2
         with:
           tag_name: latest
