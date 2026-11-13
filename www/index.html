@@ -38,12 +38,21 @@
         .header-title { font-size: 1.2rem; font-weight: 700; color: var(--text); }
         .icon-btn { background: none; border: none; font-size: 1.3rem; color: var(--text); cursor: pointer; }
 
+        /* Pull to Refresh Indicator */
+        #pullToRefreshSpinner {
+            text-align: center;
+            font-size: 0.8rem;
+            color: var(--primary);
+            padding: 8px;
+            display: none;
+            font-weight: bold;
+        }
+
         .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; height: 62px; background: var(--surface); border-top: 1px solid var(--border); display: flex; justify-content: space-around; align-items: center; z-index: 100; }
         .nav-tab { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: var(--text-muted); cursor: pointer; text-decoration: none; font-size: 0.75rem; font-weight: 600; gap: 4px; position: relative; }
         .nav-tab.active { color: var(--primary); }
         .nav-tab span.icon { font-size: 1.3rem; }
 
-        /* Update Notification Dot (Hidden by default, shown strictly when latest > current) */
         .update-badge-dot {
             width: 8px;
             height: 8px;
@@ -59,8 +68,8 @@
         .page-content.active { display: block; }
 
         .card { background: var(--surface-card); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; margin-bottom: 12px; }
-        .group-card { background: var(--surface-card); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; margin-bottom: 10px; cursor: pointer; }
-        .group-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+        .group-card { background: var(--surface-card); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; margin-bottom: 10px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+        .group-card.selected { border-color: var(--primary); background: rgba(0, 168, 132, 0.08); }
         .group-card-title { font-size: 1.05rem; font-weight: 600; }
         .group-card-badge { background: rgba(0, 168, 132, 0.15); color: var(--primary); font-size: 0.75rem; font-weight: bold; padding: 3px 8px; border-radius: 12px; }
 
@@ -106,7 +115,7 @@
         .modal-content { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; width: 100%; max-width: 500px; padding: 20px; max-height: 90vh; display: flex; flex-direction: column; overflow-y: auto; }
         .modal-title { font-size: 1.15rem; font-weight: 700; margin-bottom: 14px; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
 
-        .contact-picker-row { display: flex; align-items: center; padding: 12px 10px; border-bottom: 1px solid var(--border); gap: 12px; cursor: pointer; }
+        .contact-picker-row { display: flex; align-items: center; padding: 12px 10px; border-bottom: 1px solid var(--border); gap: 12px; }
         .contact-avatar { width: 38px; height: 38px; border-radius: 19px; background: #2a3942; color: var(--primary); font-weight: bold; display: flex; align-items: center; justify-content: center; font-size: 1rem; flex-shrink: 0; }
         .contact-details { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
         .contact-name-txt { font-size: 0.95rem; font-weight: 600; color: var(--text); }
@@ -129,24 +138,35 @@
         <button class="icon-btn" onclick="executeNativeAppShare()">📤</button>
     </header>
 
+    <div id="pullToRefreshSpinner">↻ Refreshing...</div>
+
     <!-- 1. GROUPS -->
     <div class="page-content active" id="viewGroups">
-        <div style="display: flex; gap: 8px; margin-bottom: 12px;">
-            <select id="groupSortSelect" onchange="sortGroups(this.value)" style="margin-bottom: 0;">
-                <option value="newest">Sort: Newest First</option>
-                <option value="alpha">Sort: Alphabetical (A-Z)</option>
-                <option value="count">Sort: Most Contacts</option>
+        <div style="display: flex; gap: 8px; margin-bottom: 12px; align-items: center;">
+            <select id="groupSortSelect" onchange="sortGroups(this.value)" style="margin-bottom: 0; flex: 1;">
+                <option value="newest" id="optSortNewest">Sort: Newest First</option>
+                <option value="alpha" id="optSortAlpha">Sort: Alphabetical (A-Z)</option>
+                <option value="count" id="optSortCount">Sort: Most Contacts</option>
             </select>
+            <button class="btn btn-outline" style="width: auto; padding: 10px 14px;" id="btnToggleGroupSelect" onclick="toggleGroupSelectMode()">Select</button>
         </div>
+
+        <div id="groupBatchActionBar" style="display: none; margin-bottom: 12px; gap: 8px;">
+            <button class="btn btn-danger" style="margin-top: 0;" onclick="deleteSelectedGroups()">🗑️ Delete Selected Groups (<span id="selectedGroupCount">0</span>)</button>
+        </div>
+
         <div id="groupsListContainer"></div>
     </div>
 
     <!-- 2. CAMPAIGN -->
     <div class="page-content" id="viewCampaign">
-        <label id="lblMessage">Marketing Message</label>
+        <label id="lblMessage">Marketing Message (Optional if Media Attached)</label>
         <textarea id="campGlobalMessage" class="safe-textarea" placeholder="Type message..." oninput="updateLivePreview()"></textarea>
 
-        <label id="lblAttachments">Attachments (Images, Videos, PDF)</label>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+            <label id="lblAttachments" style="margin-bottom: 0;">Attachments (Images, Videos, PDF)</label>
+            <button id="btnClearMedia" type="button" style="display: none; background: none; border: none; color: var(--danger); font-size: 0.8rem; font-weight: bold; cursor: pointer;" onclick="clearMediaAttachment()">✖ Clear File</button>
+        </div>
         <input type="file" id="campGlobalMedia" multiple accept="image/*,video/*,application/pdf" onchange="handleMediaAttachment(event)">
 
         <label id="lblPreview">Realistic WhatsApp Preview</label>
@@ -218,7 +238,7 @@
 
         <div class="card" style="margin-top: 20px;">
             <label id="lblUpdates">App Updates</label>
-            <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 4px;" id="lblCurrentVer">Current Version: 3.6.0</div>
+            <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 4px;" id="lblCurrentVer">Current Version: Checking...</div>
             <div id="updateStatusNotice" style="font-size: 0.8rem; color: var(--primary); margin-bottom: 8px; display: none;">New update available!</div>
             <button class="btn btn-outline" id="btnUpdateCheck" onclick="downloadDirectUpdate()">⚡ Check & Install Latest Version</button>
         </div>
@@ -226,7 +246,7 @@
         <button class="btn btn-outline" style="margin-top: 10px;" id="btnShareApp" onclick="executeNativeAppShare()">Share WA Campaign App</button>
     </div>
 
-    <!-- Persistent Bottom Navigation -->
+    <!-- Bottom Nav -->
     <div class="bottom-nav">
         <div class="nav-tab active" onclick="navigateTab('viewGroups', this)"><span class="icon">💬</span><span id="tabGroups">Groups</span></div>
         <div class="nav-tab" onclick="navigateTab('viewCampaign', this)"><span class="icon">📢</span><span id="tabCampaign">Campaign</span></div>
@@ -261,6 +281,7 @@
         </div>
     </div>
 
+    <!-- Group Members Manager with Dedicated Edit Option (#2) -->
     <div class="modal" id="membersModal">
         <div class="modal-content">
             <div class="modal-title" id="lblManageGroup">Group Members</div>
@@ -278,15 +299,28 @@
                 <input type="file" id="csvFileInputEdit" accept=".csv,.txt,.vcf" style="display: none;" onchange="handleFileImport(event, 'edit')">
             </div>
 
-            <label>Add Single Contact</label>
+            <label>Add Single Contact (Auto +91)</label>
             <div style="display: flex; gap: 6px; margin-bottom: 12px;">
                 <input type="text" id="quickAddName" placeholder="Name" style="flex: 1; margin-bottom: 0;">
-                <input type="tel" id="quickAddPhone" placeholder="91XXXXXXXXXX" style="flex: 1.4; margin-bottom: 0;">
+                <input type="tel" id="quickAddPhone" placeholder="10 Digits or +91" style="flex: 1.4; margin-bottom: 0;">
                 <button class="btn btn-primary" style="width: auto; padding: 0 14px;" onclick="addSingleContact()">Add</button>
             </div>
 
             <div id="membersListContainer" style="max-height: 250px; overflow-y: auto;"></div>
             <button class="btn btn-secondary" style="margin-top: 14px;" onclick="closeTopModal()">Done</button>
+        </div>
+    </div>
+
+    <!-- Edit Contact Modal (#2) -->
+    <div class="modal modal-high" id="editMemberModal">
+        <div class="modal-content">
+            <div class="modal-title">Edit Contact Details</div>
+            <label>Contact Name</label>
+            <input type="text" id="editTargetName" placeholder="Name">
+            <label>Phone Number</label>
+            <input type="tel" id="editTargetPhone" placeholder="Phone Number">
+            <button class="btn btn-primary" onclick="saveEditedMember()">Save Changes</button>
+            <button class="btn btn-secondary" onclick="closeTopModal()">Cancel</button>
         </div>
     </div>
 
@@ -325,7 +359,14 @@
         const FIXED_BACKEND_URL = "https://rinse-chest-dish.ngrok-free.dev";
         const API_BEARER_TOKEN = "marketing_engine_secret_2026";
         const SESSION_ID = "main_account";
-        const CURRENT_VERSION = "3.6.0";
+
+        // Auto Country Code Normalizer (#1)
+        function normalizeNumber(num) {
+            let clean = String(num || '').replace(/[^0-9]/g, '');
+            if (clean.length === 11 && clean.startsWith('0')) clean = clean.substring(1);
+            if (clean.length === 10) clean = '91' + clean;
+            return clean;
+        }
 
         const i18n = {
             en: {
@@ -434,6 +475,9 @@
         let cachedDeviceContacts = [];
         let selectedPbContacts = new Set();
         let selectedTargetGroupIds = new Set();
+        let selectedGroupsForDelete = new Set();
+        let isGroupSelectMode = false;
+        let editingMemberIndex = null;
         let pbTargetMode = 'create';
         const modalStack = [];
 
@@ -458,6 +502,33 @@
                     else if (confirm('Are you sure you want to exit?')) AppPlugin.exitApp();
                 });
             }
+        }
+
+        // Pull-to-Refresh Handler (#4)
+        function setupPullToRefresh() {
+            let startY = 0;
+            const spinner = document.getElementById('pullToRefreshSpinner');
+
+            window.addEventListener('touchstart', e => {
+                if (window.scrollY === 0) startY = e.touches[0].clientY;
+            }, { passive: true });
+
+            window.addEventListener('touchmove', e => {
+                const y = e.touches[0].clientY;
+                if (window.scrollY === 0 && y - startY > 90) {
+                    spinner.style.display = 'block';
+                }
+            }, { passive: true });
+
+            window.addEventListener('touchend', async () => {
+                if (spinner.style.display === 'block') {
+                    await syncWhatsAppAccountStatus();
+                    renderGroups();
+                    renderDashboard();
+                    checkForAppUpdatesBackground();
+                    setTimeout(() => spinner.style.display = 'none', 600);
+                }
+            });
         }
 
         function navigateTab(tabId, el) {
@@ -513,17 +584,20 @@
             document.getElementById('selLanguage').value = lang;
         }
 
+        // Media Clear & Attachment (#6)
         function handleMediaAttachment(e) {
             const files = e.target.files;
             const previewBox = document.getElementById('previewMediaBox');
             const previewImg = document.getElementById('previewImg');
             const previewVideo = document.getElementById('previewVideo');
+            const btnClear = document.getElementById('btnClearMedia');
 
             previewBox.style.display = 'none';
             previewImg.style.display = 'none';
             previewVideo.style.display = 'none';
 
             if (files && files[0]) {
+                btnClear.style.display = 'block';
                 const file = files[0];
                 const mime = file.type || '';
                 const url = URL.createObjectURL(file);
@@ -537,7 +611,18 @@
                     previewVideo.style.display = 'block';
                     previewVideo.src = url;
                 }
+            } else {
+                btnClear.style.display = 'none';
             }
+            updateLivePreview();
+        }
+
+        function clearMediaAttachment() {
+            const input = document.getElementById('campGlobalMedia');
+            input.value = '';
+            document.getElementById('btnClearMedia').style.display = 'none';
+            document.getElementById('previewMediaBox').style.display = 'none';
+            document.getElementById('previewImg').src = '';
             updateLivePreview();
         }
 
@@ -558,7 +643,7 @@
             document.getElementById('previewTime').innerText = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         }
 
-        // --- Persistent Zero-Touch Connection ---
+        // Persistent Session Connection
         async function syncWhatsAppAccountStatus() {
             const savedPhone = localStorage.getItem('connected_phone_permanent');
             if (savedPhone) {
@@ -569,10 +654,7 @@
 
             try {
                 const res = await fetch(`${FIXED_BACKEND_URL}/api/status/${SESSION_ID}`, {
-                    headers: { 
-                        'Authorization': `Bearer ${API_BEARER_TOKEN}`,
-                        'ngrok-skip-browser-warning': 'true'
-                    }
+                    headers: { 'Authorization': `Bearer ${API_BEARER_TOKEN}`, 'ngrok-skip-browser-warning': 'true' }
                 });
                 const d = await res.json();
                 
@@ -613,12 +695,12 @@
                         'Authorization': `Bearer ${API_BEARER_TOKEN}`,
                         'ngrok-skip-browser-warning': 'true'
                     },
-                    body: JSON.stringify({ sessionId: SESSION_ID, phoneNumber: phone })
+                    body: JSON.stringify({ sessionId: SESSION_ID, phoneNumber: normalizeNumber(phone) })
                 });
                 const d = await res.json();
                 if (d.pairingCode) {
                     disp.innerText = d.pairingCode;
-                    localStorage.setItem('connected_phone_permanent', phone.replace(/[^0-9]/g, ''));
+                    localStorage.setItem('connected_phone_permanent', normalizeNumber(phone));
                 } else {
                     disp.innerText = d.error || 'Pairing error';
                 }
@@ -642,18 +724,37 @@
             document.getElementById('pairCodeDisplay').style.display = 'none';
         }
 
-        function recordCampaignFIFO(newCamp) {
-            globalCampaigns.unshift(newCamp);
-            if (globalCampaigns.length > 3) {
-                globalCampaigns = globalCampaigns.slice(0, 3);
-            }
-            localStorage.setItem('app_campaigns', JSON.stringify(globalCampaigns));
-            renderDashboard();
+        // Multi-Group Multi-Select & Delete (#9)
+        function toggleGroupSelectMode() {
+            isGroupSelectMode = !isGroupSelectMode;
+            selectedGroupsForDelete.clear();
+            document.getElementById('btnToggleGroupSelect').innerText = isGroupSelectMode ? 'Cancel' : 'Select';
+            document.getElementById('groupBatchActionBar').style.display = isGroupSelectMode ? 'flex' : 'none';
+            document.getElementById('selectedGroupCount').innerText = '0';
+            renderGroups();
         }
 
+        function toggleGroupSelectionForDelete(id, e) {
+            e.stopPropagation();
+            if (selectedGroupsForDelete.has(id)) selectedGroupsForDelete.delete(id);
+            else selectedGroupsForDelete.add(id);
+            document.getElementById('selectedGroupCount').innerText = selectedGroupsForDelete.size;
+            renderGroups();
+        }
+
+        function deleteSelectedGroups() {
+            if (selectedGroupsForDelete.size === 0) return alert('Select groups to delete');
+            if (!confirm(`Delete ${selectedGroupsForDelete.size} selected group(s)?`)) return;
+            groups = groups.filter(g => !selectedGroupsForDelete.has(g.id));
+            localStorage.setItem('app_groups', JSON.stringify(groups));
+            toggleGroupSelectMode();
+        }
+
+        // Media-Only or Text Dispatch (#7)
         function openMultiGroupDispatchModal() {
             const text = document.getElementById('campGlobalMessage').value.trim();
-            if (!text) return alert('Enter a message first.');
+            const hasMedia = document.getElementById('campGlobalMedia').files.length > 0;
+            if (!text && !hasMedia) return alert('Enter a message or attach media first.');
             if (groups.length === 0) return alert('No groups available.');
 
             selectedTargetGroupIds.clear();
@@ -695,7 +796,7 @@
             const combinedMap = new Map();
             selectedTargetGroupIds.forEach(id => {
                 const g = groups.find(x => x.id === id);
-                if (g) g.contacts.forEach(c => combinedMap.set(c.phone, c));
+                if (g) g.contacts.forEach(c => combinedMap.set(normalizeNumber(c.phone), { name: c.name, phone: normalizeNumber(c.phone) }));
             });
 
             const uniqueRecipients = Array.from(combinedMap.values());
@@ -724,7 +825,7 @@
                 const d = await res.json();
                 if (d.status === 'QUEUED') {
                     const newCamp = {
-                        id: 'cmp_' + Date.now(),
+                        id: d.campaignId || ('cmp_' + Date.now()),
                         timestamp: new Date().toLocaleString(),
                         total: uniqueRecipients.length,
                         sent: 0,
@@ -732,12 +833,48 @@
                         pending: uniqueRecipients.length,
                         recipients: uniqueRecipients.map(r => ({ name: r.name || 'Unsaved', phone: r.phone, status: 'PENDING' }))
                     };
-                    recordCampaignFIFO(newCamp);
+                    
+                    globalCampaigns.unshift(newCamp);
+                    if (globalCampaigns.length > 3) globalCampaigns = globalCampaigns.slice(0, 3);
+                    localStorage.setItem('app_campaigns', JSON.stringify(globalCampaigns));
 
                     alert(`Campaign launched to ${uniqueRecipients.length} contacts!`);
                     navigateTab('viewDashboard', document.querySelectorAll('.nav-tab')[2]);
+                    pollCampaignLive(newCamp.id);
                 } else alert(d.error || 'Failed to dispatch');
             } catch(e) { alert('Connection Error: ' + e.message); }
+        }
+
+        // Real-Time Live Dashboard Polling Engine (#8)
+        function pollCampaignLive(campId) {
+            const timer = setInterval(async () => {
+                try {
+                    const res = await fetch(`${FIXED_BACKEND_URL}/api/queue-status/${SESSION_ID}`, {
+                        headers: { 'Authorization': `Bearer ${API_BEARER_TOKEN}`, 'ngrok-skip-browser-warning': 'true' }
+                    });
+                    const q = await res.json();
+                    
+                    const camp = globalCampaigns.find(c => c.id === campId);
+                    if (camp && q) {
+                        camp.sent = q.sent || 0;
+                        camp.failed = q.failed || 0;
+                        camp.pending = q.remaining || 0;
+
+                        camp.recipients.forEach((r, idx) => {
+                            if (idx < camp.sent) r.status = 'SENT';
+                            else if (idx < camp.sent + camp.failed) r.status = 'FAILED';
+                            else r.status = 'PENDING';
+                        });
+
+                        localStorage.setItem('app_campaigns', JSON.stringify(globalCampaigns));
+                        renderDashboard();
+                    }
+
+                    if (!q.isRunning) {
+                        clearInterval(timer);
+                    }
+                } catch(e) {}
+            }, 1800);
         }
 
         function renderDashboard() {
@@ -809,25 +946,26 @@
             openModal('contactFilterModal');
         }
 
-        // --- Precise Version Checker & Non-Sticky Update Dot ---
-        function parseVersionNumber(vStr) {
-            const match = (vStr || '').match(/(\d+)\.(\d+)\.(\d+)/);
-            if (!match) return 0;
-            return (parseInt(match[1]) * 10000) + (parseInt(match[2]) * 100) + parseInt(match[3]);
+        // Accurate Version & Non-Sticky Update Dot (#3 & #5)
+        function extractRunNumber(str) {
+            const match = String(str || '').match(/(\d+)$/);
+            return match ? parseInt(match[1], 10) : 0;
         }
 
         async function checkForAppUpdatesBackground() {
             try {
                 const res = await fetch("https://api.github.com/repos/itsdarkgaming007/version-3-/releases/latest");
-                const release = await res.json();
-                if (release && release.name) {
-                    const latestNum = parseVersionNumber(release.name);
-                    const currentNum = parseVersionNumber(CURRENT_VERSION);
+                const rel = await res.json();
+                if (rel && rel.name) {
+                    const latestBuild = extractRunNumber(rel.name);
+                    const currentBuild = extractRunNumber(localStorage.getItem('installed_build') || "32");
+                    
+                    document.getElementById('lblCurrentVer').innerText = `Current Version: v3.6.${currentBuild}`;
 
-                    if (latestNum > currentNum) {
+                    if (latestBuild > currentBuild) {
                         document.getElementById('navUpdateDot').style.display = 'block';
                         document.getElementById('updateStatusNotice').style.display = 'block';
-                        document.getElementById('updateStatusNotice').innerText = `New update available: ${release.name}`;
+                        document.getElementById('updateStatusNotice').innerText = `New update available: ${rel.name}`;
                     } else {
                         document.getElementById('navUpdateDot').style.display = 'none';
                         document.getElementById('updateStatusNotice').style.display = 'none';
@@ -839,15 +977,13 @@
         }
 
         function downloadDirectUpdate() {
-            const updateUrl = "https://github.com/itsdarkgaming007/version-3-/releases/download/latest/app-debug.apk";
-            window.open(updateUrl, '_system');
+            window.open("https://github.com/itsdarkgaming007/version-3-/releases/download/latest/app-debug.apk", '_system');
         }
 
-        // --- Native Sharing: Opens WhatsApp/Telegram/System Share Sheet Directly ---
         async function executeNativeAppShare() {
             const shareData = {
                 title: 'WA Campaign',
-                text: 'Download WA Campaign App for automated bulk messaging:',
+                text: 'Download WA Campaign App for bulk marketing:',
                 url: 'https://github.com/itsdarkgaming007/version-3-/releases/download/latest/app-debug.apk'
             };
 
@@ -858,15 +994,12 @@
                     return;
                 } catch(e) {}
             }
-
             if (navigator.share) {
                 try {
                     await navigator.share(shareData);
                     return;
                 } catch(e) {}
             }
-
-            // Clipboard fallback if system sheets are restricted
             navigator.clipboard.writeText(shareData.url);
             alert('App download link copied to clipboard!');
         }
@@ -884,15 +1017,21 @@
                 container.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 40px;">No groups yet. Tap "+" below to create one.</div>';
                 return;
             }
-            container.innerHTML = groups.map(g => `
-                <div class="group-card" onclick="openMembersManagerFor('${g.id}')">
-                    <div class="group-card-header">
-                        <span class="group-card-title">${g.name}</span>
+            container.innerHTML = groups.map(g => {
+                const isSelected = selectedGroupsForDelete.has(g.id);
+                return `
+                    <div class="group-card ${isSelected ? 'selected' : ''}" onclick="${isGroupSelectMode ? `toggleGroupSelectionForDelete('${g.id}', event)` : `openMembersManagerFor('${g.id}')`}">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            ${isGroupSelectMode ? `<div class="group-checkbox-custom" style="${isSelected ? 'background: var(--danger); border-color: var(--danger);' : ''}">${isSelected ? '✓' : ''}</div>` : ''}
+                            <div>
+                                <div class="group-card-title">${g.name}</div>
+                                <div style="font-size: 0.75rem; color: var(--text-muted);">Created: ${new Date(g.createdAt).toLocaleDateString()}</div>
+                            </div>
+                        </div>
                         <span class="group-card-badge">${g.contacts.length} Contacts</span>
                     </div>
-                    <div style="font-size: 0.75rem; color: var(--text-muted);">Created: ${new Date(g.createdAt).toLocaleDateString()}</div>
-                </div>
-            `).join('');
+                `;
+            }).join('');
         }
 
         function openCreateGroupModal() {
@@ -931,6 +1070,7 @@
             }
         }
 
+        // Inline Member Row with Dedicated Edit & Delete (#2)
         function renderMembers() {
             const g = groups.find(x => x.id === activeGroupId);
             const container = document.getElementById('membersListContainer');
@@ -945,15 +1085,42 @@
                         <div class="contact-name-txt">${c.name || 'Unsaved'}</div>
                         <div class="contact-phone-txt">${c.phone}</div>
                     </div>
-                    <button class="icon-btn" style="color: var(--danger); font-size: 1rem;" onclick="deleteMember(${idx})">🗑️</button>
+                    <div style="display: flex; gap: 8px;">
+                        <button class="icon-btn" style="color: var(--primary); font-size: 1rem;" onclick="openEditMemberModal(${idx})">✏️</button>
+                        <button class="icon-btn" style="color: var(--danger); font-size: 1rem;" onclick="deleteMember(${idx})">🗑️</button>
+                    </div>
                 </div>
             `).join('');
         }
 
+        function openEditMemberModal(idx) {
+            editingMemberIndex = idx;
+            const g = groups.find(x => x.id === activeGroupId);
+            const target = g.contacts[idx];
+            document.getElementById('editTargetName').value = target.name || '';
+            document.getElementById('editTargetPhone').value = target.phone || '';
+            openModal('editMemberModal');
+        }
+
+        function saveEditedMember() {
+            const g = groups.find(x => x.id === activeGroupId);
+            if (!g || editingMemberIndex === null) return;
+            const name = document.getElementById('editTargetName').value.trim();
+            const phone = normalizeNumber(document.getElementById('editTargetPhone').value.trim());
+            if (!phone || phone.length < 10) return alert('Enter a valid phone number');
+
+            g.contacts[editingMemberIndex] = { name, phone };
+            localStorage.setItem('app_groups', JSON.stringify(groups));
+            closeTopModal();
+            renderMembers();
+            renderGroups();
+        }
+
         function addSingleContact() {
             const name = document.getElementById('quickAddName').value.trim();
-            const phone = document.getElementById('quickAddPhone').value.trim().replace(/[^0-9]/g, '');
-            if (phone.length < 10) return alert('Enter valid phone number');
+            const rawPhone = document.getElementById('quickAddPhone').value.trim();
+            const phone = normalizeNumber(rawPhone);
+            if (!phone || phone.length < 10) return alert('Enter valid phone number');
 
             const g = groups.find(x => x.id === activeGroupId);
             if (g) {
@@ -990,8 +1157,8 @@
                         (res.contacts || []).forEach(c => {
                             const name = c.name?.display || c.name?.given || '';
                             (c.phones || []).forEach(p => {
-                                const clean = p.number.replace(/[^0-9]/g, '');
-                                if (clean.length >= 10) cachedDeviceContacts.push({ name, phone: clean });
+                                const clean = normalizeNumber(p.number);
+                                if (clean && clean.length >= 10) cachedDeviceContacts.push({ name, phone: clean });
                             });
                         });
                         const map = new Map();
@@ -1010,8 +1177,8 @@
                     const extracted = [];
                     selected.forEach(s => {
                         (s.tel || []).forEach(n => {
-                            const clean = n.replace(/[^0-9]/g, '');
-                            if (clean.length >= 10) extracted.push({ name: s.name?.[0] || '', phone: clean });
+                            const clean = normalizeNumber(n);
+                            if (clean && clean.length >= 10) extracted.push({ name: s.name?.[0] || '', phone: clean });
                         });
                     });
                     applyImportedContacts(mode, extracted);
@@ -1019,7 +1186,7 @@
                 } catch(e) {}
             }
 
-            alert('Contacts permission was not granted. Please allow Contacts permission for this app in your Android Settings.');
+            alert('Contacts permission not granted.');
         }
 
         function renderPhonebook(list) {
@@ -1074,11 +1241,11 @@
                     const parts = l.split(/[,;\t]+/);
                     if (parts.length >= 2) {
                         const name = parts[0].trim();
-                        const phone = parts[1].replace(/[^0-9]/g, '');
-                        if (phone.length >= 10) imported.push({ name, phone });
+                        const phone = normalizeNumber(parts[1]);
+                        if (phone && phone.length >= 10) imported.push({ name, phone });
                     } else if (parts.length === 1) {
-                        const phone = parts[0].replace(/[^0-9]/g, '');
-                        if (phone.length >= 10) imported.push({ name: '', phone });
+                        const phone = normalizeNumber(parts[0]);
+                        if (phone && phone.length >= 10) imported.push({ name: '', phone });
                     }
                 });
                 applyImportedContacts(mode, imported);
@@ -1109,6 +1276,7 @@
             renderGroups();
             renderDashboard();
             setupBackNavigation();
+            setupPullToRefresh();
             syncWhatsAppAccountStatus();
             checkForAppUpdatesBackground();
         };
