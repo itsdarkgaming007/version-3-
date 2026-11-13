@@ -43,7 +43,7 @@
         .nav-tab.active { color: var(--primary); }
         .nav-tab span.icon { font-size: 1.3rem; }
 
-        /* Sleek Update Notification Dot */
+        /* Update Notification Dot (Hidden by default, shown strictly when latest > current) */
         .update-badge-dot {
             width: 8px;
             height: 8px;
@@ -51,7 +51,7 @@
             border-radius: 4px;
             position: absolute;
             top: 8px;
-            right: 25%;
+            right: 28%;
             display: none;
         }
 
@@ -126,16 +126,16 @@
 
     <header>
         <div class="header-title" id="txtHeaderTitle">WA Campaign</div>
-        <button class="icon-btn" onclick="shareApp()">📤</button>
+        <button class="icon-btn" onclick="executeNativeAppShare()">📤</button>
     </header>
 
     <!-- 1. GROUPS -->
     <div class="page-content active" id="viewGroups">
         <div style="display: flex; gap: 8px; margin-bottom: 12px;">
             <select id="groupSortSelect" onchange="sortGroups(this.value)" style="margin-bottom: 0;">
-                <option value="newest" id="optSortNewest">Sort: Newest First</option>
-                <option value="alpha" id="optSortAlpha">Sort: Alphabetical (A-Z)</option>
-                <option value="count" id="optSortCount">Sort: Most Contacts</option>
+                <option value="newest">Sort: Newest First</option>
+                <option value="alpha">Sort: Alphabetical (A-Z)</option>
+                <option value="count">Sort: Most Contacts</option>
             </select>
         </div>
         <div id="groupsListContainer"></div>
@@ -191,7 +191,7 @@
                     <b id="lblConnectedPhone" style="font-size: 1rem;"></b>
                 </div>
                 <div id="txtServerOfflineNotice" style="font-size: 0.78rem; color: var(--warning); display: none; margin-bottom: 8px;">
-                    Laptop is offline. Campaigns will resume automatically when connected.
+                    Laptop is offline. Campaigns will resume automatically when online.
                 </div>
                 <button class="btn btn-danger" id="btnUnlink" onclick="unlinkAccount()">Unlink WhatsApp</button>
             </div>
@@ -223,7 +223,7 @@
             <button class="btn btn-outline" id="btnUpdateCheck" onclick="downloadDirectUpdate()">⚡ Check & Install Latest Version</button>
         </div>
 
-        <button class="btn btn-outline" style="margin-top: 10px;" id="btnShareApp" onclick="shareApp()">Share WA Campaign App</button>
+        <button class="btn btn-outline" style="margin-top: 10px;" id="btnShareApp" onclick="executeNativeAppShare()">Share WA Campaign App</button>
     </div>
 
     <!-- Persistent Bottom Navigation -->
@@ -322,13 +322,11 @@
     </div>
 
     <script>
-        // Permanent Static Domain: No URLs shown in UI (#1)
         const FIXED_BACKEND_URL = "https://rinse-chest-dish.ngrok-free.dev";
         const API_BEARER_TOKEN = "marketing_engine_secret_2026";
         const SESSION_ID = "main_account";
         const CURRENT_VERSION = "3.6.0";
 
-        // Complete 3-Language Localization (#7)
         const i18n = {
             en: {
                 title: "WA Campaign",
@@ -560,7 +558,7 @@
             document.getElementById('previewTime').innerText = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         }
 
-        // --- Persistent Zero-Touch WhatsApp Account State (#3) ---
+        // --- Persistent Zero-Touch Connection ---
         async function syncWhatsAppAccountStatus() {
             const savedPhone = localStorage.getItem('connected_phone_permanent');
             if (savedPhone) {
@@ -571,7 +569,10 @@
 
             try {
                 const res = await fetch(`${FIXED_BACKEND_URL}/api/status/${SESSION_ID}`, {
-                    headers: { 'Authorization': `Bearer ${API_BEARER_TOKEN}`, 'ngrok-skip-browser-warning': 'true' }
+                    headers: { 
+                        'Authorization': `Bearer ${API_BEARER_TOKEN}`,
+                        'ngrok-skip-browser-warning': 'true'
+                    }
                 });
                 const d = await res.json();
                 
@@ -584,13 +585,11 @@
                     document.getElementById('badgeServerStatus').style.color = "var(--primary)";
                     document.getElementById('txtServerOfflineNotice').style.display = "none";
                 } else if (d.status === 'DISCONNECTED' && !d.phone) {
-                    // Explicitly unlinked from WhatsApp
                     localStorage.removeItem('connected_phone_permanent');
                     document.getElementById('statusConnectedBox').style.display = 'none';
                     document.getElementById('statusPairingBox').style.display = 'block';
                 }
             } catch(e) {
-                // Server/Laptop Offline Handling: Keep number visible (#3)
                 if (savedPhone) {
                     document.getElementById('badgeServerStatus').innerText = "● RECONNECTING...";
                     document.getElementById('badgeServerStatus').style.color = "var(--warning)";
@@ -624,7 +623,7 @@
                     disp.innerText = d.error || 'Pairing error';
                 }
             } catch(e) {
-                disp.innerText = 'Connection Error';
+                disp.innerText = 'Connection Error: Laptop Offline';
             }
         }
 
@@ -643,7 +642,6 @@
             document.getElementById('pairCodeDisplay').style.display = 'none';
         }
 
-        // --- FIFO Campaign Storage: Keep only last 3 (#8) ---
         function recordCampaignFIFO(newCamp) {
             globalCampaigns.unshift(newCamp);
             if (globalCampaigns.length > 3) {
@@ -653,7 +651,6 @@
             renderDashboard();
         }
 
-        // --- Multi-Group Dispatch with Deduplication ---
         function openMultiGroupDispatchModal() {
             const text = document.getElementById('campGlobalMessage').value.trim();
             if (!text) return alert('Enter a message first.');
@@ -743,7 +740,6 @@
             } catch(e) { alert('Connection Error: ' + e.message); }
         }
 
-        // --- Interactive Filterable Dashboard (#4) ---
         function renderDashboard() {
             let total = 0;
             groups.forEach(g => total += g.contacts.length);
@@ -813,41 +809,68 @@
             openModal('contactFilterModal');
         }
 
-        // --- Automated In-App Update Engine (#9 & #10) ---
+        // --- Precise Version Checker & Non-Sticky Update Dot ---
+        function parseVersionNumber(vStr) {
+            const match = (vStr || '').match(/(\d+)\.(\d+)\.(\d+)/);
+            if (!match) return 0;
+            return (parseInt(match[1]) * 10000) + (parseInt(match[2]) * 100) + parseInt(match[3]);
+        }
+
         async function checkForAppUpdatesBackground() {
             try {
                 const res = await fetch("https://api.github.com/repos/itsdarkgaming007/version-3-/releases/latest");
                 const release = await res.json();
-                if (release.tag_name && release.name) {
-                    const latestVer = release.name.replace(/[^0-9.]/g, '');
-                    if (latestVer && latestVer !== CURRENT_VERSION) {
+                if (release && release.name) {
+                    const latestNum = parseVersionNumber(release.name);
+                    const currentNum = parseVersionNumber(CURRENT_VERSION);
+
+                    if (latestNum > currentNum) {
                         document.getElementById('navUpdateDot').style.display = 'block';
                         document.getElementById('updateStatusNotice').style.display = 'block';
-                        document.getElementById('updateStatusNotice').innerText = `New update available: v${latestVer}`;
+                        document.getElementById('updateStatusNotice').innerText = `New update available: ${release.name}`;
+                    } else {
+                        document.getElementById('navUpdateDot').style.display = 'none';
+                        document.getElementById('updateStatusNotice').style.display = 'none';
                     }
                 }
-            } catch(e) {}
+            } catch(e) {
+                document.getElementById('navUpdateDot').style.display = 'none';
+            }
         }
 
         function downloadDirectUpdate() {
             const updateUrl = "https://github.com/itsdarkgaming007/version-3-/releases/download/latest/app-debug.apk";
-            alert("Downloading latest release APK. Once downloaded, tap to install.");
             window.open(updateUrl, '_system');
         }
 
-        function shareApp() {
-            if (navigator.share) {
-                navigator.share({
-                    title: 'WA Campaign',
-                    text: 'Automated WhatsApp Marketing System',
-                    url: 'https://github.com/itsdarkgaming007/version-3-/releases/download/latest/app-debug.apk'
-                });
-            } else {
-                alert('App APK Download Link: https://github.com/itsdarkgaming007/version-3-/releases/download/latest/app-debug.apk');
+        // --- Native Sharing: Opens WhatsApp/Telegram/System Share Sheet Directly ---
+        async function executeNativeAppShare() {
+            const shareData = {
+                title: 'WA Campaign',
+                text: 'Download WA Campaign App for automated bulk messaging:',
+                url: 'https://github.com/itsdarkgaming007/version-3-/releases/download/latest/app-debug.apk'
+            };
+
+            const SharePlugin = window.Capacitor?.Plugins?.Share;
+            if (SharePlugin) {
+                try {
+                    await SharePlugin.share(shareData);
+                    return;
+                } catch(e) {}
             }
+
+            if (navigator.share) {
+                try {
+                    await navigator.share(shareData);
+                    return;
+                } catch(e) {}
+            }
+
+            // Clipboard fallback if system sheets are restricted
+            navigator.clipboard.writeText(shareData.url);
+            alert('App download link copied to clipboard!');
         }
 
-        // --- Contact Management & Pickers ---
         function sortGroups(criteria) {
             if (criteria === 'alpha') groups.sort((a,b) => a.name.localeCompare(b.name));
             else if (criteria === 'count') groups.sort((a,b) => b.contacts.length - a.contacts.length);
