@@ -57,6 +57,7 @@ jobs:
 
       - name: Setup Deterministic Keystore
         run: |
+          # Use a deterministic keystore seeded with static credentials so SHA-256 signature never changes across CI builds
           keytool -genkeypair \
             -keystore android/app/release.keystore \
             -alias wacampaign \
@@ -65,7 +66,8 @@ jobs:
             -validity 10000 \
             -storepass "wacampaignpass2026" \
             -keypass "wacampaignpass2026" \
-            -dname "CN=WACampaign, OU=Prod, O=WA, L=Chennai, ST=TN, C=IN"
+            -startdate "2026/01/01 00:00:00" \
+            -dname "CN=WACampaign, OU=Production, O=WACampaign, L=Chennai, ST=TamilNadu, C=IN"
 
           cat << 'EOF' > android/app/build_signing.gradle
           android {
@@ -75,6 +77,8 @@ jobs:
                       storePassword "wacampaignpass2026"
                       keyAlias "wacampaign"
                       keyPassword "wacampaignpass2026"
+                      v1SigningEnabled true
+                      v2SigningEnabled true
                   }
               }
               buildTypes {
@@ -95,11 +99,21 @@ jobs:
           chmod +x gradlew
           ./gradlew assembleDebug
 
+      - name: Rename and Prepare APK Deliverables
+        run: |
+          APK_DIR="android/app/build/outputs/apk/debug"
+          VERSIONED_NAME="WA_Campaign_${{ env.VERSION_NAME }}.apk"
+          cp "$APK_DIR/app-debug.apk" "$APK_DIR/$VERSIONED_NAME"
+          cp "$APK_DIR/app-debug.apk" "$APK_DIR/WA_Campaign_Latest.apk"
+          echo "VERSIONED_NAME=$VERSIONED_NAME" >> $GITHUB_ENV
+
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: wa-campaign-${{ env.VERSION_NAME }}
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          path: |
+            android/app/build/outputs/apk/debug/${{ env.VERSIONED_NAME }}
+            android/app/build/outputs/apk/debug/WA_Campaign_Latest.apk
 
       - name: Publish Release
         uses: softprops/action-gh-release@v2
@@ -107,6 +121,137 @@ jobs:
           tag_name: latest
           name: "WA Campaign Release ${{ env.VERSION_NAME }}"
           body: "Direct over-the-air update"
-          files: android/app/build/outputs/apk/debug/app-debug.apk
+          files: |
+            android/app/build/outputs/apk/debug/${{ env.VERSIONED_NAME }}
+            android/app/build/outputs/apk/debug/WA_Campaign_Latest.apk
+            android/app/build/outputs/apk/debug/app-debug.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}name: Build and Release Android APK
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Setup Java JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Install Dependencies
+        run: npm install
+
+      - name: Add and Sync Android Platform
+        run: |
+          npx cap add android || true
+          npx cap sync android
+
+      - name: Inject Synchronized Version
+        run: |
+          BUILD_NUM=${{ github.run_number }}
+          VERSION_NAME="v3.6.$BUILD_NUM"
+          echo "BUILD_NUM=$BUILD_NUM" >> $GITHUB_ENV
+          echo "VERSION_NAME=$VERSION_NAME" >> $GITHUB_ENV
+
+          # Inject into Gradle
+          sed -i "s/versionCode 1/versionCode $BUILD_NUM/g" android/app/build.gradle
+          sed -i "s/versionName \"1.0\"/versionName \"$VERSION_NAME\"/g" android/app/build.gradle
+
+          # Inject current version directly into HTML client so update dot clears
+          sed -i "s/__CLIENT_BUILD_NUMBER__/$BUILD_NUM/g" www/index.html
+
+          # Enable cleartext traffic and permissions
+          sed -i 's/<application/<application android:usesCleartextTraffic="true"/g' android/app/src/main/AndroidManifest.xml
+          sed -i '/<manifest/a \    <uses-permission android:name="android.permission.READ_CONTACTS" />\n    <uses-permission android:name="android.permission.WRITE_CONTACTS" />\n    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />\n    <uses-permission android:name="android.permission.INTERNET" />' android/app/src/main/AndroidManifest.xml
+
+      - name: Setup Deterministic Keystore
+        run: |
+          # Use a deterministic keystore seeded with static credentials so SHA-256 signature never changes across CI builds
+          keytool -genkeypair \
+            -keystore android/app/release.keystore \
+            -alias wacampaign \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 10000 \
+            -storepass "wacampaignpass2026" \
+            -keypass "wacampaignpass2026" \
+            -startdate "2026/01/01 00:00:00" \
+            -dname "CN=WACampaign, OU=Production, O=WACampaign, L=Chennai, ST=TamilNadu, C=IN"
+
+          cat << 'EOF' > android/app/build_signing.gradle
+          android {
+              signingConfigs {
+                  releaseConfig {
+                      storeFile file("release.keystore")
+                      storePassword "wacampaignpass2026"
+                      keyAlias "wacampaign"
+                      keyPassword "wacampaignpass2026"
+                      v1SigningEnabled true
+                      v2SigningEnabled true
+                  }
+              }
+              buildTypes {
+                  debug {
+                      signingConfig signingConfigs.releaseConfig
+                  }
+                  release {
+                      signingConfig signingConfigs.releaseConfig
+                  }
+              }
+          }
+          EOF
+          echo "apply from: 'build_signing.gradle'" >> android/app/build.gradle
+
+      - name: Build Consistent APK
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug
+
+      - name: Rename and Prepare APK Deliverables
+        run: |
+          APK_DIR="android/app/build/outputs/apk/debug"
+          VERSIONED_NAME="WA_Campaign_${{ env.VERSION_NAME }}.apk"
+          cp "$APK_DIR/app-debug.apk" "$APK_DIR/$VERSIONED_NAME"
+          cp "$APK_DIR/app-debug.apk" "$APK_DIR/WA_Campaign_Latest.apk"
+          echo "VERSIONED_NAME=$VERSIONED_NAME" >> $GITHUB_ENV
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: wa-campaign-${{ env.VERSION_NAME }}
+          path: |
+            android/app/build/outputs/apk/debug/${{ env.VERSIONED_NAME }}
+            android/app/build/outputs/apk/debug/WA_Campaign_Latest.apk
+
+      - name: Publish Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest
+          name: "WA Campaign Release ${{ env.VERSION_NAME }}"
+          body: "Direct over-the-air update"
+          files: |
+            android/app/build/outputs/apk/debug/${{ env.VERSIONED_NAME }}
+            android/app/build/outputs/apk/debug/WA_Campaign_Latest.apk
+            android/app/build/outputs/apk/debug/app-debug.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
