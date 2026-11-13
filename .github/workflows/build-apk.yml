@@ -35,18 +35,30 @@ jobs:
           npx cap add android || true
           npx cap sync android
 
-      - name: Configure Android Permissions
+      - name: Configure Static App Identity & Permissions
         run: |
+          # Increment versionCode using GitHub run number to guarantee upgrade path
+          sed -i "s/versionCode 1/versionCode ${{ github.run_number }}/g" android/app/build.gradle
           sed -i 's/<application/<application android:usesCleartextTraffic="true"/g' android/app/src/main/AndroidManifest.xml
           sed -i '/<manifest/a \    <uses-permission android:name="android.permission.READ_CONTACTS" />\n    <uses-permission android:name="android.permission.WRITE_CONTACTS" />\n    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />\n    <uses-permission android:name="android.permission.INTERNET" />' android/app/src/main/AndroidManifest.xml
 
-      - name: Build Debug APK
+      - name: Generate Consistent Signing Keystore
+        run: |
+          keytool -genkey -v -keystore android/app/release.keystore -alias wacampaign -keyalg RSA -keysize 2048 -validity 10000 -storepass wacampaign123 -keypass wacampaign123 -dname "CN=WACampaign, OU=Dev, O=WACampaign, L=Chennai, S=TN, C=IN"
+
+      - name: Build Debug/Release Signed APK
         run: |
           cd android
           chmod +x gradlew
           ./gradlew assembleDebug
 
-      - name: Create or Update GitHub Release
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: wa-campaign-debug-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+
+      - name: Update GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: latest
