@@ -15,6 +15,8 @@
             --primary: #00a884;
             --danger: #ef4444;
             --warning: #f59e0b;
+            --wa-green: #005c4b;
+            --wa-bubble: #005c4b;
         }
 
         body.light-theme {
@@ -27,6 +29,7 @@
             --primary: #008069;
             --danger: #dc2626;
             --warning: #d97706;
+            --wa-bubble: #d9fdd3;
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
@@ -77,19 +80,121 @@
 
         .fab { position: fixed; bottom: 80px; right: 24px; width: 56px; height: 56px; border-radius: 28px; background: var(--primary); color: #fff; border: none; font-size: 1.8rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0,0,0,0.5); cursor: pointer; z-index: 90; }
 
-        .preview-bubble { background: #005c4b; color: #fff; padding: 10px 14px; border-radius: 8px 8px 0px 8px; max-width: 85%; margin-left: auto; margin-top: 10px; margin-bottom: 14px; word-break: break-word; font-size: 0.92rem; box-shadow: 0 1px 2px rgba(0,0,0,0.3); }
+        /* Realistic WhatsApp Chat Preview Window */
+        .preview-wrapper {
+            background-color: #0b141a;
+            background-image: radial-gradient(#202c33 1px, transparent 1px);
+            background-size: 16px 16px;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 14px;
+            display: none;
+        }
+        body.light-theme .preview-wrapper {
+            background-color: #efeae2;
+            background-image: radial-gradient(#d1d7db 1px, transparent 1px);
+        }
+        .wa-bubble-realistic {
+            background: var(--wa-bubble);
+            color: #fff;
+            border-radius: 8px 8px 2px 8px;
+            max-width: 85%;
+            margin-left: auto;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.3);
+            overflow: hidden;
+            position: relative;
+        }
+        body.light-theme .wa-bubble-realistic {
+            color: #111b21;
+        }
+        .wa-preview-img-container {
+            width: 100%;
+            max-height: 220px;
+            background: #000;
+            display: none;
+            overflow: hidden;
+            position: relative;
+        }
+        .wa-preview-img-container img, .wa-preview-img-container video {
+            width: 100%;
+            height: 100%;
+            max-height: 220px;
+            object-fit: cover;
+            display: block;
+        }
+        .wa-preview-doc-container {
+            display: none;
+            background: rgba(0,0,0,0.15);
+            padding: 10px 12px;
+            align-items: center;
+            gap: 10px;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+        }
+        .wa-bubble-caption {
+            padding: 8px 10px 4px 10px;
+            font-size: 0.92rem;
+            line-height: 1.35;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        .wa-bubble-meta {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 4px;
+            padding: 0 8px 4px 8px;
+            font-size: 0.68rem;
+            color: rgba(255,255,255,0.65);
+        }
+        body.light-theme .wa-bubble-meta { color: rgba(0,0,0,0.5); }
 
+        /* Professional Target Group Selection Modal */
         .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 200; align-items: center; justify-content: center; padding: 16px; }
         .modal-high { z-index: 300; }
         .modal-content { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; width: 100%; max-width: 500px; padding: 20px; max-height: 90vh; display: flex; flex-direction: column; overflow-y: auto; }
         .modal-title { font-size: 1.15rem; font-weight: 700; margin-bottom: 14px; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
 
+        .group-select-card {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: var(--surface-card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 12px 14px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .group-select-card.selected {
+            border-color: var(--primary);
+            background: rgba(0, 168, 132, 0.08);
+        }
+        .group-select-info { display: flex; flex-direction: column; gap: 2px; }
+        .group-select-name { font-size: 0.98rem; font-weight: 600; }
+        .group-select-count { font-size: 0.78rem; color: var(--text-muted); }
+        .group-checkbox-custom {
+            width: 22px;
+            height: 22px;
+            border-radius: 6px;
+            border: 2px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-size: 0.8rem;
+            transition: background 0.2s;
+        }
+        .group-select-card.selected .group-checkbox-custom {
+            background: var(--primary);
+            border-color: var(--primary);
+        }
+
         .member-item { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; border-bottom: 1px solid var(--border); gap: 10px; }
-        .member-item input[type="checkbox"] { width: 18px; height: 18px; margin-bottom: 0; }
         .member-info { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
         .member-name { font-size: 0.95rem; font-weight: 600; }
         .member-phone { font-size: 0.8rem; color: var(--text-muted); }
-
         .badge-status { font-size: 0.72rem; padding: 2px 6px; border-radius: 4px; font-weight: bold; }
         .status-sent { background: rgba(0, 168, 132, 0.2); color: var(--primary); }
     </style>
@@ -119,12 +224,28 @@
         <textarea id="campGlobalMessage" class="safe-textarea" placeholder="Type message..." oninput="updateLivePreview()"></textarea>
 
         <label>Attachments (Images, Videos, PDF)</label>
-        <input type="file" id="campGlobalMedia" multiple accept="image/*,video/*,application/pdf" onchange="updateLivePreview()">
+        <input type="file" id="campGlobalMedia" multiple accept="image/*,video/*,application/pdf" onchange="handleMediaAttachment(event)">
 
-        <label>Live Preview</label>
-        <div id="livePreviewContainer" class="preview-bubble" style="display: none;"></div>
+        <label>Realistic WhatsApp Preview</label>
+        <div class="preview-wrapper" id="previewWrapper">
+            <div class="wa-bubble-realistic">
+                <div class="wa-preview-img-container" id="previewMediaBox">
+                    <img id="previewImg" src="" alt="preview">
+                    <video id="previewVideo" controls style="display: none;"></video>
+                </div>
+                <div class="wa-preview-doc-container" id="previewDocBox">
+                    <span style="font-size: 1.4rem;">📄</span>
+                    <span id="previewDocName" style="font-size: 0.85rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"></span>
+                </div>
+                <div class="wa-bubble-caption" id="previewText"></div>
+                <div class="wa-bubble-meta">
+                    <span id="previewTime">10:00 AM</span>
+                    <span>✓✓</span>
+                </div>
+            </div>
+        </div>
 
-        <button class="btn btn-primary" onclick="openMultiGroupDispatchModal()">Select Groups & Send Campaign</button>
+        <button class="btn btn-primary" onclick="openMultiGroupDispatchModal()">Select Target Groups & Send</button>
     </div>
 
     <!-- Page 3: Dashboard -->
@@ -140,6 +261,10 @@
     <!-- Page 4: Settings -->
     <div class="page-content" id="viewSettings">
         <div style="background: var(--surface-card); border: 1px solid var(--border); border-radius: 12px; padding: 14px; margin-bottom: 16px;">
+            <label>Server Base URL (Cloudflare Tunnel)</label>
+            <input type="text" id="cfgServerUrl" placeholder="https://xxxx.trycloudflare.com">
+            <button class="btn btn-outline" style="margin-bottom: 14px;" onclick="saveServerUrl()">Save Server URL</button>
+
             <label>WhatsApp Account Connection</label>
             <div id="statusConnectedBox" style="display: none;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
@@ -149,7 +274,6 @@
                 <button class="btn btn-danger" onclick="unlinkAccount()">Unlink WhatsApp</button>
             </div>
             <div id="statusPairingBox">
-                <!-- Generic Masked Placeholder -->
                 <input type="tel" id="txtPairPhone" placeholder="91XXXXXXXXXX">
                 <button class="btn btn-primary" onclick="requestPairCode()">Pair WhatsApp</button>
                 <div id="pairCodeDisplay" style="font-size: 1.5rem; letter-spacing: 4px; font-weight: bold; color: var(--primary); text-align: center; margin-top: 10px; display: none;"></div>
@@ -171,17 +295,17 @@
 
         <div style="background: var(--surface-card); border: 1px solid var(--border); border-radius: 12px; padding: 14px; margin-top: 20px;">
             <label>App Updates</label>
-            <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 8px;">Current Version: 3.3.0</div>
+            <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 8px;">Current Version: 3.4.0</div>
             <button class="btn btn-outline" onclick="downloadDirectUpdate()">⚡ Download & Install Update</button>
         </div>
     </div>
 
-    <!-- Bottom Nav -->
+    <!-- Bottom Navigation -->
     <div class="bottom-nav">
-        <div class="nav-tab active" onclick="navigateTab('viewGroups', this)"><span class="icon">💬</span><span id="tabLblGroups">Groups</span></div>
-        <div class="nav-tab" onclick="navigateTab('viewCampaign', this)"><span class="icon">📢</span><span id="tabLblCampaign">Campaign</span></div>
-        <div class="nav-tab" onclick="navigateTab('viewDashboard', this)"><span class="icon">📊</span><span id="tabLblDashboard">Dashboard</span></div>
-        <div class="nav-tab" onclick="navigateTab('viewSettings', this)"><span class="icon">⚙️</span><span id="tabLblSettings">Settings</span></div>
+        <div class="nav-tab active" onclick="navigateTab('viewGroups', this)"><span class="icon">💬</span><span>Groups</span></div>
+        <div class="nav-tab" onclick="navigateTab('viewCampaign', this)"><span class="icon">📢</span><span>Campaign</span></div>
+        <div class="nav-tab" onclick="navigateTab('viewDashboard', this)"><span class="icon">📊</span><span>Dashboard</span></div>
+        <div class="nav-tab" onclick="navigateTab('viewSettings', this)"><span class="icon">⚙️</span><span>Settings</span></div>
     </div>
 
     <button class="fab" id="fabAddGroup" onclick="openCreateGroupModal()">+</button>
@@ -191,7 +315,7 @@
         <div class="modal-content">
             <div class="modal-title">Create Group</div>
             <label>Group Name</label>
-            <input type="text" id="newGroupName" placeholder="e.g. VIP Customers">
+            <input type="text" id="newGroupName" placeholder="e.g. November Customers">
 
             <label>Add Contacts (Optional)</label>
             <div style="display: flex; gap: 8px; margin-bottom: 12px;">
@@ -218,7 +342,6 @@
                 <button class="btn btn-primary" style="width: auto; padding: 0 14px;" onclick="renameActiveGroup()">Save</button>
             </div>
 
-            <!-- Restored Pick & File Action Row -->
             <label>Add Contacts</label>
             <div style="display: flex; gap: 8px; margin-bottom: 12px;">
                 <button type="button" class="btn btn-outline" onclick="openPhonebookSelector('edit')">📱 Pick Contacts</button>
@@ -226,19 +349,11 @@
                 <input type="file" id="csvFileInputEdit" accept=".csv,.txt,.vcf" style="display: none;" onchange="handleFileImport(event, 'edit')">
             </div>
 
-            <label>Add Single / Unsaved Contact</label>
+            <label>Add Single Contact</label>
             <div style="display: flex; gap: 6px; margin-bottom: 12px;">
                 <input type="text" id="quickAddName" placeholder="Name" style="flex: 1; margin-bottom: 0;">
                 <input type="tel" id="quickAddPhone" placeholder="91XXXXXXXXXX" style="flex: 1.4; margin-bottom: 0;">
                 <button class="btn btn-primary" style="width: auto; padding: 0 14px;" onclick="addSingleContact()">Add</button>
-            </div>
-
-            <div class="member-controls-bar" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                <label style="display: flex; align-items: center; gap: 6px; margin-bottom: 0; cursor: pointer;">
-                    <input type="checkbox" id="selectAllCheckbox" onchange="toggleSelectAll(this.checked)">
-                    <span>Select All</span>
-                </label>
-                <button class="btn btn-danger" style="width: auto; padding: 4px 8px; font-size: 0.75rem;" onclick="deleteSelectedContacts()">Delete</button>
             </div>
 
             <div id="membersListContainer" style="max-height: 250px; overflow-y: auto;"></div>
@@ -247,20 +362,23 @@
         </div>
     </div>
 
-    <!-- Multi-Group Selection Modal -->
+    <!-- Professional Target Group Selection Modal -->
     <div class="modal" id="multiGroupDispatchModal">
         <div class="modal-content">
             <div class="modal-title">Select Target Groups</div>
-            <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 12px;">Duplicate contacts will be sent only once.</p>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <span style="font-size: 0.8rem; color: var(--text-muted);">Duplicate contacts are merged automatically.</span>
+                <button class="icon-btn" style="font-size: 0.85rem; color: var(--primary); font-weight: bold;" onclick="toggleSelectAllTargetGroups()">Select All</button>
+            </div>
 
-            <div id="targetGroupsCheckboxList" style="max-height: 250px; overflow-y: auto; margin-bottom: 14px;"></div>
+            <div id="targetGroupsCardsContainer" style="max-height: 280px; overflow-y: auto; margin-bottom: 14px;"></div>
 
-            <button class="btn btn-primary" onclick="confirmDispatchMultiGroup()">Start Campaign</button>
+            <button class="btn btn-primary" onclick="confirmDispatchMultiGroup()">Launch Campaign</button>
             <button class="btn btn-secondary" onclick="closeTopModal()">Cancel</button>
         </div>
     </div>
 
-    <!-- Phonebook Selector Modal -->
+    <!-- Device Contacts Selector Modal -->
     <div class="modal modal-high" id="phonebookModal">
         <div class="modal-content">
             <div class="modal-title">Device Contacts</div>
@@ -272,9 +390,22 @@
     </div>
 
     <script>
-        const CLOUD_SERVER_URL = "https://counters-infringement-fully-quote.trycloudflare.com";
+        // Fallback default; overrides cleanly from localStorage if changed
+        const DEFAULT_CLOUD_URL = "https://counters-infringement-fully-quote.trycloudflare.com";
         const API_BEARER_TOKEN = "marketing_engine_secret_2026";
         const SESSION_ID = "main_account";
+
+        function getServerUrl() {
+            return (localStorage.getItem('cfg_server_url') || DEFAULT_CLOUD_URL).trim().replace(/\/$/, '');
+        }
+
+        function saveServerUrl() {
+            const url = document.getElementById('cfgServerUrl').value.trim();
+            if (!url.startsWith('http')) return alert('Enter a valid URL starting with https://');
+            localStorage.setItem('cfg_server_url', url);
+            alert('Server URL saved. Retesting connection...');
+            syncWhatsAppAccountStatus();
+        }
 
         let groups = [];
         try { groups = JSON.parse(localStorage.getItem('app_groups') || '[]'); } catch(e) { groups = []; }
@@ -283,7 +414,7 @@
         let stagedContacts = [];
         let cachedDeviceContacts = [];
         let selectedPbContacts = new Set();
-        let selectedMemberIndices = new Set();
+        let selectedTargetGroupIds = new Set();
         let pbTargetMode = 'create';
         const modalStack = [];
 
@@ -304,11 +435,8 @@
             const AppPlugin = window.Capacitor?.Plugins?.App;
             if (AppPlugin) {
                 AppPlugin.addListener('backButton', () => {
-                    if (modalStack.length > 0) {
-                        closeTopModal();
-                    } else {
-                        if (confirm('Are you sure you want to exit?')) AppPlugin.exitApp();
-                    }
+                    if (modalStack.length > 0) closeTopModal();
+                    else if (confirm('Are you sure you want to exit?')) AppPlugin.exitApp();
                 });
             }
         }
@@ -320,7 +448,6 @@
             el.classList.add('active');
 
             document.getElementById('fabAddGroup').style.display = (tabId === 'viewGroups') ? 'flex' : 'none';
-
             if (tabId === 'viewDashboard') renderDashboard();
             if (tabId === 'viewSettings') syncWhatsAppAccountStatus();
         }
@@ -337,25 +464,138 @@
             document.getElementById('selLanguage').value = lang;
         }
 
+        // --- Realistic WhatsApp Live Preview Handler ---
+        function handleMediaAttachment(e) {
+            const files = e.target.files;
+            const previewBox = document.getElementById('previewMediaBox');
+            const previewImg = document.getElementById('previewImg');
+            const previewVideo = document.getElementById('previewVideo');
+            const previewDoc = document.getElementById('previewDocBox');
+            const previewDocName = document.getElementById('previewDocName');
+
+            previewBox.style.display = 'none';
+            previewImg.style.display = 'none';
+            previewVideo.style.display = 'none';
+            previewDoc.style.display = 'none';
+
+            if (files && files[0]) {
+                const file = files[0];
+                const mime = file.type || '';
+                const url = URL.createObjectURL(file);
+
+                if (mime.startsWith('image/')) {
+                    previewBox.style.display = 'block';
+                    previewImg.style.display = 'block';
+                    previewImg.src = url;
+                } else if (mime.startsWith('video/')) {
+                    previewBox.style.display = 'block';
+                    previewVideo.style.display = 'block';
+                    previewVideo.src = url;
+                } else {
+                    previewDoc.style.display = 'flex';
+                    previewDocName.innerText = file.name;
+                }
+            }
+            updateLivePreview();
+        }
+
         function updateLivePreview() {
             const text = document.getElementById('campGlobalMessage').value;
-            const files = document.getElementById('campGlobalMedia').files;
-            const container = document.getElementById('livePreviewContainer');
+            const hasMedia = document.getElementById('campGlobalMedia').files.length > 0;
+            const wrapper = document.getElementById('previewWrapper');
+            const previewText = document.getElementById('previewText');
 
-            if (!text && files.length === 0) {
-                container.style.display = 'none';
+            if (!text && !hasMedia) {
+                wrapper.style.display = 'none';
                 return;
             }
 
-            container.style.display = 'block';
-            let html = '';
-            if (files.length > 0) {
-                html += `<div style="font-weight: bold; margin-bottom: 4px;">📎 Attached ${files.length} file(s)</div>`;
-            }
-            html += text.replace(/\n/g, '<br>');
-            container.innerHTML = html;
+            wrapper.style.display = 'block';
+            previewText.innerText = text;
+            const now = new Date();
+            document.getElementById('previewTime').innerText = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         }
 
+        // --- Professional Group Selection ---
+        function openMultiGroupDispatchModal() {
+            const text = document.getElementById('campGlobalMessage').value.trim();
+            if (!text) return alert('Enter a message first.');
+            if (groups.length === 0) return alert('No groups available.');
+
+            selectedTargetGroupIds.clear();
+            renderTargetGroupCards();
+            openModal('multiGroupDispatchModal');
+        }
+
+        function renderTargetGroupCards() {
+            const container = document.getElementById('targetGroupsCardsContainer');
+            container.innerHTML = groups.map(g => {
+                const isSelected = selectedTargetGroupIds.has(g.id);
+                return `
+                    <div class="group-select-card ${isSelected ? 'selected' : ''}" onclick="toggleTargetGroupSelect('${g.id}')">
+                        <div class="group-select-info">
+                            <span class="group-select-name">${g.name}</span>
+                            <span class="group-select-count">${g.contacts.length} contacts</span>
+                        </div>
+                        <div class="group-checkbox-custom">${isSelected ? '✓' : ''}</div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function toggleTargetGroupSelect(id) {
+            if (selectedTargetGroupIds.has(id)) selectedTargetGroupIds.delete(id);
+            else selectedTargetGroupIds.add(id);
+            renderTargetGroupCards();
+        }
+
+        function toggleSelectAllTargetGroups() {
+            if (selectedTargetGroupIds.size === groups.length) selectedTargetGroupIds.clear();
+            else groups.forEach(g => selectedTargetGroupIds.add(g.id));
+            renderTargetGroupCards();
+        }
+
+        async function confirmDispatchMultiGroup() {
+            if (selectedTargetGroupIds.size === 0) return alert('Select at least one group.');
+
+            const combinedMap = new Map();
+            selectedTargetGroupIds.forEach(id => {
+                const g = groups.find(x => x.id === id);
+                if (g) g.contacts.forEach(c => combinedMap.set(c.phone, c));
+            });
+
+            const uniqueRecipients = Array.from(combinedMap.values());
+            if (uniqueRecipients.length === 0) return alert('Selected groups contain no contacts.');
+
+            const message = document.getElementById('campGlobalMessage').value.trim();
+            const mediaInput = document.getElementById('campGlobalMedia');
+
+            const formData = new FormData();
+            formData.append('sessionId', SESSION_ID);
+            formData.append('recipients', JSON.stringify(uniqueRecipients));
+            formData.append('message', message);
+
+            for (let i = 0; i < mediaInput.files.length; i++) {
+                formData.append('media', mediaInput.files[i]);
+            }
+
+            closeTopModal();
+
+            try {
+                const res = await fetch(`${getServerUrl()}/api/message/send-bulk`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${API_BEARER_TOKEN}` },
+                    body: formData
+                });
+                const d = await res.json();
+                if (d.status === 'QUEUED') {
+                    alert(`Campaign launched to ${uniqueRecipients.length} unique contacts!`);
+                    navigateTab('viewDashboard', document.querySelectorAll('.nav-tab')[2]);
+                } else alert(d.error || 'Failed to dispatch');
+            } catch(e) { alert('Connection Error: ' + e.message); }
+        }
+
+        // --- Contact Management & Groups ---
         function sortGroups(criteria) {
             if (criteria === 'alpha') groups.sort((a,b) => a.name.localeCompare(b.name));
             else if (criteria === 'count') groups.sort((a,b) => b.contacts.length - a.contacts.length);
@@ -390,14 +630,7 @@
         function saveGroup() {
             const name = document.getElementById('newGroupName').value.trim();
             if (!name) return alert('Enter group name');
-
-            const newGroup = {
-                id: 'grp_' + Date.now(),
-                name,
-                contacts: stagedContacts,
-                createdAt: Date.now()
-            };
-            groups.push(newGroup);
+            groups.push({ id: 'grp_' + Date.now(), name, contacts: stagedContacts, createdAt: Date.now() });
             localStorage.setItem('app_groups', JSON.stringify(groups));
             closeTopModal();
             renderGroups();
@@ -432,7 +665,6 @@
             }
             container.innerHTML = g.contacts.map((c, idx) => `
                 <div class="member-item">
-                    <input type="checkbox" onchange="toggleSelectMember(${idx})">
                     <div class="member-info">
                         <span class="member-name">${c.name || 'Unsaved'}</span>
                         <span class="member-phone">${c.phone}</span>
@@ -468,29 +700,7 @@
             }
         }
 
-        function toggleSelectMember(idx) {
-            if (selectedMemberIndices.has(idx)) selectedMemberIndices.delete(idx);
-            else selectedMemberIndices.add(idx);
-        }
-
-        function toggleSelectAll(checked) {
-            selectedMemberIndices.clear();
-            const g = groups.find(x => x.id === activeGroupId);
-            if (checked && g) g.contacts.forEach((_, i) => selectedMemberIndices.add(i));
-            document.querySelectorAll('#membersListContainer input[type="checkbox"]').forEach(c => c.checked = checked);
-        }
-
-        function deleteSelectedContacts() {
-            const g = groups.find(x => x.id === activeGroupId);
-            if (!g || selectedMemberIndices.size === 0) return alert('Select contacts to delete');
-            g.contacts = g.contacts.filter((_, idx) => !selectedMemberIndices.has(idx));
-            selectedMemberIndices.clear();
-            localStorage.setItem('app_groups', JSON.stringify(groups));
-            renderMembers();
-            renderGroups();
-        }
-
-        // Native Contacts Picker API Fallback
+        // --- Contact Picker Fallback Bridge ---
         async function openPhonebookSelector(mode) {
             pbTargetMode = mode;
             selectedPbContacts.clear();
@@ -519,7 +729,6 @@
                 } catch(e) {}
             }
 
-            // Web-spec native fallback if plugin bridge is idle
             if ('contacts' in navigator && 'select' in navigator.contacts) {
                 try {
                     const selected = await navigator.contacts.select(['name', 'tel'], { multiple: true });
@@ -535,7 +744,7 @@
                 } catch(e) {}
             }
 
-            alert('Could not access device contacts. Please ensure Contact permissions are enabled in Android settings.');
+            alert('Contacts permission was not granted. Please allow Contacts permission for this app in your Android Settings.');
         }
 
         function renderPhonebook(list) {
@@ -610,65 +819,10 @@
             alert(`Added ${list.length} contacts.`);
         }
 
-        function openMultiGroupDispatchModal() {
-            const text = document.getElementById('campGlobalMessage').value.trim();
-            if (!text) return alert('Enter message text.');
-            if (groups.length === 0) return alert('No groups available.');
-
-            document.getElementById('targetGroupsCheckboxList').innerHTML = groups.map(g => `
-                <label style="display: flex; align-items: center; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--border); color: var(--text);">
-                    <input type="checkbox" value="${g.id}" class="target-group-chk">
-                    <span>${g.name} (${g.contacts.length} contacts)</span>
-                </label>
-            `).join('');
-
-            openModal('multiGroupDispatchModal');
-        }
-
-        async function confirmDispatchMultiGroup() {
-            const checkedBoxes = Array.from(document.querySelectorAll('.target-group-chk:checked'));
-            if (checkedBoxes.length === 0) return alert('Select at least one group.');
-
-            const combinedMap = new Map();
-            checkedBoxes.map(b => b.value).forEach(id => {
-                const g = groups.find(x => x.id === id);
-                if (g) g.contacts.forEach(c => combinedMap.set(c.phone, c));
-            });
-
-            const uniqueRecipients = Array.from(combinedMap.values());
-            if (uniqueRecipients.length === 0) return alert('Selected groups have no contacts.');
-
-            const message = document.getElementById('campGlobalMessage').value.trim();
-            const mediaInput = document.getElementById('campGlobalMedia');
-
-            const formData = new FormData();
-            formData.append('sessionId', SESSION_ID);
-            formData.append('recipients', JSON.stringify(uniqueRecipients));
-            formData.append('message', message);
-
-            for (let i = 0; i < mediaInput.files.length; i++) {
-                formData.append('media', mediaInput.files[i]);
-            }
-
-            closeTopModal();
-
-            try {
-                const res = await fetch(`${CLOUD_SERVER_URL}/api/message/send-bulk`, {
-                    method: 'POST',
-                    headers: { 'Authorization': `Bearer ${API_BEARER_TOKEN}` },
-                    body: formData
-                });
-                const d = await res.json();
-                if (d.status === 'QUEUED') {
-                    alert(`Campaign launched to ${uniqueRecipients.length} deduplicated contacts!`);
-                    navigateTab('viewDashboard', document.querySelectorAll('.nav-tab')[2]);
-                } else alert(d.error || 'Failed');
-            } catch(e) { alert('Error: ' + e.message); }
-        }
-
+        // --- WhatsApp Pairing & Status ---
         async function syncWhatsAppAccountStatus() {
             try {
-                const res = await fetch(`${CLOUD_SERVER_URL}/api/status/${SESSION_ID}`, {
+                const res = await fetch(`${getServerUrl()}/api/status/${SESSION_ID}`, {
                     headers: { 'Authorization': `Bearer ${API_BEARER_TOKEN}` }
                 });
                 const d = await res.json();
@@ -691,19 +845,25 @@
             disp.innerText = 'Requesting...';
 
             try {
-                const res = await fetch(`${CLOUD_SERVER_URL}/api/pair`, {
+                const res = await fetch(`${getServerUrl()}/api/pair`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${API_BEARER_TOKEN}` },
                     body: JSON.stringify({ sessionId: SESSION_ID, phoneNumber: phone })
                 });
                 const d = await res.json();
-                disp.innerText = d.pairingCode || d.error || 'Failed';
-            } catch(e) { disp.innerText = 'Error'; }
+                if (d.pairingCode) {
+                    disp.innerText = d.pairingCode;
+                } else {
+                    disp.innerText = d.error || 'Pairing error';
+                }
+            } catch(e) {
+                disp.innerText = 'Error: Check Server URL';
+            }
         }
 
         async function unlinkAccount() {
             if (!confirm('Unlink this WhatsApp session?')) return;
-            await fetch(`${CLOUD_SERVER_URL}/api/logout`, {
+            await fetch(`${getServerUrl()}/api/logout`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${API_BEARER_TOKEN}` },
                 body: JSON.stringify({ sessionId: SESSION_ID })
@@ -726,15 +886,15 @@
             }
         }
 
-        // Direct APK In-App Downloader & Package Installer Trigger
         function downloadDirectUpdate() {
-            const directApkUrl = "https://github.com/itsdarkgaming007/version-3-/releases/download/latest/app-debug.apk";
-            alert("Starting direct APK download. Android will prompt to update the app once downloaded.");
-            window.open(directApkUrl, '_system');
+            window.open("https://github.com/itsdarkgaming007/version-3-/releases/download/latest/app-debug.apk", '_system');
         }
 
         window.onload = () => {
             switchTheme(localStorage.getItem('app_theme') || 'dark');
+            if (document.getElementById('cfgServerUrl')) {
+                document.getElementById('cfgServerUrl').value = getServerUrl();
+            }
             renderGroups();
             setupBackNavigation();
             syncWhatsAppAccountStatus();
