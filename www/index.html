@@ -118,7 +118,7 @@
         .modal-content { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; width: 100%; max-width: 500px; padding: 20px; max-height: 90vh; display: flex; flex-direction: column; overflow-y: auto; }
         .modal-title { font-size: 1.15rem; font-weight: 700; margin-bottom: 14px; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
 
-        /* Fixed Device Contacts List Styling */
+        /* High-Contrast Device Contacts List Styling */
         .contact-picker-row {
             display: flex;
             align-items: center;
@@ -291,7 +291,7 @@
     <div class="page-content" id="viewSettings">
         <div style="background: var(--surface-card); border: 1px solid var(--border); border-radius: 12px; padding: 14px; margin-bottom: 16px;">
             <label>Server Base URL</label>
-            <input type="text" id="cfgServerUrl" placeholder="https://bet-valuation-davis-everyday.trycloudflare.com">
+            <input type="text" id="cfgServerUrl" placeholder="https://rinse-chest-dish.ngrok-free.dev">
             <button class="btn btn-outline" style="margin-bottom: 14px;" onclick="saveServerUrl()">Save Server URL</button>
 
             <label>WhatsApp Account Connection</label>
@@ -409,7 +409,7 @@
         </div>
     </div>
 
-    <!-- Filtered Contact Details Modal (Opened when clicking Total/Sent/Failed/Pending) -->
+    <!-- Filtered Contact Details Modal -->
     <div class="modal modal-high" id="contactFilterModal">
         <div class="modal-content">
             <div class="modal-title" id="filterModalTitle">Contacts List</div>
@@ -419,8 +419,8 @@
     </div>
 
     <script>
-        // Automatic Fallback Connection (Matches your active tunnel)
-        const DEFAULT_CLOUD_URL = "https://bet-valuation-davis-everyday.trycloudflare.com";
+        // Set permanent static domain directly
+        const DEFAULT_CLOUD_URL = "https://rinse-chest-dish.ngrok-free.dev";
         const API_BEARER_TOKEN = "marketing_engine_secret_2026";
         const SESSION_ID = "main_account";
 
@@ -491,7 +491,7 @@
             document.getElementById('selTheme').value = theme;
         }
 
-        // --- Realistic WhatsApp Preview ---
+        // Realistic Media Handler
         function handleMediaAttachment(e) {
             const files = e.target.files;
             const previewBox = document.getElementById('previewMediaBox');
@@ -543,7 +543,7 @@
             document.getElementById('previewTime').innerText = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         }
 
-        // --- Target Group Multi-Select ---
+        // Target Groups
         function openMultiGroupDispatchModal() {
             const text = document.getElementById('campGlobalMessage').value.trim();
             if (!text) return alert('Enter a message first.');
@@ -611,12 +611,14 @@
             try {
                 const res = await fetch(`${getServerUrl()}/api/message/send-bulk`, {
                     method: 'POST',
-                    headers: { 'Authorization': `Bearer ${API_BEARER_TOKEN}` },
+                    headers: { 
+                        'Authorization': `Bearer ${API_BEARER_TOKEN}`,
+                        'ngrok-skip-browser-warning': 'true'
+                    },
                     body: formData
                 });
                 const d = await res.json();
                 if (d.status === 'QUEUED') {
-                    // Save to persistent global history for Dashboard
                     const newCamp = {
                         id: 'cmp_' + Date.now(),
                         timestamp: new Date().toLocaleString(),
@@ -641,12 +643,14 @@
             } catch(e) { alert('Connection Error: ' + e.message); }
         }
 
-        // Background progress tracker for Dashboard
         function pollCampaignProgress(campId) {
             const timer = setInterval(async () => {
                 try {
                     const res = await fetch(`${getServerUrl()}/api/queue-status/${SESSION_ID}`, {
-                        headers: { 'Authorization': `Bearer ${API_BEARER_TOKEN}` }
+                        headers: { 
+                            'Authorization': `Bearer ${API_BEARER_TOKEN}`,
+                            'ngrok-skip-browser-warning': 'true'
+                        }
                     });
                     const d = await res.json();
                     if (!d || d.error) return;
@@ -672,7 +676,7 @@
             }, 2500);
         }
 
-        // --- Interactive Dashboard Rendering & Filtering ---
+        // Dashboard Rendering & Filter Details
         function renderDashboard() {
             let total = 0;
             groups.forEach(g => total += g.contacts.length);
@@ -726,7 +730,7 @@
             const container = document.getElementById('filterModalContainer');
 
             if (list.length === 0) {
-                container.innerHTML = `<div style="text-align: center; color: var(--text-muted); padding: 20px;">No ${filterType.toLowerCase()} contacts in this campaign.</div>`;
+                container.innerHTML = `<div style="text-align: center; color: var(--text-muted); padding: 20px;">No ${filterType.toLowerCase()} contacts.</div>`;
             } else {
                 container.innerHTML = list.map(c => `
                     <div class="contact-picker-row">
@@ -743,7 +747,6 @@
             openModal('contactFilterModal');
         }
 
-        // --- Groups & Contact Pickers (Fixed Visible Layout) ---
         function sortGroups(criteria) {
             if (criteria === 'alpha') groups.sort((a,b) => a.name.localeCompare(b.name));
             else if (criteria === 'count') groups.sort((a,b) => b.contacts.length - a.contacts.length);
@@ -849,7 +852,7 @@
             }
         }
 
-        // --- High-Visibility Contact Picker Bridge ---
+        // Contact Picker Bridge
         async function openPhonebookSelector(mode) {
             pbTargetMode = mode;
             selectedPbContacts.clear();
@@ -893,7 +896,7 @@
                 } catch(e) {}
             }
 
-            alert('Could not access device contacts. Please ensure Contact permissions are allowed in Android App Settings.');
+            alert('Contacts permission was not granted. Please allow Contacts permission for this app in your Android Settings.');
         }
 
         function renderPhonebook(list) {
@@ -977,11 +980,14 @@
             alert(`Added ${list.length} contacts.`);
         }
 
-        // --- WhatsApp Pairing & Status ---
+        // WhatsApp Pairing & Status
         async function syncWhatsAppAccountStatus() {
             try {
                 const res = await fetch(`${getServerUrl()}/api/status/${SESSION_ID}`, {
-                    headers: { 'Authorization': `Bearer ${API_BEARER_TOKEN}` }
+                    headers: { 
+                        'Authorization': `Bearer ${API_BEARER_TOKEN}`,
+                        'ngrok-skip-browser-warning': 'true'
+                    }
                 });
                 const d = await res.json();
                 if (d.status === 'CONNECTED' && d.phone) {
@@ -1005,7 +1011,11 @@
             try {
                 const res = await fetch(`${getServerUrl()}/api/pair`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${API_BEARER_TOKEN}` },
+                    headers: { 
+                        'Content-Type': 'application/json', 
+                        'Authorization': `Bearer ${API_BEARER_TOKEN}`,
+                        'ngrok-skip-browser-warning': 'true'
+                    },
                     body: JSON.stringify({ sessionId: SESSION_ID, phoneNumber: phone })
                 });
                 const d = await res.json();
@@ -1023,7 +1033,11 @@
             if (!confirm('Unlink this WhatsApp session?')) return;
             await fetch(`${getServerUrl()}/api/logout`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${API_BEARER_TOKEN}` },
+                headers: { 
+                    'Content-Type': 'application/json', 
+                    'Authorization': `Bearer ${API_BEARER_TOKEN}`,
+                    'ngrok-skip-browser-warning': 'true'
+                },
                 body: JSON.stringify({ sessionId: SESSION_ID })
             });
             syncWhatsAppAccountStatus();
