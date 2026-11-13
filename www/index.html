@@ -15,7 +15,6 @@
             --primary: #00a884;
             --danger: #ef4444;
             --warning: #f59e0b;
-            --wa-green: #005c4b;
             --wa-bubble: #005c4b;
         }
 
@@ -105,55 +104,110 @@
             overflow: hidden;
             position: relative;
         }
-        body.light-theme .wa-bubble-realistic {
-            color: #111b21;
-        }
-        .wa-preview-img-container {
-            width: 100%;
-            max-height: 220px;
-            background: #000;
-            display: none;
-            overflow: hidden;
-            position: relative;
-        }
-        .wa-preview-img-container img, .wa-preview-img-container video {
-            width: 100%;
-            height: 100%;
-            max-height: 220px;
-            object-fit: cover;
-            display: block;
-        }
-        .wa-preview-doc-container {
-            display: none;
-            background: rgba(0,0,0,0.15);
-            padding: 10px 12px;
-            align-items: center;
-            gap: 10px;
-            border-bottom: 1px solid rgba(255,255,255,0.06);
-        }
-        .wa-bubble-caption {
-            padding: 8px 10px 4px 10px;
-            font-size: 0.92rem;
-            line-height: 1.35;
-            white-space: pre-wrap;
-            word-break: break-word;
-        }
-        .wa-bubble-meta {
-            display: flex;
-            align-items: center;
-            justify-content: flex-end;
-            gap: 4px;
-            padding: 0 8px 4px 8px;
-            font-size: 0.68rem;
-            color: rgba(255,255,255,0.65);
-        }
+        body.light-theme .wa-bubble-realistic { color: #111b21; }
+        .wa-preview-img-container { width: 100%; max-height: 220px; background: #000; display: none; overflow: hidden; }
+        .wa-preview-img-container img, .wa-preview-img-container video { width: 100%; height: 100%; max-height: 220px; object-fit: cover; display: block; }
+        .wa-preview-doc-container { display: none; background: rgba(0,0,0,0.15); padding: 10px 12px; align-items: center; gap: 10px; border-bottom: 1px solid rgba(255,255,255,0.06); }
+        .wa-bubble-caption { padding: 8px 10px 4px 10px; font-size: 0.92rem; line-height: 1.35; white-space: pre-wrap; word-break: break-word; }
+        .wa-bubble-meta { display: flex; align-items: center; justify-content: flex-end; gap: 4px; padding: 0 8px 4px 8px; font-size: 0.68rem; color: rgba(255,255,255,0.65); }
         body.light-theme .wa-bubble-meta { color: rgba(0,0,0,0.5); }
 
-        /* Professional Target Group Selection Modal */
+        /* Modals & Stack */
         .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 200; align-items: center; justify-content: center; padding: 16px; }
         .modal-high { z-index: 300; }
         .modal-content { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; width: 100%; max-width: 500px; padding: 20px; max-height: 90vh; display: flex; flex-direction: column; overflow-y: auto; }
         .modal-title { font-size: 1.15rem; font-weight: 700; margin-bottom: 14px; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
+
+        /* Fixed Device Contacts List Styling */
+        .contact-picker-row {
+            display: flex;
+            align-items: center;
+            padding: 12px 10px;
+            border-bottom: 1px solid var(--border);
+            gap: 12px;
+            cursor: pointer;
+        }
+        .contact-picker-row:active { background: rgba(0, 168, 132, 0.1); }
+        .contact-avatar {
+            width: 38px;
+            height: 38px;
+            border-radius: 19px;
+            background: #2a3942;
+            color: var(--primary);
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            flex-shrink: 0;
+        }
+        .contact-details {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .contact-name-txt {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--text) !important;
+            margin-bottom: 2px;
+        }
+        .contact-phone-txt {
+            font-size: 0.8rem;
+            color: var(--text-muted) !important;
+        }
+        .contact-chk {
+            width: 22px;
+            height: 22px;
+            border-radius: 6px;
+            border: 2px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-size: 0.8rem;
+            flex-shrink: 0;
+        }
+        .contact-picker-row.selected .contact-chk {
+            background: var(--primary);
+            border-color: var(--primary);
+        }
+
+        /* Interactive Dashboard History Cards */
+        .dashboard-history-card {
+            background: var(--surface-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 14px;
+            margin-bottom: 12px;
+        }
+        .dh-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.85rem;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+        .dh-pills-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 6px;
+            text-align: center;
+        }
+        .dh-pill {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 8px 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .dh-pill:active { transform: scale(0.96); }
+        .dh-pill.active { border-color: var(--primary); background: rgba(0, 168, 132, 0.12); }
+        .dh-val { font-size: 1.1rem; font-weight: bold; }
+        .dh-lbl { font-size: 0.68rem; color: var(--text-muted); text-transform: uppercase; margin-top: 2px; }
 
         .group-select-card {
             display: flex;
@@ -165,38 +219,10 @@
             padding: 12px 14px;
             margin-bottom: 8px;
             cursor: pointer;
-            transition: all 0.2s ease;
         }
-        .group-select-card.selected {
-            border-color: var(--primary);
-            background: rgba(0, 168, 132, 0.08);
-        }
-        .group-select-info { display: flex; flex-direction: column; gap: 2px; }
-        .group-select-name { font-size: 0.98rem; font-weight: 600; }
-        .group-select-count { font-size: 0.78rem; color: var(--text-muted); }
-        .group-checkbox-custom {
-            width: 22px;
-            height: 22px;
-            border-radius: 6px;
-            border: 2px solid var(--border);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #fff;
-            font-size: 0.8rem;
-            transition: background 0.2s;
-        }
-        .group-select-card.selected .group-checkbox-custom {
-            background: var(--primary);
-            border-color: var(--primary);
-        }
-
-        .member-item { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; border-bottom: 1px solid var(--border); gap: 10px; }
-        .member-info { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
-        .member-name { font-size: 0.95rem; font-weight: 600; }
-        .member-phone { font-size: 0.8rem; color: var(--text-muted); }
-        .badge-status { font-size: 0.72rem; padding: 2px 6px; border-radius: 4px; font-weight: bold; }
-        .status-sent { background: rgba(0, 168, 132, 0.2); color: var(--primary); }
+        .group-select-card.selected { border-color: var(--primary); background: rgba(0, 168, 132, 0.08); }
+        .group-checkbox-custom { width: 22px; height: 22px; border-radius: 6px; border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; color: #fff; font-size: 0.8rem; }
+        .group-select-card.selected .group-checkbox-custom { background: var(--primary); border-color: var(--primary); }
     </style>
 </head>
 <body>
@@ -248,7 +274,7 @@
         <button class="btn btn-primary" onclick="openMultiGroupDispatchModal()">Select Target Groups & Send</button>
     </div>
 
-    <!-- Page 3: Dashboard -->
+    <!-- Page 3: Dashboard with Interactive History Filtering -->
     <div class="page-content" id="viewDashboard">
         <div style="background: var(--surface-card); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 16px;">
             <div style="display: grid; grid-template-columns: repeat(2, 1fr); text-align: center;">
@@ -256,19 +282,22 @@
                 <div><div id="dashGroups" style="font-size: 1.4rem; font-weight: bold;">0</div><div style="font-size: 0.75rem; color: var(--text-muted);">Total Groups</div></div>
             </div>
         </div>
+
+        <h4 style="margin-bottom: 10px; color: var(--text);">Recent Campaigns History (Last 3)</h4>
+        <div id="dashboardHistoryContainer"></div>
     </div>
 
     <!-- Page 4: Settings -->
     <div class="page-content" id="viewSettings">
         <div style="background: var(--surface-card); border: 1px solid var(--border); border-radius: 12px; padding: 14px; margin-bottom: 16px;">
-            <label>Server Base URL (Cloudflare Tunnel)</label>
-            <input type="text" id="cfgServerUrl" placeholder="https://xxxx.trycloudflare.com">
+            <label>Server Base URL</label>
+            <input type="text" id="cfgServerUrl" placeholder="https://bet-valuation-davis-everyday.trycloudflare.com">
             <button class="btn btn-outline" style="margin-bottom: 14px;" onclick="saveServerUrl()">Save Server URL</button>
 
             <label>WhatsApp Account Connection</label>
             <div id="statusConnectedBox" style="display: none;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                    <span class="badge-status status-sent">● CONNECTED</span>
+                    <span style="font-size: 0.75rem; padding: 3px 8px; border-radius: 12px; background: rgba(0, 168, 132, 0.2); color: var(--primary); font-weight: bold;">● CONNECTED</span>
                     <b id="lblConnectedPhone" style="font-size: 1rem;"></b>
                 </div>
                 <button class="btn btn-danger" onclick="unlinkAccount()">Unlink WhatsApp</button>
@@ -280,13 +309,6 @@
             </div>
         </div>
 
-        <label>Language</label>
-        <select id="selLanguage" onchange="switchLanguage(this.value)">
-            <option value="en">English</option>
-            <option value="ta">தமிழ்</option>
-            <option value="hi">हिंदी</option>
-        </select>
-
         <label>Theme</label>
         <select id="selTheme" onchange="switchTheme(this.value)">
             <option value="dark">Dark Theme</option>
@@ -295,7 +317,7 @@
 
         <div style="background: var(--surface-card); border: 1px solid var(--border); border-radius: 12px; padding: 14px; margin-top: 20px;">
             <label>App Updates</label>
-            <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 8px;">Current Version: 3.4.0</div>
+            <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 8px;">Version: 3.5.0 (Auto-Inplace Update)</div>
             <button class="btn btn-outline" onclick="downloadDirectUpdate()">⚡ Download & Install Update</button>
         </div>
     </div>
@@ -315,7 +337,7 @@
         <div class="modal-content">
             <div class="modal-title">Create Group</div>
             <label>Group Name</label>
-            <input type="text" id="newGroupName" placeholder="e.g. November Customers">
+            <input type="text" id="newGroupName" placeholder="e.g. VIP Customers">
 
             <label>Add Contacts (Optional)</label>
             <div style="display: flex; gap: 8px; margin-bottom: 12px;">
@@ -362,7 +384,7 @@
         </div>
     </div>
 
-    <!-- Professional Target Group Selection Modal -->
+    <!-- Target Groups Selector Modal -->
     <div class="modal" id="multiGroupDispatchModal">
         <div class="modal-content">
             <div class="modal-title">Select Target Groups</div>
@@ -370,28 +392,35 @@
                 <span style="font-size: 0.8rem; color: var(--text-muted);">Duplicate contacts are merged automatically.</span>
                 <button class="icon-btn" style="font-size: 0.85rem; color: var(--primary); font-weight: bold;" onclick="toggleSelectAllTargetGroups()">Select All</button>
             </div>
-
             <div id="targetGroupsCardsContainer" style="max-height: 280px; overflow-y: auto; margin-bottom: 14px;"></div>
-
             <button class="btn btn-primary" onclick="confirmDispatchMultiGroup()">Launch Campaign</button>
             <button class="btn btn-secondary" onclick="closeTopModal()">Cancel</button>
         </div>
     </div>
 
-    <!-- Device Contacts Selector Modal -->
+    <!-- Device Contacts Selector Modal with Fixed Visible Rendering -->
     <div class="modal modal-high" id="phonebookModal">
         <div class="modal-content">
             <div class="modal-title">Device Contacts</div>
             <input type="text" id="phonebookSearch" placeholder="🔍 Search contacts..." oninput="filterPhonebook()">
-            <div id="phonebookListContainer" style="max-height: 320px; overflow-y: auto;"></div>
-            <button class="btn btn-primary" onclick="confirmPhonebookSelection()">Add Selected</button>
+            <div id="phonebookListContainer" style="max-height: 340px; overflow-y: auto; border: 1px solid var(--border); border-radius: 8px;"></div>
+            <button class="btn btn-primary" style="margin-top: 12px;" onclick="confirmPhonebookSelection()">Add Selected</button>
             <button class="btn btn-secondary" onclick="closeTopModal()">Back</button>
         </div>
     </div>
 
+    <!-- Filtered Contact Details Modal (Opened when clicking Total/Sent/Failed/Pending) -->
+    <div class="modal modal-high" id="contactFilterModal">
+        <div class="modal-content">
+            <div class="modal-title" id="filterModalTitle">Contacts List</div>
+            <div id="filterModalContainer" style="max-height: 360px; overflow-y: auto;"></div>
+            <button class="btn btn-secondary" style="margin-top: 12px;" onclick="closeTopModal()">Close</button>
+        </div>
+    </div>
+
     <script>
-        // Fallback default; overrides cleanly from localStorage if changed
-        const DEFAULT_CLOUD_URL = "https://counters-infringement-fully-quote.trycloudflare.com";
+        // Automatic Fallback Connection (Matches your active tunnel)
+        const DEFAULT_CLOUD_URL = "https://bet-valuation-davis-everyday.trycloudflare.com";
         const API_BEARER_TOKEN = "marketing_engine_secret_2026";
         const SESSION_ID = "main_account";
 
@@ -403,12 +432,15 @@
             const url = document.getElementById('cfgServerUrl').value.trim();
             if (!url.startsWith('http')) return alert('Enter a valid URL starting with https://');
             localStorage.setItem('cfg_server_url', url);
-            alert('Server URL saved. Retesting connection...');
+            alert('Server URL saved.');
             syncWhatsAppAccountStatus();
         }
 
         let groups = [];
         try { groups = JSON.parse(localStorage.getItem('app_groups') || '[]'); } catch(e) { groups = []; }
+
+        let globalCampaigns = [];
+        try { globalCampaigns = JSON.parse(localStorage.getItem('app_campaigns') || '[]'); } catch(e) { globalCampaigns = []; }
 
         let activeGroupId = null;
         let stagedContacts = [];
@@ -459,12 +491,7 @@
             document.getElementById('selTheme').value = theme;
         }
 
-        function switchLanguage(lang) {
-            localStorage.setItem('app_lang', lang);
-            document.getElementById('selLanguage').value = lang;
-        }
-
-        // --- Realistic WhatsApp Live Preview Handler ---
+        // --- Realistic WhatsApp Preview ---
         function handleMediaAttachment(e) {
             const files = e.target.files;
             const previewBox = document.getElementById('previewMediaBox');
@@ -516,7 +543,7 @@
             document.getElementById('previewTime').innerText = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         }
 
-        // --- Professional Group Selection ---
+        // --- Target Group Multi-Select ---
         function openMultiGroupDispatchModal() {
             const text = document.getElementById('campGlobalMessage').value.trim();
             if (!text) return alert('Enter a message first.');
@@ -589,13 +616,134 @@
                 });
                 const d = await res.json();
                 if (d.status === 'QUEUED') {
-                    alert(`Campaign launched to ${uniqueRecipients.length} unique contacts!`);
+                    // Save to persistent global history for Dashboard
+                    const newCamp = {
+                        id: 'cmp_' + Date.now(),
+                        timestamp: new Date().toLocaleString(),
+                        total: uniqueRecipients.length,
+                        sent: 0,
+                        failed: 0,
+                        pending: uniqueRecipients.length,
+                        recipients: uniqueRecipients.map(r => ({
+                            name: r.name || 'Unsaved',
+                            phone: r.phone,
+                            status: 'PENDING'
+                        }))
+                    };
+                    globalCampaigns.unshift(newCamp);
+                    if (globalCampaigns.length > 3) globalCampaigns = globalCampaigns.slice(0, 3);
+                    localStorage.setItem('app_campaigns', JSON.stringify(globalCampaigns));
+
+                    alert(`Campaign launched to ${uniqueRecipients.length} deduplicated contacts!`);
                     navigateTab('viewDashboard', document.querySelectorAll('.nav-tab')[2]);
-                } else alert(d.error || 'Failed to dispatch');
+                    pollCampaignProgress(newCamp.id);
+                } else alert(d.error || 'Failed');
             } catch(e) { alert('Connection Error: ' + e.message); }
         }
 
-        // --- Contact Management & Groups ---
+        // Background progress tracker for Dashboard
+        function pollCampaignProgress(campId) {
+            const timer = setInterval(async () => {
+                try {
+                    const res = await fetch(`${getServerUrl()}/api/queue-status/${SESSION_ID}`, {
+                        headers: { 'Authorization': `Bearer ${API_BEARER_TOKEN}` }
+                    });
+                    const d = await res.json();
+                    if (!d || d.error) return;
+
+                    const camp = globalCampaigns.find(c => c.id === campId);
+                    if (camp) {
+                        camp.sent = d.sent;
+                        camp.failed = d.failed;
+                        camp.pending = d.remaining;
+                        camp.recipients.forEach((r, idx) => {
+                            if (idx < d.sent) r.status = 'SENT';
+                            else if (idx < d.sent + d.failed) r.status = 'FAILED';
+                            else r.status = 'PENDING';
+                        });
+                        localStorage.setItem('app_campaigns', JSON.stringify(globalCampaigns));
+                        renderDashboard();
+                    }
+
+                    if (!d.isRunning && d.total > 0 && d.remaining === 0) {
+                        clearInterval(timer);
+                    }
+                } catch(e) {}
+            }, 2500);
+        }
+
+        // --- Interactive Dashboard Rendering & Filtering ---
+        function renderDashboard() {
+            let total = 0;
+            groups.forEach(g => total += g.contacts.length);
+            document.getElementById('dashTotal').innerText = total;
+            document.getElementById('dashGroups').innerText = groups.length;
+
+            const container = document.getElementById('dashboardHistoryContainer');
+            if (globalCampaigns.length === 0) {
+                container.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 20px;">No campaigns executed yet.</div>';
+                return;
+            }
+
+            container.innerHTML = globalCampaigns.map((camp, idx) => `
+                <div class="dashboard-history-card">
+                    <div class="dh-header">
+                        <span>Campaign #${globalCampaigns.length - idx}</span>
+                        <span style="font-size: 0.75rem; color: var(--text-muted);">${camp.timestamp}</span>
+                    </div>
+                    <div class="dh-pills-grid">
+                        <div class="dh-pill" onclick="showFilteredContacts('${camp.id}', 'ALL')">
+                            <div class="dh-val">${camp.total}</div>
+                            <div class="dh-lbl">Total</div>
+                        </div>
+                        <div class="dh-pill" onclick="showFilteredContacts('${camp.id}', 'SENT')">
+                            <div class="dh-val" style="color: var(--primary);">${camp.sent}</div>
+                            <div class="dh-lbl">Sent</div>
+                        </div>
+                        <div class="dh-pill" onclick="showFilteredContacts('${camp.id}', 'FAILED')">
+                            <div class="dh-val" style="color: var(--danger);">${camp.failed}</div>
+                            <div class="dh-lbl">Failed</div>
+                        </div>
+                        <div class="dh-pill" onclick="showFilteredContacts('${camp.id}', 'PENDING')">
+                            <div class="dh-val" style="color: var(--warning);">${camp.pending}</div>
+                            <div class="dh-lbl">Pending</div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function showFilteredContacts(campId, filterType) {
+            const camp = globalCampaigns.find(c => c.id === campId);
+            if (!camp) return;
+
+            let list = camp.recipients;
+            if (filterType !== 'ALL') {
+                list = camp.recipients.filter(r => r.status === filterType);
+            }
+
+            document.getElementById('filterModalTitle').innerText = `${filterType} Contacts (${list.length})`;
+            const container = document.getElementById('filterModalContainer');
+
+            if (list.length === 0) {
+                container.innerHTML = `<div style="text-align: center; color: var(--text-muted); padding: 20px;">No ${filterType.toLowerCase()} contacts in this campaign.</div>`;
+            } else {
+                container.innerHTML = list.map(c => `
+                    <div class="contact-picker-row">
+                        <div class="contact-avatar">${(c.name || 'U').charAt(0).toUpperCase()}</div>
+                        <div class="contact-details">
+                            <div class="contact-name-txt">${c.name || 'Unsaved'}</div>
+                            <div class="contact-phone-txt">${c.phone}</div>
+                        </div>
+                        <span style="font-size: 0.72rem; padding: 2px 6px; border-radius: 4px; font-weight: bold; background: ${c.status === 'SENT' ? 'rgba(0,168,132,0.2)' : (c.status === 'FAILED' ? 'rgba(239,68,68,0.2)' : 'rgba(245,158,11,0.2)')}; color: ${c.status === 'SENT' ? 'var(--primary)' : (c.status === 'FAILED' ? 'var(--danger)' : 'var(--warning)')};">${c.status}</span>
+                    </div>
+                `).join('');
+            }
+
+            openModal('contactFilterModal');
+        }
+
+        // --- Groups & Contact Pickers (Fixed Visible Layout) ---
         function sortGroups(criteria) {
             if (criteria === 'alpha') groups.sort((a,b) => a.name.localeCompare(b.name));
             else if (criteria === 'count') groups.sort((a,b) => b.contacts.length - a.contacts.length);
@@ -664,10 +812,11 @@
                 return;
             }
             container.innerHTML = g.contacts.map((c, idx) => `
-                <div class="member-item">
-                    <div class="member-info">
-                        <span class="member-name">${c.name || 'Unsaved'}</span>
-                        <span class="member-phone">${c.phone}</span>
+                <div class="contact-picker-row">
+                    <div class="contact-avatar">${(c.name || 'U').charAt(0).toUpperCase()}</div>
+                    <div class="contact-details">
+                        <div class="contact-name-txt">${c.name || 'Unsaved'}</div>
+                        <div class="contact-phone-txt">${c.phone}</div>
                     </div>
                     <button class="icon-btn" style="color: var(--danger); font-size: 1rem;" onclick="deleteMember(${idx})">🗑️</button>
                 </div>
@@ -700,7 +849,7 @@
             }
         }
 
-        // --- Contact Picker Fallback Bridge ---
+        // --- High-Visibility Contact Picker Bridge ---
         async function openPhonebookSelector(mode) {
             pbTargetMode = mode;
             selectedPbContacts.clear();
@@ -744,32 +893,41 @@
                 } catch(e) {}
             }
 
-            alert('Contacts permission was not granted. Please allow Contacts permission for this app in your Android Settings.');
+            alert('Could not access device contacts. Please ensure Contact permissions are allowed in Android App Settings.');
         }
 
         function renderPhonebook(list) {
             const container = document.getElementById('phonebookListContainer');
-            container.innerHTML = list.map(c => `
-                <div class="member-item" onclick="togglePbSelect('${c.phone}')" style="cursor: pointer;">
-                    <input type="checkbox" id="pb_chk_${c.phone}" ${selectedPbContacts.has(c.phone) ? 'checked' : ''}>
-                    <div class="member-info">
-                        <span class="member-name">${c.name || 'Unsaved'}</span>
-                        <span class="member-phone">${c.phone}</span>
+            if (list.length === 0) {
+                container.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 20px;">No contacts found.</div>';
+                return;
+            }
+
+            container.innerHTML = list.map(c => {
+                const isSelected = selectedPbContacts.has(c.phone);
+                const initial = (c.name || 'U').charAt(0).toUpperCase();
+                return `
+                    <div class="contact-picker-row ${isSelected ? 'selected' : ''}" onclick="togglePbSelect('${c.phone}')">
+                        <div class="contact-avatar">${initial}</div>
+                        <div class="contact-details">
+                            <div class="contact-name-txt">${c.name || 'Unsaved'}</div>
+                            <div class="contact-phone-txt">${c.phone}</div>
+                        </div>
+                        <div class="contact-chk" id="pb_chk_${c.phone}">${isSelected ? '✓' : ''}</div>
                     </div>
-                </div>
-            `).join('');
+                `;
+            }).join('');
         }
 
         function togglePbSelect(phone) {
             if (selectedPbContacts.has(phone)) selectedPbContacts.delete(phone);
             else selectedPbContacts.add(phone);
-            const chk = document.getElementById('pb_chk_' + phone);
-            if (chk) chk.checked = selectedPbContacts.has(phone);
+            renderPhonebook(cachedDeviceContacts);
         }
 
         function filterPhonebook() {
             const q = document.getElementById('phonebookSearch').value.toLowerCase();
-            renderPhonebook(cachedDeviceContacts.filter(c => c.name.toLowerCase().includes(q) || c.phone.includes(q)));
+            renderPhonebook(cachedDeviceContacts.filter(c => (c.name || '').toLowerCase().includes(q) || c.phone.includes(q)));
         }
 
         function confirmPhonebookSelection() {
@@ -871,13 +1029,6 @@
             syncWhatsAppAccountStatus();
         }
 
-        function renderDashboard() {
-            let total = 0;
-            groups.forEach(g => total += g.contacts.length);
-            document.getElementById('dashTotal').innerText = total;
-            document.getElementById('dashGroups').innerText = groups.length;
-        }
-
         function shareApp() {
             if (navigator.share) {
                 navigator.share({ title: 'WA Campaign', text: 'WhatsApp Marketing Controller', url: window.location.href });
@@ -896,6 +1047,7 @@
                 document.getElementById('cfgServerUrl').value = getServerUrl();
             }
             renderGroups();
+            renderDashboard();
             setupBackNavigation();
             syncWhatsAppAccountStatus();
         };
