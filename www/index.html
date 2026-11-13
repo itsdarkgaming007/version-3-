@@ -39,13 +39,26 @@
         .icon-btn { background: none; border: none; font-size: 1.3rem; color: var(--text); cursor: pointer; }
 
         .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; height: 62px; background: var(--surface); border-top: 1px solid var(--border); display: flex; justify-content: space-around; align-items: center; z-index: 100; }
-        .nav-tab { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: var(--text-muted); cursor: pointer; text-decoration: none; font-size: 0.75rem; font-weight: 600; gap: 4px; }
+        .nav-tab { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: var(--text-muted); cursor: pointer; text-decoration: none; font-size: 0.75rem; font-weight: 600; gap: 4px; position: relative; }
         .nav-tab.active { color: var(--primary); }
         .nav-tab span.icon { font-size: 1.3rem; }
+
+        /* Sleek Update Notification Dot */
+        .update-badge-dot {
+            width: 8px;
+            height: 8px;
+            background: var(--danger);
+            border-radius: 4px;
+            position: absolute;
+            top: 8px;
+            right: 25%;
+            display: none;
+        }
 
         .page-content { flex: 1; padding: 16px; padding-bottom: 80px; max-width: 600px; margin: 0 auto; width: 100%; display: none; }
         .page-content.active { display: block; }
 
+        .card { background: var(--surface-card); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; margin-bottom: 12px; }
         .group-card { background: var(--surface-card); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; margin-bottom: 10px; cursor: pointer; }
         .group-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
         .group-card-title { font-size: 1.05rem; font-weight: 600; }
@@ -79,149 +92,33 @@
 
         .fab { position: fixed; bottom: 80px; right: 24px; width: 56px; height: 56px; border-radius: 28px; background: var(--primary); color: #fff; border: none; font-size: 1.8rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0,0,0,0.5); cursor: pointer; z-index: 90; }
 
-        /* Realistic WhatsApp Chat Preview Window */
-        .preview-wrapper {
-            background-color: #0b141a;
-            background-image: radial-gradient(#202c33 1px, transparent 1px);
-            background-size: 16px 16px;
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 16px;
-            margin-bottom: 14px;
-            display: none;
-        }
-        body.light-theme .preview-wrapper {
-            background-color: #efeae2;
-            background-image: radial-gradient(#d1d7db 1px, transparent 1px);
-        }
-        .wa-bubble-realistic {
-            background: var(--wa-bubble);
-            color: #fff;
-            border-radius: 8px 8px 2px 8px;
-            max-width: 85%;
-            margin-left: auto;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.3);
-            overflow: hidden;
-            position: relative;
-        }
+        .preview-wrapper { background-color: #0b141a; border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 14px; display: none; }
+        body.light-theme .preview-wrapper { background-color: #efeae2; }
+        .wa-bubble-realistic { background: var(--wa-bubble); color: #fff; border-radius: 8px 8px 2px 8px; max-width: 85%; margin-left: auto; box-shadow: 0 1px 2px rgba(0,0,0,0.3); overflow: hidden; position: relative; }
         body.light-theme .wa-bubble-realistic { color: #111b21; }
         .wa-preview-img-container { width: 100%; max-height: 220px; background: #000; display: none; overflow: hidden; }
         .wa-preview-img-container img, .wa-preview-img-container video { width: 100%; height: 100%; max-height: 220px; object-fit: cover; display: block; }
-        .wa-preview-doc-container { display: none; background: rgba(0,0,0,0.15); padding: 10px 12px; align-items: center; gap: 10px; border-bottom: 1px solid rgba(255,255,255,0.06); }
         .wa-bubble-caption { padding: 8px 10px 4px 10px; font-size: 0.92rem; line-height: 1.35; white-space: pre-wrap; word-break: break-word; }
         .wa-bubble-meta { display: flex; align-items: center; justify-content: flex-end; gap: 4px; padding: 0 8px 4px 8px; font-size: 0.68rem; color: rgba(255,255,255,0.65); }
-        body.light-theme .wa-bubble-meta { color: rgba(0,0,0,0.5); }
 
-        /* Modals & Stack */
         .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 200; align-items: center; justify-content: center; padding: 16px; }
         .modal-high { z-index: 300; }
         .modal-content { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; width: 100%; max-width: 500px; padding: 20px; max-height: 90vh; display: flex; flex-direction: column; overflow-y: auto; }
         .modal-title { font-size: 1.15rem; font-weight: 700; margin-bottom: 14px; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
 
-        /* High-Contrast Device Contacts List Styling */
-        .contact-picker-row {
-            display: flex;
-            align-items: center;
-            padding: 12px 10px;
-            border-bottom: 1px solid var(--border);
-            gap: 12px;
-            cursor: pointer;
-        }
-        .contact-picker-row:active { background: rgba(0, 168, 132, 0.1); }
-        .contact-avatar {
-            width: 38px;
-            height: 38px;
-            border-radius: 19px;
-            background: #2a3942;
-            color: var(--primary);
-            font-weight: bold;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1rem;
-            flex-shrink: 0;
-        }
-        .contact-details {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }
-        .contact-name-txt {
-            font-size: 0.95rem;
-            font-weight: 600;
-            color: var(--text) !important;
-            margin-bottom: 2px;
-        }
-        .contact-phone-txt {
-            font-size: 0.8rem;
-            color: var(--text-muted) !important;
-        }
-        .contact-chk {
-            width: 22px;
-            height: 22px;
-            border-radius: 6px;
-            border: 2px solid var(--border);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #fff;
-            font-size: 0.8rem;
-            flex-shrink: 0;
-        }
-        .contact-picker-row.selected .contact-chk {
-            background: var(--primary);
-            border-color: var(--primary);
-        }
+        .contact-picker-row { display: flex; align-items: center; padding: 12px 10px; border-bottom: 1px solid var(--border); gap: 12px; cursor: pointer; }
+        .contact-avatar { width: 38px; height: 38px; border-radius: 19px; background: #2a3942; color: var(--primary); font-weight: bold; display: flex; align-items: center; justify-content: center; font-size: 1rem; flex-shrink: 0; }
+        .contact-details { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+        .contact-name-txt { font-size: 0.95rem; font-weight: 600; color: var(--text); }
+        .contact-phone-txt { font-size: 0.8rem; color: var(--text-muted); }
 
-        /* Interactive Dashboard History Cards */
-        .dashboard-history-card {
-            background: var(--surface-card);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 14px;
-            margin-bottom: 12px;
-        }
-        .dh-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-size: 0.85rem;
-            font-weight: bold;
-            margin-bottom: 8px;
-        }
-        .dh-pills-grid {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 6px;
-            text-align: center;
-        }
-        .dh-pill {
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 8px 4px;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        .dh-pill:active { transform: scale(0.96); }
-        .dh-pill.active { border-color: var(--primary); background: rgba(0, 168, 132, 0.12); }
+        .dh-pill { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 8px 4px; cursor: pointer; text-align: center; }
         .dh-val { font-size: 1.1rem; font-weight: bold; }
-        .dh-lbl { font-size: 0.68rem; color: var(--text-muted); text-transform: uppercase; margin-top: 2px; }
+        .dh-lbl { font-size: 0.68rem; color: var(--text-muted); text-transform: uppercase; }
 
-        .group-select-card {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            background: var(--surface-card);
-            border: 1px solid var(--border);
-            border-radius: 10px;
-            padding: 12px 14px;
-            margin-bottom: 8px;
-            cursor: pointer;
-        }
+        .group-select-card { display: flex; align-items: center; justify-content: space-between; background: var(--surface-card); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; margin-bottom: 8px; cursor: pointer; }
         .group-select-card.selected { border-color: var(--primary); background: rgba(0, 168, 132, 0.08); }
-        .group-checkbox-custom { width: 22px; height: 22px; border-radius: 6px; border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; color: #fff; font-size: 0.8rem; }
+        .group-checkbox-custom { width: 22px; height: 22px; border-radius: 6px; border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; color: #fff; }
         .group-select-card.selected .group-checkbox-custom { background: var(--primary); border-color: var(--primary); }
     </style>
 </head>
@@ -232,36 +129,32 @@
         <button class="icon-btn" onclick="shareApp()">📤</button>
     </header>
 
-    <!-- Page 1: Groups -->
+    <!-- 1. GROUPS -->
     <div class="page-content active" id="viewGroups">
         <div style="display: flex; gap: 8px; margin-bottom: 12px;">
             <select id="groupSortSelect" onchange="sortGroups(this.value)" style="margin-bottom: 0;">
-                <option value="newest">Sort: Newest First</option>
-                <option value="alpha">Sort: Alphabetical (A-Z)</option>
-                <option value="count">Sort: Most Contacts</option>
+                <option value="newest" id="optSortNewest">Sort: Newest First</option>
+                <option value="alpha" id="optSortAlpha">Sort: Alphabetical (A-Z)</option>
+                <option value="count" id="optSortCount">Sort: Most Contacts</option>
             </select>
         </div>
         <div id="groupsListContainer"></div>
     </div>
 
-    <!-- Page 2: Campaign Composer -->
+    <!-- 2. CAMPAIGN -->
     <div class="page-content" id="viewCampaign">
-        <label>Marketing Message</label>
+        <label id="lblMessage">Marketing Message</label>
         <textarea id="campGlobalMessage" class="safe-textarea" placeholder="Type message..." oninput="updateLivePreview()"></textarea>
 
-        <label>Attachments (Images, Videos, PDF)</label>
+        <label id="lblAttachments">Attachments (Images, Videos, PDF)</label>
         <input type="file" id="campGlobalMedia" multiple accept="image/*,video/*,application/pdf" onchange="handleMediaAttachment(event)">
 
-        <label>Realistic WhatsApp Preview</label>
+        <label id="lblPreview">Realistic WhatsApp Preview</label>
         <div class="preview-wrapper" id="previewWrapper">
             <div class="wa-bubble-realistic">
                 <div class="wa-preview-img-container" id="previewMediaBox">
                     <img id="previewImg" src="" alt="preview">
                     <video id="previewVideo" controls style="display: none;"></video>
-                </div>
-                <div class="wa-preview-doc-container" id="previewDocBox">
-                    <span style="font-size: 1.4rem;">📄</span>
-                    <span id="previewDocName" style="font-size: 0.85rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"></span>
                 </div>
                 <div class="wa-bubble-caption" id="previewText"></div>
                 <div class="wa-bubble-meta">
@@ -271,75 +164,90 @@
             </div>
         </div>
 
-        <button class="btn btn-primary" onclick="openMultiGroupDispatchModal()">Select Target Groups & Send</button>
+        <button class="btn btn-primary" id="btnLaunch" onclick="openMultiGroupDispatchModal()">Select Target Groups & Send</button>
     </div>
 
-    <!-- Page 3: Dashboard with Interactive History Filtering -->
+    <!-- 3. DASHBOARD -->
     <div class="page-content" id="viewDashboard">
-        <div style="background: var(--surface-card); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 16px;">
+        <div class="card" style="margin-bottom: 16px;">
             <div style="display: grid; grid-template-columns: repeat(2, 1fr); text-align: center;">
-                <div><div id="dashTotal" style="font-size: 1.4rem; font-weight: bold;">0</div><div style="font-size: 0.75rem; color: var(--text-muted);">Total Contacts</div></div>
-                <div><div id="dashGroups" style="font-size: 1.4rem; font-weight: bold;">0</div><div style="font-size: 0.75rem; color: var(--text-muted);">Total Groups</div></div>
+                <div><div id="dashTotal" style="font-size: 1.4rem; font-weight: bold;">0</div><div style="font-size: 0.75rem; color: var(--text-muted);" id="lblTotalContacts">Total Contacts</div></div>
+                <div><div id="dashGroups" style="font-size: 1.4rem; font-weight: bold;">0</div><div style="font-size: 0.75rem; color: var(--text-muted);" id="lblTotalGroups">Total Groups</div></div>
             </div>
         </div>
 
-        <h4 style="margin-bottom: 10px; color: var(--text);">Recent Campaigns History (Last 3)</h4>
+        <h4 style="margin-bottom: 10px; color: var(--text);" id="lblRecentHistory">Recent Campaigns History (Last 3)</h4>
         <div id="dashboardHistoryContainer"></div>
     </div>
 
-    <!-- Page 4: Settings -->
+    <!-- 4. SETTINGS -->
     <div class="page-content" id="viewSettings">
-        <div style="background: var(--surface-card); border: 1px solid var(--border); border-radius: 12px; padding: 14px; margin-bottom: 16px;">
-            <label>Server Base URL</label>
-            <input type="text" id="cfgServerUrl" placeholder="https://rinse-chest-dish.ngrok-free.dev">
-            <button class="btn btn-outline" style="margin-bottom: 14px;" onclick="saveServerUrl()">Save Server URL</button>
-
-            <label>WhatsApp Account Connection</label>
+        <div class="card">
+            <label id="lblConnection">WhatsApp Account Status</label>
+            
             <div id="statusConnectedBox" style="display: none;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                    <span style="font-size: 0.75rem; padding: 3px 8px; border-radius: 12px; background: rgba(0, 168, 132, 0.2); color: var(--primary); font-weight: bold;">● CONNECTED</span>
+                    <span id="badgeServerStatus" style="font-size: 0.75rem; padding: 4px 8px; border-radius: 12px; background: rgba(0, 168, 132, 0.2); color: var(--primary); font-weight: bold;">● CONNECTED</span>
                     <b id="lblConnectedPhone" style="font-size: 1rem;"></b>
                 </div>
-                <button class="btn btn-danger" onclick="unlinkAccount()">Unlink WhatsApp</button>
+                <div id="txtServerOfflineNotice" style="font-size: 0.78rem; color: var(--warning); display: none; margin-bottom: 8px;">
+                    Laptop is offline. Campaigns will resume automatically when connected.
+                </div>
+                <button class="btn btn-danger" id="btnUnlink" onclick="unlinkAccount()">Unlink WhatsApp</button>
             </div>
+
             <div id="statusPairingBox">
                 <input type="tel" id="txtPairPhone" placeholder="91XXXXXXXXXX">
-                <button class="btn btn-primary" onclick="requestPairCode()">Pair WhatsApp</button>
+                <button class="btn btn-primary" id="btnPair" onclick="requestPairCode()">Pair WhatsApp</button>
                 <div id="pairCodeDisplay" style="font-size: 1.5rem; letter-spacing: 4px; font-weight: bold; color: var(--primary); text-align: center; margin-top: 10px; display: none;"></div>
             </div>
         </div>
 
-        <label>Theme</label>
+        <label id="lblLanguage">Language</label>
+        <select id="selLanguage" onchange="switchLanguage(this.value)">
+            <option value="en">English</option>
+            <option value="ta">தமிழ்</option>
+            <option value="hi">हिंदी</option>
+        </select>
+
+        <label id="lblTheme">Theme</label>
         <select id="selTheme" onchange="switchTheme(this.value)">
             <option value="dark">Dark Theme</option>
             <option value="light">Light Theme</option>
         </select>
 
-        <div style="background: var(--surface-card); border: 1px solid var(--border); border-radius: 12px; padding: 14px; margin-top: 20px;">
-            <label>App Updates</label>
-            <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 8px;">Version: 3.5.0 (Auto-Inplace Update)</div>
-            <button class="btn btn-outline" onclick="downloadDirectUpdate()">⚡ Download & Install Update</button>
+        <div class="card" style="margin-top: 20px;">
+            <label id="lblUpdates">App Updates</label>
+            <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 4px;" id="lblCurrentVer">Current Version: 3.6.0</div>
+            <div id="updateStatusNotice" style="font-size: 0.8rem; color: var(--primary); margin-bottom: 8px; display: none;">New update available!</div>
+            <button class="btn btn-outline" id="btnUpdateCheck" onclick="downloadDirectUpdate()">⚡ Check & Install Latest Version</button>
         </div>
+
+        <button class="btn btn-outline" style="margin-top: 10px;" id="btnShareApp" onclick="shareApp()">Share WA Campaign App</button>
     </div>
 
-    <!-- Bottom Navigation -->
+    <!-- Persistent Bottom Navigation -->
     <div class="bottom-nav">
-        <div class="nav-tab active" onclick="navigateTab('viewGroups', this)"><span class="icon">💬</span><span>Groups</span></div>
-        <div class="nav-tab" onclick="navigateTab('viewCampaign', this)"><span class="icon">📢</span><span>Campaign</span></div>
-        <div class="nav-tab" onclick="navigateTab('viewDashboard', this)"><span class="icon">📊</span><span>Dashboard</span></div>
-        <div class="nav-tab" onclick="navigateTab('viewSettings', this)"><span class="icon">⚙️</span><span>Settings</span></div>
+        <div class="nav-tab active" onclick="navigateTab('viewGroups', this)"><span class="icon">💬</span><span id="tabGroups">Groups</span></div>
+        <div class="nav-tab" onclick="navigateTab('viewCampaign', this)"><span class="icon">📢</span><span id="tabCampaign">Campaign</span></div>
+        <div class="nav-tab" onclick="navigateTab('viewDashboard', this)"><span class="icon">📊</span><span id="tabDashboard">Dashboard</span></div>
+        <div class="nav-tab" onclick="navigateTab('viewSettings', this)">
+            <span class="icon">⚙️</span>
+            <span id="tabSettings">Settings</span>
+            <div class="update-badge-dot" id="navUpdateDot"></div>
+        </div>
     </div>
 
     <button class="fab" id="fabAddGroup" onclick="openCreateGroupModal()">+</button>
 
-    <!-- Create Group Modal -->
+    <!-- Modals -->
     <div class="modal" id="createGroupModal">
         <div class="modal-content">
-            <div class="modal-title">Create Group</div>
-            <label>Group Name</label>
+            <div class="modal-title" id="lblCreateGroup">Create Group</div>
+            <label id="lblGroupName">Group Name</label>
             <input type="text" id="newGroupName" placeholder="e.g. VIP Customers">
 
-            <label>Add Contacts (Optional)</label>
+            <label id="lblAddContacts">Add Contacts</label>
             <div style="display: flex; gap: 8px; margin-bottom: 12px;">
                 <button type="button" class="btn btn-outline" onclick="openPhonebookSelector('create')">📱 Pick</button>
                 <button type="button" class="btn btn-outline" onclick="document.getElementById('csvFileInputCreate').click()">📁 File</button>
@@ -348,17 +256,16 @@
 
             <div id="createStagedCount" style="font-size: 0.8rem; color: var(--primary); font-weight: bold; margin-bottom: 8px;">0 Contacts Staged</div>
 
-            <button class="btn btn-primary" onclick="saveGroup()">Save Group</button>
+            <button class="btn btn-primary" id="btnSaveGroup" onclick="saveGroup()">Save Group</button>
             <button class="btn btn-secondary" onclick="closeTopModal()">Cancel</button>
         </div>
     </div>
 
-    <!-- Group Members Manager Modal -->
     <div class="modal" id="membersModal">
         <div class="modal-content">
-            <div class="modal-title">Group Members</div>
+            <div class="modal-title" id="lblManageGroup">Group Members</div>
 
-            <label>Group Name</label>
+            <label id="lblRenameGroup">Group Name</label>
             <div style="display: flex; gap: 8px; margin-bottom: 12px;">
                 <input type="text" id="editGroupNameInput" style="margin-bottom:0;">
                 <button class="btn btn-primary" style="width: auto; padding: 0 14px;" onclick="renameActiveGroup()">Save</button>
@@ -379,29 +286,26 @@
             </div>
 
             <div id="membersListContainer" style="max-height: 250px; overflow-y: auto;"></div>
-
             <button class="btn btn-secondary" style="margin-top: 14px;" onclick="closeTopModal()">Done</button>
         </div>
     </div>
 
-    <!-- Target Groups Selector Modal -->
     <div class="modal" id="multiGroupDispatchModal">
         <div class="modal-content">
-            <div class="modal-title">Select Target Groups</div>
+            <div class="modal-title" id="lblTargetGroups">Select Target Groups</div>
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                <span style="font-size: 0.8rem; color: var(--text-muted);">Duplicate contacts are merged automatically.</span>
+                <span style="font-size: 0.8rem; color: var(--text-muted);" id="lblDeduplicateNote">Duplicates merged automatically.</span>
                 <button class="icon-btn" style="font-size: 0.85rem; color: var(--primary); font-weight: bold;" onclick="toggleSelectAllTargetGroups()">Select All</button>
             </div>
             <div id="targetGroupsCardsContainer" style="max-height: 280px; overflow-y: auto; margin-bottom: 14px;"></div>
-            <button class="btn btn-primary" onclick="confirmDispatchMultiGroup()">Launch Campaign</button>
+            <button class="btn btn-primary" id="btnStartSend" onclick="confirmDispatchMultiGroup()">Launch Campaign</button>
             <button class="btn btn-secondary" onclick="closeTopModal()">Cancel</button>
         </div>
     </div>
 
-    <!-- Device Contacts Selector Modal with Fixed Visible Rendering -->
     <div class="modal modal-high" id="phonebookModal">
         <div class="modal-content">
-            <div class="modal-title">Device Contacts</div>
+            <div class="modal-title" id="lblDeviceContacts">Device Contacts</div>
             <input type="text" id="phonebookSearch" placeholder="🔍 Search contacts..." oninput="filterPhonebook()">
             <div id="phonebookListContainer" style="max-height: 340px; overflow-y: auto; border: 1px solid var(--border); border-radius: 8px;"></div>
             <button class="btn btn-primary" style="margin-top: 12px;" onclick="confirmPhonebookSelection()">Add Selected</button>
@@ -409,7 +313,6 @@
         </div>
     </div>
 
-    <!-- Filtered Contact Details Modal -->
     <div class="modal modal-high" id="contactFilterModal">
         <div class="modal-content">
             <div class="modal-title" id="filterModalTitle">Contacts List</div>
@@ -419,22 +322,108 @@
     </div>
 
     <script>
-        // Set permanent static domain directly
-        const DEFAULT_CLOUD_URL = "https://rinse-chest-dish.ngrok-free.dev";
+        // Permanent Static Domain: No URLs shown in UI (#1)
+        const FIXED_BACKEND_URL = "https://rinse-chest-dish.ngrok-free.dev";
         const API_BEARER_TOKEN = "marketing_engine_secret_2026";
         const SESSION_ID = "main_account";
+        const CURRENT_VERSION = "3.6.0";
 
-        function getServerUrl() {
-            return (localStorage.getItem('cfg_server_url') || DEFAULT_CLOUD_URL).trim().replace(/\/$/, '');
-        }
-
-        function saveServerUrl() {
-            const url = document.getElementById('cfgServerUrl').value.trim();
-            if (!url.startsWith('http')) return alert('Enter a valid URL starting with https://');
-            localStorage.setItem('cfg_server_url', url);
-            alert('Server URL saved.');
-            syncWhatsAppAccountStatus();
-        }
+        // Complete 3-Language Localization (#7)
+        const i18n = {
+            en: {
+                title: "WA Campaign",
+                groups: "Groups",
+                campaign: "Campaign",
+                dashboard: "Dashboard",
+                settings: "Settings",
+                message: "Marketing Message",
+                attachments: "Attachments (Images, Videos, PDF)",
+                preview: "Realistic WhatsApp Preview",
+                launch: "Select Target Groups & Send",
+                totalContacts: "Total Contacts",
+                totalGroups: "Total Groups",
+                recentHistory: "Recent Campaigns History (Last 3)",
+                connection: "WhatsApp Account Status",
+                unlink: "Unlink WhatsApp",
+                pair: "Pair WhatsApp",
+                language: "Language",
+                theme: "Theme",
+                updates: "App Updates",
+                updateCheck: "⚡ Check & Install Latest Version",
+                shareApp: "Share WA Campaign App",
+                createGroup: "Create Group",
+                groupName: "Group Name",
+                addContacts: "Add Contacts",
+                saveGroup: "Save Group",
+                manageGroup: "Group Members",
+                renameGroup: "Group Name",
+                targetGroups: "Select Target Groups",
+                deduplicateNote: "Duplicates merged automatically.",
+                deviceContacts: "Device Contacts"
+            },
+            ta: {
+                title: "வாட்ஸ்அப் விளம்பரம்",
+                groups: "குழுக்கள்",
+                campaign: "பிரச்சாரம்",
+                dashboard: "முகப்பு",
+                settings: "அமைப்புகள்",
+                message: "அனுப்ப வேண்டிய செய்தி",
+                attachments: "கோப்புகள் (புகைப்படம், வீடியோ, PDF)",
+                preview: "நேரடி முன்னோட்டம்",
+                launch: "குழுக்களை தேர்வு செய்து அனுப்பு",
+                totalContacts: "மொத்த தொடர்புகள்",
+                totalGroups: "மொத்த குழுக்கள்",
+                recentHistory: "முந்தைய 3 பிரச்சாரங்கள்",
+                connection: "வாட்ஸ்அப் இணைப்பு நிலை",
+                unlink: "வாட்ஸ்அப் துண்டி",
+                pair: "வாட்ஸ்அப் இணை",
+                language: "மொழி",
+                theme: "வண்ண தீம்",
+                updates: "செயலி புதுப்பிப்புகள்",
+                updateCheck: "⚡ புதிய பதிப்பை நிறுவவும்",
+                shareApp: "செயலியை பகிரவும்",
+                createGroup: "புதிய குழு உருவாக்கு",
+                groupName: "குழுவின் பெயர்",
+                addContacts: "தொடர்புகளை சேர்க்கவும்",
+                saveGroup: "குழுவை சேமி",
+                manageGroup: "குழு உறுப்பினர்கள்",
+                renameGroup: "குழு பெயர் திருத்து",
+                targetGroups: "இலக்கு குழுக்கள்",
+                deduplicateNote: "இரட்டை எண்கள் தானாக நீக்கப்படும்.",
+                deviceContacts: "மொபைல் தொடர்புகள்"
+            },
+            hi: {
+                title: "व्हाट्सएप अभियान",
+                groups: "समूह",
+                campaign: "अभियान",
+                dashboard: "डैशबोर्ड",
+                settings: "सेटिंग्स",
+                message: "विपणन संदेश",
+                attachments: "फ़ाइलें (फोटो, वीडियो, पीडीएफ)",
+                preview: "व्हाट्सएप पूर्वावलोकन",
+                launch: "समूह चुनें और भेजें",
+                totalContacts: "कुल संपर्क",
+                totalGroups: "कुल समूह",
+                recentHistory: "हाल के 3 अभियान",
+                connection: "व्हाट्सएप कनेक्शन स्थिति",
+                unlink: "व्हाट्सएप हटाएं",
+                pair: "व्हाट्सएप जोड़ें",
+                language: "भाषा",
+                theme: "थीम",
+                updates: "ऐप अपडेट",
+                updateCheck: "⚡ नवीनतम संस्करण स्थापित करें",
+                shareApp: "ऐप साझा करें",
+                createGroup: "समूह बनाएं",
+                groupName: "समूह का नाम",
+                addContacts: "संपर्क जोड़ें",
+                saveGroup: "समूह सहेजें",
+                manageGroup: "समूह के सदस्य",
+                renameGroup: "समूह का नाम बदलें",
+                targetGroups: "लक्षित समूह चुनें",
+                deduplicateNote: "डुप्लिकेट संपर्क स्वतः हटा दिए जाएंगे।",
+                deviceContacts: "फ़ोन संपर्क"
+            }
+        };
 
         let groups = [];
         try { groups = JSON.parse(localStorage.getItem('app_groups') || '[]'); } catch(e) { groups = []; }
@@ -491,19 +480,50 @@
             document.getElementById('selTheme').value = theme;
         }
 
-        // Realistic Media Handler
+        function switchLanguage(lang) {
+            localStorage.setItem('app_lang', lang);
+            const d = i18n[lang] || i18n.en;
+            document.getElementById('txtHeaderTitle').innerText = d.title;
+            document.getElementById('tabGroups').innerText = d.groups;
+            document.getElementById('tabCampaign').innerText = d.campaign;
+            document.getElementById('tabDashboard').innerText = d.dashboard;
+            document.getElementById('tabSettings').innerText = d.settings;
+            document.getElementById('lblMessage').innerText = d.message;
+            document.getElementById('lblAttachments').innerText = d.attachments;
+            document.getElementById('lblPreview').innerText = d.preview;
+            document.getElementById('btnLaunch').innerText = d.launch;
+            document.getElementById('lblTotalContacts').innerText = d.totalContacts;
+            document.getElementById('lblTotalGroups').innerText = d.totalGroups;
+            document.getElementById('lblRecentHistory').innerText = d.recentHistory;
+            document.getElementById('lblConnection').innerText = d.connection;
+            document.getElementById('btnUnlink').innerText = d.unlink;
+            document.getElementById('btnPair').innerText = d.pair;
+            document.getElementById('lblLanguage').innerText = d.language;
+            document.getElementById('lblTheme').innerText = d.theme;
+            document.getElementById('lblUpdates').innerText = d.updates;
+            document.getElementById('btnUpdateCheck').innerText = d.updateCheck;
+            document.getElementById('btnShareApp').innerText = d.shareApp;
+            document.getElementById('lblCreateGroup').innerText = d.createGroup;
+            document.getElementById('lblGroupName').innerText = d.groupName;
+            document.getElementById('lblAddContacts').innerText = d.addContacts;
+            document.getElementById('btnSaveGroup').innerText = d.saveGroup;
+            document.getElementById('lblManageGroup').innerText = d.manageGroup;
+            document.getElementById('lblRenameGroup').innerText = d.renameGroup;
+            document.getElementById('lblTargetGroups').innerText = d.targetGroups;
+            document.getElementById('lblDeduplicateNote').innerText = d.deduplicateNote;
+            document.getElementById('lblDeviceContacts').innerText = d.deviceContacts;
+            document.getElementById('selLanguage').value = lang;
+        }
+
         function handleMediaAttachment(e) {
             const files = e.target.files;
             const previewBox = document.getElementById('previewMediaBox');
             const previewImg = document.getElementById('previewImg');
             const previewVideo = document.getElementById('previewVideo');
-            const previewDoc = document.getElementById('previewDocBox');
-            const previewDocName = document.getElementById('previewDocName');
 
             previewBox.style.display = 'none';
             previewImg.style.display = 'none';
             previewVideo.style.display = 'none';
-            previewDoc.style.display = 'none';
 
             if (files && files[0]) {
                 const file = files[0];
@@ -518,9 +538,6 @@
                     previewBox.style.display = 'block';
                     previewVideo.style.display = 'block';
                     previewVideo.src = url;
-                } else {
-                    previewDoc.style.display = 'flex';
-                    previewDocName.innerText = file.name;
                 }
             }
             updateLivePreview();
@@ -543,7 +560,100 @@
             document.getElementById('previewTime').innerText = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         }
 
-        // Target Groups
+        // --- Persistent Zero-Touch WhatsApp Account State (#3) ---
+        async function syncWhatsAppAccountStatus() {
+            const savedPhone = localStorage.getItem('connected_phone_permanent');
+            if (savedPhone) {
+                document.getElementById('statusConnectedBox').style.display = 'block';
+                document.getElementById('statusPairingBox').style.display = 'none';
+                document.getElementById('lblConnectedPhone').innerText = `+${savedPhone}`;
+            }
+
+            try {
+                const res = await fetch(`${FIXED_BACKEND_URL}/api/status/${SESSION_ID}`, {
+                    headers: { 'Authorization': `Bearer ${API_BEARER_TOKEN}`, 'ngrok-skip-browser-warning': 'true' }
+                });
+                const d = await res.json();
+                
+                if (d.status === 'CONNECTED' && d.phone) {
+                    localStorage.setItem('connected_phone_permanent', d.phone);
+                    document.getElementById('statusConnectedBox').style.display = 'block';
+                    document.getElementById('statusPairingBox').style.display = 'none';
+                    document.getElementById('lblConnectedPhone').innerText = `+${d.phone}`;
+                    document.getElementById('badgeServerStatus').innerText = "● CONNECTED";
+                    document.getElementById('badgeServerStatus').style.color = "var(--primary)";
+                    document.getElementById('txtServerOfflineNotice').style.display = "none";
+                } else if (d.status === 'DISCONNECTED' && !d.phone) {
+                    // Explicitly unlinked from WhatsApp
+                    localStorage.removeItem('connected_phone_permanent');
+                    document.getElementById('statusConnectedBox').style.display = 'none';
+                    document.getElementById('statusPairingBox').style.display = 'block';
+                }
+            } catch(e) {
+                // Server/Laptop Offline Handling: Keep number visible (#3)
+                if (savedPhone) {
+                    document.getElementById('badgeServerStatus').innerText = "● RECONNECTING...";
+                    document.getElementById('badgeServerStatus').style.color = "var(--warning)";
+                    document.getElementById('txtServerOfflineNotice').style.display = "block";
+                }
+            }
+        }
+
+        async function requestPairCode() {
+            const phone = document.getElementById('txtPairPhone').value.trim();
+            if (!phone) return alert('Enter phone number');
+            const disp = document.getElementById('pairCodeDisplay');
+            disp.style.display = 'block';
+            disp.innerText = 'Requesting...';
+
+            try {
+                const res = await fetch(`${FIXED_BACKEND_URL}/api/pair`, {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json', 
+                        'Authorization': `Bearer ${API_BEARER_TOKEN}`,
+                        'ngrok-skip-browser-warning': 'true'
+                    },
+                    body: JSON.stringify({ sessionId: SESSION_ID, phoneNumber: phone })
+                });
+                const d = await res.json();
+                if (d.pairingCode) {
+                    disp.innerText = d.pairingCode;
+                    localStorage.setItem('connected_phone_permanent', phone.replace(/[^0-9]/g, ''));
+                } else {
+                    disp.innerText = d.error || 'Pairing error';
+                }
+            } catch(e) {
+                disp.innerText = 'Connection Error';
+            }
+        }
+
+        async function unlinkAccount() {
+            if (!confirm('Unlink this WhatsApp session?')) return;
+            try {
+                await fetch(`${FIXED_BACKEND_URL}/api/logout`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${API_BEARER_TOKEN}`, 'ngrok-skip-browser-warning': 'true' },
+                    body: JSON.stringify({ sessionId: SESSION_ID })
+                });
+            } catch(e) {}
+            localStorage.removeItem('connected_phone_permanent');
+            document.getElementById('statusConnectedBox').style.display = 'none';
+            document.getElementById('statusPairingBox').style.display = 'block';
+            document.getElementById('pairCodeDisplay').style.display = 'none';
+        }
+
+        // --- FIFO Campaign Storage: Keep only last 3 (#8) ---
+        function recordCampaignFIFO(newCamp) {
+            globalCampaigns.unshift(newCamp);
+            if (globalCampaigns.length > 3) {
+                globalCampaigns = globalCampaigns.slice(0, 3);
+            }
+            localStorage.setItem('app_campaigns', JSON.stringify(globalCampaigns));
+            renderDashboard();
+        }
+
+        // --- Multi-Group Dispatch with Deduplication ---
         function openMultiGroupDispatchModal() {
             const text = document.getElementById('campGlobalMessage').value.trim();
             if (!text) return alert('Enter a message first.');
@@ -560,9 +670,9 @@
                 const isSelected = selectedTargetGroupIds.has(g.id);
                 return `
                     <div class="group-select-card ${isSelected ? 'selected' : ''}" onclick="toggleTargetGroupSelect('${g.id}')">
-                        <div class="group-select-info">
-                            <span class="group-select-name">${g.name}</span>
-                            <span class="group-select-count">${g.contacts.length} contacts</span>
+                        <div>
+                            <div style="font-weight: 600;">${g.name}</div>
+                            <div style="font-size: 0.78rem; color: var(--text-muted);">${g.contacts.length} contacts</div>
                         </div>
                         <div class="group-checkbox-custom">${isSelected ? '✓' : ''}</div>
                     </div>
@@ -609,12 +719,9 @@
             closeTopModal();
 
             try {
-                const res = await fetch(`${getServerUrl()}/api/message/send-bulk`, {
+                const res = await fetch(`${FIXED_BACKEND_URL}/api/message/send-bulk`, {
                     method: 'POST',
-                    headers: { 
-                        'Authorization': `Bearer ${API_BEARER_TOKEN}`,
-                        'ngrok-skip-browser-warning': 'true'
-                    },
+                    headers: { 'Authorization': `Bearer ${API_BEARER_TOKEN}`, 'ngrok-skip-browser-warning': 'true' },
                     body: formData
                 });
                 const d = await res.json();
@@ -626,57 +733,17 @@
                         sent: 0,
                         failed: 0,
                         pending: uniqueRecipients.length,
-                        recipients: uniqueRecipients.map(r => ({
-                            name: r.name || 'Unsaved',
-                            phone: r.phone,
-                            status: 'PENDING'
-                        }))
+                        recipients: uniqueRecipients.map(r => ({ name: r.name || 'Unsaved', phone: r.phone, status: 'PENDING' }))
                     };
-                    globalCampaigns.unshift(newCamp);
-                    if (globalCampaigns.length > 3) globalCampaigns = globalCampaigns.slice(0, 3);
-                    localStorage.setItem('app_campaigns', JSON.stringify(globalCampaigns));
+                    recordCampaignFIFO(newCamp);
 
-                    alert(`Campaign launched to ${uniqueRecipients.length} deduplicated contacts!`);
+                    alert(`Campaign launched to ${uniqueRecipients.length} contacts!`);
                     navigateTab('viewDashboard', document.querySelectorAll('.nav-tab')[2]);
-                    pollCampaignProgress(newCamp.id);
-                } else alert(d.error || 'Failed');
+                } else alert(d.error || 'Failed to dispatch');
             } catch(e) { alert('Connection Error: ' + e.message); }
         }
 
-        function pollCampaignProgress(campId) {
-            const timer = setInterval(async () => {
-                try {
-                    const res = await fetch(`${getServerUrl()}/api/queue-status/${SESSION_ID}`, {
-                        headers: { 
-                            'Authorization': `Bearer ${API_BEARER_TOKEN}`,
-                            'ngrok-skip-browser-warning': 'true'
-                        }
-                    });
-                    const d = await res.json();
-                    if (!d || d.error) return;
-
-                    const camp = globalCampaigns.find(c => c.id === campId);
-                    if (camp) {
-                        camp.sent = d.sent;
-                        camp.failed = d.failed;
-                        camp.pending = d.remaining;
-                        camp.recipients.forEach((r, idx) => {
-                            if (idx < d.sent) r.status = 'SENT';
-                            else if (idx < d.sent + d.failed) r.status = 'FAILED';
-                            else r.status = 'PENDING';
-                        });
-                        localStorage.setItem('app_campaigns', JSON.stringify(globalCampaigns));
-                        renderDashboard();
-                    }
-
-                    if (!d.isRunning && d.total > 0 && d.remaining === 0) {
-                        clearInterval(timer);
-                    }
-                } catch(e) {}
-            }, 2500);
-        }
-
-        // Dashboard Rendering & Filter Details
+        // --- Interactive Filterable Dashboard (#4) ---
         function renderDashboard() {
             let total = 0;
             groups.forEach(g => total += g.contacts.length);
@@ -685,17 +752,17 @@
 
             const container = document.getElementById('dashboardHistoryContainer');
             if (globalCampaigns.length === 0) {
-                container.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 20px;">No campaigns executed yet.</div>';
+                container.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 20px;">No campaigns recorded yet.</div>';
                 return;
             }
 
             container.innerHTML = globalCampaigns.map((camp, idx) => `
-                <div class="dashboard-history-card">
-                    <div class="dh-header">
+                <div class="card">
+                    <div style="display: flex; justify-content: space-between; font-weight: bold; margin-bottom: 8px;">
                         <span>Campaign #${globalCampaigns.length - idx}</span>
                         <span style="font-size: 0.75rem; color: var(--text-muted);">${camp.timestamp}</span>
                     </div>
-                    <div class="dh-pills-grid">
+                    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px;">
                         <div class="dh-pill" onclick="showFilteredContacts('${camp.id}', 'ALL')">
                             <div class="dh-val">${camp.total}</div>
                             <div class="dh-lbl">Total</div>
@@ -743,10 +810,44 @@
                     </div>
                 `).join('');
             }
-
             openModal('contactFilterModal');
         }
 
+        // --- Automated In-App Update Engine (#9 & #10) ---
+        async function checkForAppUpdatesBackground() {
+            try {
+                const res = await fetch("https://api.github.com/repos/itsdarkgaming007/version-3-/releases/latest");
+                const release = await res.json();
+                if (release.tag_name && release.name) {
+                    const latestVer = release.name.replace(/[^0-9.]/g, '');
+                    if (latestVer && latestVer !== CURRENT_VERSION) {
+                        document.getElementById('navUpdateDot').style.display = 'block';
+                        document.getElementById('updateStatusNotice').style.display = 'block';
+                        document.getElementById('updateStatusNotice').innerText = `New update available: v${latestVer}`;
+                    }
+                }
+            } catch(e) {}
+        }
+
+        function downloadDirectUpdate() {
+            const updateUrl = "https://github.com/itsdarkgaming007/version-3-/releases/download/latest/app-debug.apk";
+            alert("Downloading latest release APK. Once downloaded, tap to install.");
+            window.open(updateUrl, '_system');
+        }
+
+        function shareApp() {
+            if (navigator.share) {
+                navigator.share({
+                    title: 'WA Campaign',
+                    text: 'Automated WhatsApp Marketing System',
+                    url: 'https://github.com/itsdarkgaming007/version-3-/releases/download/latest/app-debug.apk'
+                });
+            } else {
+                alert('App APK Download Link: https://github.com/itsdarkgaming007/version-3-/releases/download/latest/app-debug.apk');
+            }
+        }
+
+        // --- Contact Management & Pickers ---
         function sortGroups(criteria) {
             if (criteria === 'alpha') groups.sort((a,b) => a.name.localeCompare(b.name));
             else if (criteria === 'count') groups.sort((a,b) => b.contacts.length - a.contacts.length);
@@ -852,7 +953,6 @@
             }
         }
 
-        // Contact Picker Bridge
         async function openPhonebookSelector(mode) {
             pbTargetMode = mode;
             selectedPbContacts.clear();
@@ -916,7 +1016,7 @@
                             <div class="contact-name-txt">${c.name || 'Unsaved'}</div>
                             <div class="contact-phone-txt">${c.phone}</div>
                         </div>
-                        <div class="contact-chk" id="pb_chk_${c.phone}">${isSelected ? '✓' : ''}</div>
+                        <div class="contact-chk">${isSelected ? '✓' : ''}</div>
                     </div>
                 `;
             }).join('');
@@ -980,90 +1080,14 @@
             alert(`Added ${list.length} contacts.`);
         }
 
-        // WhatsApp Pairing & Status
-        async function syncWhatsAppAccountStatus() {
-            try {
-                const res = await fetch(`${getServerUrl()}/api/status/${SESSION_ID}`, {
-                    headers: { 
-                        'Authorization': `Bearer ${API_BEARER_TOKEN}`,
-                        'ngrok-skip-browser-warning': 'true'
-                    }
-                });
-                const d = await res.json();
-                if (d.status === 'CONNECTED' && d.phone) {
-                    document.getElementById('statusConnectedBox').style.display = 'block';
-                    document.getElementById('statusPairingBox').style.display = 'none';
-                    document.getElementById('lblConnectedPhone').innerText = `+${d.phone}`;
-                } else {
-                    document.getElementById('statusConnectedBox').style.display = 'none';
-                    document.getElementById('statusPairingBox').style.display = 'block';
-                }
-            } catch(e) {}
-        }
-
-        async function requestPairCode() {
-            const phone = document.getElementById('txtPairPhone').value.trim();
-            if (!phone) return alert('Enter phone number');
-            const disp = document.getElementById('pairCodeDisplay');
-            disp.style.display = 'block';
-            disp.innerText = 'Requesting...';
-
-            try {
-                const res = await fetch(`${getServerUrl()}/api/pair`, {
-                    method: 'POST',
-                    headers: { 
-                        'Content-Type': 'application/json', 
-                        'Authorization': `Bearer ${API_BEARER_TOKEN}`,
-                        'ngrok-skip-browser-warning': 'true'
-                    },
-                    body: JSON.stringify({ sessionId: SESSION_ID, phoneNumber: phone })
-                });
-                const d = await res.json();
-                if (d.pairingCode) {
-                    disp.innerText = d.pairingCode;
-                } else {
-                    disp.innerText = d.error || 'Pairing error';
-                }
-            } catch(e) {
-                disp.innerText = 'Error: Check Server URL';
-            }
-        }
-
-        async function unlinkAccount() {
-            if (!confirm('Unlink this WhatsApp session?')) return;
-            await fetch(`${getServerUrl()}/api/logout`, {
-                method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json', 
-                    'Authorization': `Bearer ${API_BEARER_TOKEN}`,
-                    'ngrok-skip-browser-warning': 'true'
-                },
-                body: JSON.stringify({ sessionId: SESSION_ID })
-            });
-            syncWhatsAppAccountStatus();
-        }
-
-        function shareApp() {
-            if (navigator.share) {
-                navigator.share({ title: 'WA Campaign', text: 'WhatsApp Marketing Controller', url: window.location.href });
-            } else {
-                alert('App Share URL: ' + window.location.href);
-            }
-        }
-
-        function downloadDirectUpdate() {
-            window.open("https://github.com/itsdarkgaming007/version-3-/releases/download/latest/app-debug.apk", '_system');
-        }
-
         window.onload = () => {
             switchTheme(localStorage.getItem('app_theme') || 'dark');
-            if (document.getElementById('cfgServerUrl')) {
-                document.getElementById('cfgServerUrl').value = getServerUrl();
-            }
+            switchLanguage(localStorage.getItem('app_lang') || 'en');
             renderGroups();
             renderDashboard();
             setupBackNavigation();
             syncWhatsAppAccountStatus();
+            checkForAppUpdatesBackground();
         };
     </script>
 </body>
