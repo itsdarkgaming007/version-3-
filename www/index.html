@@ -86,6 +86,7 @@
         .btn-danger { background: var(--danger); color: #fff; }
         .btn-secondary { background: var(--border); color: var(--text); margin-top: 8px; }
         .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
+        .btn-warning { background: var(--warning); color: #000; }
 
         .fab { position: fixed; bottom: 80px; right: 24px; width: 56px; height: 56px; border-radius: 28px; background: var(--primary); color: #fff; border: none; font-size: 1.8rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0,0,0,0.5); cursor: pointer; z-index: 90; }
 
@@ -192,6 +193,36 @@
             margin-bottom: 8px;
             text-align: center;
         }
+
+        /* Live Campaign Controller Panel */
+        .campaign-ctrl-panel {
+            background: var(--surface-card);
+            border: 1px solid var(--primary);
+            border-radius: 12px;
+            padding: 14px;
+            margin-bottom: 14px;
+            display: none;
+        }
+        .campaign-ctrl-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .ctrl-btn-group {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+        }
+        .ctrl-btn {
+            flex: 1;
+            padding: 10px;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 0.88rem;
+            cursor: pointer;
+            border: none;
+        }
     </style>
 </head>
 <body>
@@ -252,6 +283,23 @@
 
     <!-- 3. DASHBOARD -->
     <div class="page-content" id="viewDashboard">
+        <!-- Active Live Campaign Controls -->
+        <div class="campaign-ctrl-panel" id="campaignCtrlPanel">
+            <div class="campaign-ctrl-header">
+                <div>
+                    <span style="font-size: 0.75rem; text-transform: uppercase; font-weight: bold; color: var(--text-muted);" id="lblActiveState">Status:</span>
+                    <b id="txtLiveCampaignState" style="color: var(--primary); font-size: 0.95rem; margin-left: 4px;">RUNNING</b>
+                </div>
+                <div style="font-size: 0.8rem; color: var(--text-muted);" id="txtLiveCampaignProgress">0 / 0 Sent</div>
+            </div>
+
+            <div class="ctrl-btn-group">
+                <button class="ctrl-btn btn-warning" id="btnPauseCampaign" onclick="pauseCurrentCampaign()">⏸️ Pause</button>
+                <button class="ctrl-btn btn-primary" id="btnResumeCampaign" style="display: none;" onclick="resumeCurrentCampaign()">▶️ Resume</button>
+                <button class="ctrl-btn btn-danger" id="btnStopCampaign" onclick="stopCurrentCampaign()">⏹️ Stop</button>
+            </div>
+        </div>
+
         <div class="card" style="margin-bottom: 16px;">
             <div style="display: grid; grid-template-columns: repeat(2, 1fr); text-align: center;">
                 <div><div id="dashTotal" style="font-size: 1.4rem; font-weight: bold;">0</div><div style="font-size: 0.75rem; color: var(--text-muted);" id="lblTotalContacts">Total Contacts</div></div>
@@ -299,7 +347,7 @@
             <option value="light">Light Theme</option>
         </select>
 
-        <!-- Professional Version Control Card (Without Badge Dot) -->
+        <!-- Professional Version Control Card -->
         <div class="card" style="margin-top: 20px;">
             <label id="lblUpdates">App Version & Updates</label>
             <div class="version-card">
@@ -325,7 +373,7 @@
         <button class="btn btn-outline" style="margin-top: 10px;" id="btnShareApp" onclick="executeNativeAppShare()">Share WA Campaign App</button>
     </div>
 
-    <!-- Bottom Navigation (Badge Dot Completely Removed) -->
+    <!-- Bottom Navigation -->
     <div class="bottom-nav">
         <div class="nav-tab active" onclick="navigateTab('viewGroups', this)"><span class="icon">💬</span><span id="tabGroups">Groups</span></div>
         <div class="nav-tab" onclick="navigateTab('viewCampaign', this)"><span class="icon">📢</span><span id="tabCampaign">Campaign</span></div>
@@ -445,6 +493,9 @@
 
         const CURRENT_BUILD_NUMBER = parseInt("__CLIENT_BUILD_NUMBER__") || 37;
         const CURRENT_VERSION_STRING = `v3.6.${CURRENT_BUILD_NUMBER}`;
+
+        let currentActiveCampaignId = null;
+        let pollTimer = null;
 
         function normalizeNumber(num) {
             let clean = String(num || '').replace(/[^0-9]/g, '');
@@ -918,6 +969,9 @@
                     if (globalCampaigns.length > 3) globalCampaigns = globalCampaigns.slice(0, 3);
                     localStorage.setItem('app_campaigns', JSON.stringify(globalCampaigns));
 
+                    currentActiveCampaignId = newCamp.id;
+                    showLiveCampaignController(newCamp);
+
                     alert(`Campaign launched to ${uniqueRecipients.length} contacts!`);
                     navigateTab('viewDashboard', document.querySelectorAll('.nav-tab')[2]);
                     pollCampaignLive(newCamp.id);
@@ -925,8 +979,73 @@
             } catch(e) { alert('Connection Error: ' + e.message); }
         }
 
+        // --- Live Campaign Controls ---
+        function showLiveCampaignController(camp) {
+            const panel = document.getElementById('campaignCtrlPanel');
+            panel.style.display = 'block';
+            document.getElementById('txtLiveCampaignState').innerText = 'RUNNING';
+            document.getElementById('txtLiveCampaignState').style.color = 'var(--primary)';
+            document.getElementById('btnPauseCampaign').style.display = 'block';
+            document.getElementById('btnResumeCampaign').style.display = 'none';
+            document.getElementById('txtLiveCampaignProgress').innerText = `${camp.sent || 0} / ${camp.total} Sent`;
+        }
+
+        async function pauseCurrentCampaign() {
+            try {
+                const res = await fetch(`${FIXED_BACKEND_URL}/api/campaign/pause`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${API_BEARER_TOKEN}`, 'ngrok-skip-browser-warning': 'true' },
+                    body: JSON.stringify({ sessionId: SESSION_ID, campaignId: currentActiveCampaignId })
+                });
+                const d = await res.json();
+                if (d.status === 'PAUSED') {
+                    document.getElementById('txtLiveCampaignState').innerText = 'PAUSED';
+                    document.getElementById('txtLiveCampaignState').style.color = 'var(--warning)';
+                    document.getElementById('btnPauseCampaign').style.display = 'none';
+                    document.getElementById('btnResumeCampaign').style.display = 'block';
+                }
+            } catch(e) { alert('Failed to pause: ' + e.message); }
+        }
+
+        async function resumeCurrentCampaign() {
+            try {
+                const res = await fetch(`${FIXED_BACKEND_URL}/api/campaign/resume`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${API_BEARER_TOKEN}`, 'ngrok-skip-browser-warning': 'true' },
+                    body: JSON.stringify({ sessionId: SESSION_ID, campaignId: currentActiveCampaignId })
+                });
+                const d = await res.json();
+                if (d.status === 'RUNNING') {
+                    document.getElementById('txtLiveCampaignState').innerText = 'RUNNING';
+                    document.getElementById('txtLiveCampaignState').style.color = 'var(--primary)';
+                    document.getElementById('btnPauseCampaign').style.display = 'block';
+                    document.getElementById('btnResumeCampaign').style.display = 'none';
+                }
+            } catch(e) { alert('Failed to resume: ' + e.message); }
+        }
+
+        async function stopCurrentCampaign() {
+            if (!confirm('Are you sure you want to stop this campaign permanently?')) return;
+            try {
+                const res = await fetch(`${FIXED_BACKEND_URL}/api/campaign/stop`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${API_BEARER_TOKEN}`, 'ngrok-skip-browser-warning': 'true' },
+                    body: JSON.stringify({ sessionId: SESSION_ID, campaignId: currentActiveCampaignId })
+                });
+                const d = await res.json();
+                if (d.status === 'STOPPED') {
+                    document.getElementById('campaignCtrlPanel').style.display = 'none';
+                    if (pollTimer) clearInterval(pollTimer);
+                    alert('Campaign terminated.');
+                    renderDashboard();
+                }
+            } catch(e) { alert('Failed to stop: ' + e.message); }
+        }
+
         function pollCampaignLive(campId) {
-            const timer = setInterval(async () => {
+            if (pollTimer) clearInterval(pollTimer);
+
+            pollTimer = setInterval(async () => {
                 try {
                     const res = await fetch(`${FIXED_BACKEND_URL}/api/queue-status/${SESSION_ID}`, {
                         headers: { 'Authorization': `Bearer ${API_BEARER_TOKEN}`, 'ngrok-skip-browser-warning': 'true' }
@@ -945,12 +1064,27 @@
                             else r.status = 'PENDING';
                         });
 
+                        document.getElementById('txtLiveCampaignProgress').innerText = `${camp.sent} / ${camp.total} Sent`;
+
+                        if (q.state === 'PAUSED') {
+                            document.getElementById('txtLiveCampaignState').innerText = 'PAUSED';
+                            document.getElementById('txtLiveCampaignState').style.color = 'var(--warning)';
+                            document.getElementById('btnPauseCampaign').style.display = 'none';
+                            document.getElementById('btnResumeCampaign').style.display = 'block';
+                        } else if (q.isRunning) {
+                            document.getElementById('txtLiveCampaignState').innerText = 'RUNNING';
+                            document.getElementById('txtLiveCampaignState').style.color = 'var(--primary)';
+                            document.getElementById('btnPauseCampaign').style.display = 'block';
+                            document.getElementById('btnResumeCampaign').style.display = 'none';
+                        }
+
                         localStorage.setItem('app_campaigns', JSON.stringify(globalCampaigns));
                         renderDashboard();
                     }
 
-                    if (!q.isRunning) {
-                        clearInterval(timer);
+                    if (!q.isRunning && q.state !== 'PAUSED') {
+                        clearInterval(pollTimer);
+                        document.getElementById('campaignCtrlPanel').style.display = 'none';
                     }
                 } catch(e) {}
             }, 1800);
