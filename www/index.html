@@ -38,7 +38,6 @@
         .header-title { font-size: 1.2rem; font-weight: 700; color: var(--text); }
         .icon-btn { background: none; border: none; font-size: 1.3rem; color: var(--text); cursor: pointer; }
 
-        /* Pull to Refresh Indicator */
         #pullToRefreshSpinner {
             text-align: center;
             font-size: 0.8rem;
@@ -281,7 +280,6 @@
         </div>
     </div>
 
-    <!-- Group Members Manager with Dedicated Edit Option (#2) -->
     <div class="modal" id="membersModal">
         <div class="modal-content">
             <div class="modal-title" id="lblManageGroup">Group Members</div>
@@ -311,7 +309,6 @@
         </div>
     </div>
 
-    <!-- Edit Contact Modal (#2) -->
     <div class="modal modal-high" id="editMemberModal">
         <div class="modal-content">
             <div class="modal-title">Edit Contact Details</div>
@@ -360,7 +357,10 @@
         const API_BEARER_TOKEN = "marketing_engine_secret_2026";
         const SESSION_ID = "main_account";
 
-        // Auto Country Code Normalizer (#1)
+        // Injected dynamically by workflow during compilation
+        const CURRENT_BUILD_NUMBER = parseInt("__CLIENT_BUILD_NUMBER__") || 36;
+        const CURRENT_VERSION_STRING = `v3.6.${CURRENT_BUILD_NUMBER}`;
+
         function normalizeNumber(num) {
             let clean = String(num || '').replace(/[^0-9]/g, '');
             if (clean.length === 11 && clean.startsWith('0')) clean = clean.substring(1);
@@ -504,7 +504,6 @@
             }
         }
 
-        // Pull-to-Refresh Handler (#4)
         function setupPullToRefresh() {
             let startY = 0;
             const spinner = document.getElementById('pullToRefreshSpinner');
@@ -584,7 +583,6 @@
             document.getElementById('selLanguage').value = lang;
         }
 
-        // Media Clear & Attachment (#6)
         function handleMediaAttachment(e) {
             const files = e.target.files;
             const previewBox = document.getElementById('previewMediaBox');
@@ -643,7 +641,6 @@
             document.getElementById('previewTime').innerText = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         }
 
-        // Persistent Session Connection
         async function syncWhatsAppAccountStatus() {
             const savedPhone = localStorage.getItem('connected_phone_permanent');
             if (savedPhone) {
@@ -724,7 +721,6 @@
             document.getElementById('pairCodeDisplay').style.display = 'none';
         }
 
-        // Multi-Group Multi-Select & Delete (#9)
         function toggleGroupSelectMode() {
             isGroupSelectMode = !isGroupSelectMode;
             selectedGroupsForDelete.clear();
@@ -750,7 +746,6 @@
             toggleGroupSelectMode();
         }
 
-        // Media-Only or Text Dispatch (#7)
         function openMultiGroupDispatchModal() {
             const text = document.getElementById('campGlobalMessage').value.trim();
             const hasMedia = document.getElementById('campGlobalMedia').files.length > 0;
@@ -845,7 +840,6 @@
             } catch(e) { alert('Connection Error: ' + e.message); }
         }
 
-        // Real-Time Live Dashboard Polling Engine (#8)
         function pollCampaignLive(campId) {
             const timer = setInterval(async () => {
                 try {
@@ -946,23 +940,26 @@
             openModal('contactFilterModal');
         }
 
-        // Accurate Version & Non-Sticky Update Dot (#3 & #5)
         function extractRunNumber(str) {
             const match = String(str || '').match(/(\d+)$/);
             return match ? parseInt(match[1], 10) : 0;
         }
 
+        // Accurate Version & Auto-Hiding Dot
         async function checkForAppUpdatesBackground() {
+            document.getElementById('lblCurrentVer').innerText = `Current Version: ${CURRENT_VERSION_STRING}`;
+
             try {
-                const res = await fetch("https://api.github.com/repos/itsdarkgaming007/version-3-/releases/latest");
+                const res = await fetch("https://api.github.com/repos/itsdarkgaming007/version-3-/releases/latest", {
+                    headers: { 'Accept': 'application/vnd.github.v3+json' }
+                });
                 const rel = await res.json();
+                
                 if (rel && rel.name) {
                     const latestBuild = extractRunNumber(rel.name);
-                    const currentBuild = extractRunNumber(localStorage.getItem('installed_build') || "32");
-                    
-                    document.getElementById('lblCurrentVer').innerText = `Current Version: v3.6.${currentBuild}`;
 
-                    if (latestBuild > currentBuild) {
+                    // If latest build from GitHub is higher than this installed app, show dot; otherwise hide it
+                    if (latestBuild > CURRENT_BUILD_NUMBER) {
                         document.getElementById('navUpdateDot').style.display = 'block';
                         document.getElementById('updateStatusNotice').style.display = 'block';
                         document.getElementById('updateStatusNotice').innerText = `New update available: ${rel.name}`;
@@ -1070,7 +1067,6 @@
             }
         }
 
-        // Inline Member Row with Dedicated Edit & Delete (#2)
         function renderMembers() {
             const g = groups.find(x => x.id === activeGroupId);
             const container = document.getElementById('membersListContainer');
