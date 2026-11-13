@@ -52,17 +52,6 @@
         .nav-tab.active { color: var(--primary); }
         .nav-tab span.icon { font-size: 1.3rem; }
 
-        .update-badge-dot {
-            width: 8px;
-            height: 8px;
-            background: var(--danger);
-            border-radius: 4px;
-            position: absolute;
-            top: 8px;
-            right: 28%;
-            display: none;
-        }
-
         .page-content { flex: 1; padding: 16px; padding-bottom: 80px; max-width: 600px; margin: 0 auto; width: 100%; display: none; }
         .page-content.active { display: block; }
 
@@ -177,6 +166,32 @@
         .group-select-card.selected { border-color: var(--primary); background: rgba(0, 168, 132, 0.08); }
         .group-checkbox-custom { width: 22px; height: 22px; border-radius: 6px; border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; color: #fff; }
         .group-select-card.selected .group-checkbox-custom { background: var(--primary); border-color: var(--primary); }
+
+        /* Professional Version Sync Card */
+        .version-card {
+            background: rgba(0, 168, 132, 0.05);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 12px;
+            margin-top: 8px;
+        }
+        .version-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+            font-size: 0.86rem;
+        }
+        .version-highlight-banner {
+            display: none;
+            background: rgba(0, 168, 132, 0.18);
+            border: 1px solid var(--primary);
+            border-radius: 8px;
+            padding: 10px;
+            margin-top: 8px;
+            margin-bottom: 8px;
+            text-align: center;
+        }
     </style>
 </head>
 <body>
@@ -284,17 +299,33 @@
             <option value="light">Light Theme</option>
         </select>
 
+        <!-- Professional Version Control Card (Without Badge Dot) -->
         <div class="card" style="margin-top: 20px;">
-            <label id="lblUpdates">App Updates</label>
-            <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 4px;" id="lblCurrentVer">Current Version: Checking...</div>
-            <div id="updateStatusNotice" style="font-size: 0.8rem; color: var(--primary); margin-bottom: 8px; display: none;">New update available!</div>
-            <button class="btn btn-outline" id="btnUpdateCheck" onclick="downloadDirectUpdate()">⚡ Check & Install Latest Version</button>
+            <label id="lblUpdates">App Version & Updates</label>
+            <div class="version-card">
+                <div class="version-row">
+                    <span style="color: var(--text-muted);">Current Installed Version:</span>
+                    <b id="lblCurrentVer">v3.6.37</b>
+                </div>
+                <div class="version-row">
+                    <span style="color: var(--text-muted);">Cloud Status:</span>
+                    <span id="lblCloudSyncStatus" style="color: var(--primary); font-weight: 600;">Up to date</span>
+                </div>
+
+                <div class="version-highlight-banner" id="updateBanner">
+                    <div style="font-size: 0.9rem; font-weight: bold; color: var(--primary); margin-bottom: 4px;" id="lblNewVerAvailable">New Update Available!</div>
+                    <div style="font-size: 0.8rem; color: var(--text); margin-bottom: 8px;" id="lblNewVerNumber">WA Campaign v3.6.X</div>
+                    <button class="btn btn-primary" style="padding: 10px;" id="btnUpdateNow" onclick="downloadDirectUpdate()">⚡ Update Now (Zero Data Loss)</button>
+                </div>
+
+                <button class="btn btn-outline" style="margin-top: 6px; padding: 8px; font-size: 0.82rem;" id="btnManualCheck" onclick="checkForAppUpdatesBackground(true)">Check for Updates</button>
+            </div>
         </div>
 
         <button class="btn btn-outline" style="margin-top: 10px;" id="btnShareApp" onclick="executeNativeAppShare()">Share WA Campaign App</button>
     </div>
 
-    <!-- Bottom Navigation -->
+    <!-- Bottom Navigation (Badge Dot Completely Removed) -->
     <div class="bottom-nav">
         <div class="nav-tab active" onclick="navigateTab('viewGroups', this)"><span class="icon">💬</span><span id="tabGroups">Groups</span></div>
         <div class="nav-tab" onclick="navigateTab('viewCampaign', this)"><span class="icon">📢</span><span id="tabCampaign">Campaign</span></div>
@@ -302,7 +333,6 @@
         <div class="nav-tab" onclick="navigateTab('viewSettings', this)">
             <span class="icon">⚙️</span>
             <span id="tabSettings">Settings</span>
-            <div class="update-badge-dot" id="navUpdateDot"></div>
         </div>
     </div>
 
@@ -442,8 +472,8 @@
                 pair: "Pair WhatsApp",
                 language: "Language",
                 theme: "Theme",
-                updates: "App Updates",
-                updateCheck: "⚡ Check & Install Latest Version",
+                updates: "App Version & Updates",
+                updateCheck: "⚡ Update Now (Zero Data Loss)",
                 shareApp: "Share WA Campaign App",
                 createGroup: "Create Group",
                 groupName: "Group Name",
@@ -473,8 +503,8 @@
                 pair: "வாட்ஸ்அப் இணை",
                 language: "மொழி",
                 theme: "வண்ண தீம்",
-                updates: "செயலி புதுப்பிப்புகள்",
-                updateCheck: "⚡ புதிய பதிப்பை நிறுவவும்",
+                updates: "செயலி பதிப்பு & புதுப்பிப்புகள்",
+                updateCheck: "⚡ புதிய பதிப்பை நிறுவவும் (தரவு அழியாது)",
                 shareApp: "செயலியை பகிரவும்",
                 createGroup: "புதிய குழு உருவாக்கு",
                 groupName: "குழுவின் பெயர்",
@@ -504,8 +534,8 @@
                 pair: "व्हाट्सएप जोड़ें",
                 language: "भाषा",
                 theme: "थीम",
-                updates: "ऐप अपडेट",
-                updateCheck: "⚡ नवीनतम संस्करण स्थापित करें",
+                updates: "ऐप संस्करण और अपडेट",
+                updateCheck: "⚡ नया संस्करण स्थापित करें",
                 shareApp: "ऐप साझा करें",
                 createGroup: "समूह बनाएं",
                 groupName: "समूह का नाम",
@@ -625,7 +655,6 @@
             document.getElementById('lblLanguage').innerText = d.language;
             document.getElementById('lblTheme').innerText = d.theme;
             document.getElementById('lblUpdates').innerText = d.updates;
-            document.getElementById('btnUpdateCheck').innerText = d.updateCheck;
             document.getElementById('btnShareApp').innerText = d.shareApp;
             document.getElementById('lblCreateGroup').innerText = d.createGroup;
             document.getElementById('lblGroupName').innerText = d.groupName;
@@ -1001,8 +1030,8 @@
             return match ? parseInt(match[1], 10) : 0;
         }
 
-        async function checkForAppUpdatesBackground() {
-            document.getElementById('lblCurrentVer').innerText = `Current Version: ${CURRENT_VERSION_STRING}`;
+        async function checkForAppUpdatesBackground(isManual = false) {
+            document.getElementById('lblCurrentVer').innerText = CURRENT_VERSION_STRING;
 
             try {
                 const res = await fetch("https://api.github.com/repos/itsdarkgaming007/version-3-/releases/latest", {
@@ -1014,28 +1043,32 @@
                     const latestBuild = extractRunNumber(rel.name);
 
                     if (latestBuild > CURRENT_BUILD_NUMBER) {
-                        document.getElementById('navUpdateDot').style.display = 'block';
-                        document.getElementById('updateStatusNotice').style.display = 'block';
-                        document.getElementById('updateStatusNotice').innerText = `New update available: ${rel.name}`;
+                        document.getElementById('lblCloudSyncStatus').innerText = "Update available";
+                        document.getElementById('lblCloudSyncStatus').style.color = "var(--warning)";
+                        document.getElementById('updateBanner').style.display = 'block';
+                        document.getElementById('lblNewVerNumber').innerText = `Release: ${rel.name}`;
                     } else {
-                        document.getElementById('navUpdateDot').style.display = 'none';
-                        document.getElementById('updateStatusNotice').style.display = 'none';
+                        document.getElementById('lblCloudSyncStatus').innerText = "Up to date";
+                        document.getElementById('lblCloudSyncStatus').style.color = "var(--primary)";
+                        document.getElementById('updateBanner').style.display = 'none';
+                        if (isManual) alert("Your app is already running the latest version.");
                     }
                 }
             } catch(e) {
-                document.getElementById('navUpdateDot').style.display = 'none';
+                document.getElementById('lblCloudSyncStatus').innerText = "Sync check failed";
+                document.getElementById('lblCloudSyncStatus').style.color = "var(--danger)";
             }
         }
 
         function downloadDirectUpdate() {
-            window.open("https://github.com/itsdarkgaming007/version-3-/releases/download/latest/app-debug.apk", '_system');
+            window.open("https://github.com/itsdarkgaming007/version-3-/releases/download/latest/WA_Campaign_Latest.apk", '_system');
         }
 
         async function executeNativeAppShare() {
             const shareData = {
                 title: 'WA Campaign',
                 text: 'Download WA Campaign App for bulk marketing:',
-                url: 'https://github.com/itsdarkgaming007/version-3-/releases/download/latest/app-debug.apk'
+                url: 'https://github.com/itsdarkgaming007/version-3-/releases/download/latest/WA_Campaign_Latest.apk'
             };
 
             const SharePlugin = window.Capacitor?.Plugins?.Share;
