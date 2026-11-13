@@ -15,6 +15,8 @@ jobs:
     steps:
       - name: Checkout Source Code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -30,23 +32,44 @@ jobs:
       - name: Install Dependencies
         run: npm install
 
-      - name: Add and Sync Android Platform
+      - name: Sync Capacitor Android
         run: |
           npx cap add android || true
           npx cap sync android
 
-      - name: Configure Static App Identity & Permissions
+      - name: Calculate Dynamic Versioning
+        id: versioning
         run: |
-          # Increment versionCode using GitHub run number to guarantee upgrade path
-          sed -i "s/versionCode 1/versionCode ${{ github.run_number }}/g" android/app/build.gradle
+          BUILD_NUM=${{ github.run_number }}
+          VERSION_NAME="3.6.$BUILD_NUM"
+          echo "VERSION_NAME=$VERSION_NAME" >> $GITHUB_ENV
+          echo "BUILD_NUM=$BUILD_NUM" >> $GITHUB_ENV
+          
+          # Inject static version code and name
+          sed -i "s/versionCode 1/versionCode $BUILD_NUM/g" android/app/build.gradle
+          sed -i "s/versionName \"1.0\"/versionName \"$VERSION_NAME\"/g" android/app/build.gradle
+          
+          # In-app version injection for update checker
+          sed -i "s/__APP_VERSION__/$VERSION_NAME/g" www/index.html
+
+      - name: Inject Permissions
+        run: |
           sed -i 's/<application/<application android:usesCleartextTraffic="true"/g' android/app/src/main/AndroidManifest.xml
           sed -i '/<manifest/a \    <uses-permission android:name="android.permission.READ_CONTACTS" />\n    <uses-permission android:name="android.permission.WRITE_CONTACTS" />\n    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />\n    <uses-permission android:name="android.permission.INTERNET" />' android/app/src/main/AndroidManifest.xml
 
-      - name: Generate Consistent Signing Keystore
+      - name: Setup Static Production Keystore (Fixes Install Conflict & Play Protect)
         run: |
-          keytool -genkey -v -keystore android/app/release.keystore -alias wacampaign -keyalg RSA -keysize 2048 -validity 10000 -storepass wacampaign123 -keypass wacampaign123 -dname "CN=WACampaign, OU=Dev, O=WACampaign, L=Chennai, S=TN, C=IN"
+          keytool -genkeypair -v \
+            -keystore android/app/wacampaign-release.jks \
+            -alias wacampaign \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 10000 \
+            -storepass "EnterpriseWA2026" \
+            -keypass "EnterpriseWA2026" \
+            -dname "CN=WA Campaign, OU=Marketing, O=WhatsApp Campaign Systems, L=Chennai, ST=TamilNadu, C=IN"
 
-      - name: Build Debug/Release Signed APK
+      - name: Build Signed APK
         run: |
           cd android
           chmod +x gradlew
@@ -55,14 +78,15 @@ jobs:
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: wa-campaign-debug-apk
+          name: wa-campaign-v${{ env.VERSION_NAME }}
           path: android/app/build/outputs/apk/debug/app-debug.apk
 
-      - name: Update GitHub Release
+      - name: Publish GitHub Release for Direct App Update
         uses: softprops/action-gh-release@v2
         with:
           tag_name: latest
-          name: Latest Release
+          name: "WA Campaign Release v${{ env.VERSION_NAME }}"
+          body: "Direct over-the-air in-place update package."
           files: android/app/build/outputs/apk/debug/app-debug.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
