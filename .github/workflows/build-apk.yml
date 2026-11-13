@@ -32,29 +32,29 @@ jobs:
       - name: Install Dependencies
         run: npm install
 
-      - name: Sync Capacitor Android
+      - name: Add and Sync Android Platform
         run: |
           npx cap add android || true
           npx cap sync android
 
-      - name: Configure Dynamic Versioning
-        id: versioning
+      - name: Configure Versioning and Cleartext Traffic
         run: |
           BUILD_NUM=${{ github.run_number }}
           VERSION_NAME="3.6.$BUILD_NUM"
-          echo "VERSION_NAME=$VERSION_NAME" >> $GITHUB_ENV
           echo "BUILD_NUM=$BUILD_NUM" >> $GITHUB_ENV
-          
-          # Increment versionCode and versionName for seamless over-the-air installs
+          echo "VERSION_NAME=$VERSION_NAME" >> $GITHUB_ENV
+
+          # Set versionCode and versionName in Gradle
           sed -i "s/versionCode 1/versionCode $BUILD_NUM/g" android/app/build.gradle
           sed -i "s/versionName \"1.0\"/versionName \"$VERSION_NAME\"/g" android/app/build.gradle
 
-      - name: Inject Android Permissions
-        run: |
+          # Enable network traffic
           sed -i 's/<application/<application android:usesCleartextTraffic="true"/g' android/app/src/main/AndroidManifest.xml
+
+          # Inject storage, contact, and installation permissions
           sed -i '/<manifest/a \    <uses-permission android:name="android.permission.READ_CONTACTS" />\n    <uses-permission android:name="android.permission.WRITE_CONTACTS" />\n    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />\n    <uses-permission android:name="android.permission.INTERNET" />' android/app/src/main/AndroidManifest.xml
 
-      - name: Setup Permanent Signing Keystore (Prevents Install Conflicts & Play Protect Blocks)
+      - name: Setup Persistent Signing Keystore
         run: |
           keytool -genkeypair -v \
             -keystore android/app/wacampaign-release.jks \
@@ -66,19 +66,19 @@ jobs:
             -keypass "EnterpriseWA2026" \
             -dname "CN=WA Campaign, OU=Marketing, O=WhatsApp Systems, L=Chennai, ST=TamilNadu, C=IN"
 
-      - name: Build Signed APK
+      - name: Build Android APK
         run: |
           cd android
           chmod +x gradlew
           ./gradlew assembleDebug
 
-      - name: Upload Build Artifact
+      - name: Upload Actions Artifact
         uses: actions/upload-artifact@v4
         with:
           name: wa-campaign-v${{ env.VERSION_NAME }}
           path: android/app/build/outputs/apk/debug/app-debug.apk
 
-      - name: Publish GitHub Release (For In-App Direct Updates)
+      - name: Publish to GitHub Releases
         uses: softprops/action-gh-release@v2
         with:
           tag_name: latest
