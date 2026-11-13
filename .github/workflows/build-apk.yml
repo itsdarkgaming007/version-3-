@@ -37,53 +37,76 @@ jobs:
           npx cap add android || true
           npx cap sync android
 
-      - name: Configure Versioning and Cleartext Traffic
+      - name: Inject Synchronized Version
         run: |
           BUILD_NUM=${{ github.run_number }}
-          VERSION_NAME="3.6.$BUILD_NUM"
+          VERSION_NAME="v3.6.$BUILD_NUM"
           echo "BUILD_NUM=$BUILD_NUM" >> $GITHUB_ENV
           echo "VERSION_NAME=$VERSION_NAME" >> $GITHUB_ENV
 
-          # Set versionCode and versionName in Gradle
+          # Inject into Gradle
           sed -i "s/versionCode 1/versionCode $BUILD_NUM/g" android/app/build.gradle
           sed -i "s/versionName \"1.0\"/versionName \"$VERSION_NAME\"/g" android/app/build.gradle
 
-          # Enable network traffic
-          sed -i 's/<application/<application android:usesCleartextTraffic="true"/g' android/app/src/main/AndroidManifest.xml
+          # Inject current version directly into HTML client so update dot clears
+          sed -i "s/__CLIENT_BUILD_NUMBER__/$BUILD_NUM/g" www/index.html
 
-          # Inject storage, contact, and installation permissions
+          # Enable cleartext traffic and permissions
+          sed -i 's/<application/<application android:usesCleartextTraffic="true"/g' android/app/src/main/AndroidManifest.xml
           sed -i '/<manifest/a \    <uses-permission android:name="android.permission.READ_CONTACTS" />\n    <uses-permission android:name="android.permission.WRITE_CONTACTS" />\n    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />\n    <uses-permission android:name="android.permission.INTERNET" />' android/app/src/main/AndroidManifest.xml
 
-      - name: Setup Persistent Signing Keystore
+      - name: Setup Deterministic Keystore
         run: |
-          keytool -genkeypair -v \
-            -keystore android/app/wacampaign-release.jks \
+          keytool -genkeypair \
+            -keystore android/app/release.keystore \
             -alias wacampaign \
             -keyalg RSA \
             -keysize 2048 \
             -validity 10000 \
-            -storepass "EnterpriseWA2026" \
-            -keypass "EnterpriseWA2026" \
-            -dname "CN=WA Campaign, OU=Marketing, O=WhatsApp Systems, L=Chennai, ST=TamilNadu, C=IN"
+            -storepass "wacampaignpass2026" \
+            -keypass "wacampaignpass2026" \
+            -dname "CN=WACampaign, OU=Prod, O=WA, L=Chennai, ST=TN, C=IN"
 
-      - name: Build Android APK
+          cat << 'EOF' > android/app/build_signing.gradle
+          android {
+              signingConfigs {
+                  releaseConfig {
+                      storeFile file("release.keystore")
+                      storePassword "wacampaignpass2026"
+                      keyAlias "wacampaign"
+                      keyPassword "wacampaignpass2026"
+                  }
+              }
+              buildTypes {
+                  debug {
+                      signingConfig signingConfigs.releaseConfig
+                  }
+                  release {
+                      signingConfig signingConfigs.releaseConfig
+                  }
+              }
+          }
+          EOF
+          echo "apply from: 'build_signing.gradle'" >> android/app/build.gradle
+
+      - name: Build Consistent APK
         run: |
           cd android
           chmod +x gradlew
           ./gradlew assembleDebug
 
-      - name: Upload Actions Artifact
+      - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: wa-campaign-v${{ env.VERSION_NAME }}
+          name: wa-campaign-${{ env.VERSION_NAME }}
           path: android/app/build/outputs/apk/debug/app-debug.apk
 
-      - name: Publish to GitHub Releases
+      - name: Publish Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: latest
-          name: "WA Campaign Release v${{ env.VERSION_NAME }}"
-          body: "Direct over-the-air in-place update package."
+          name: "WA Campaign Release ${{ env.VERSION_NAME }}"
+          body: "Direct over-the-air update"
           files: android/app/build/outputs/apk/debug/app-debug.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
