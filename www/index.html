@@ -99,27 +99,65 @@
         .wa-bubble-caption { padding: 8px 10px 4px 10px; font-size: 0.92rem; line-height: 1.35; white-space: pre-wrap; word-break: break-word; }
         .wa-bubble-meta { display: flex; align-items: center; justify-content: flex-end; gap: 4px; padding: 0 8px 4px 8px; font-size: 0.68rem; color: rgba(255,255,255,0.65); }
 
+        /* Standard Popup Modal */
         .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 200; align-items: center; justify-content: center; padding: 16px; }
         .modal-high { z-index: 300; }
         .modal-content { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; width: 100%; max-width: 500px; padding: 20px; max-height: 90vh; display: flex; flex-direction: column; overflow-y: auto; }
         .modal-title { font-size: 1.15rem; font-weight: 700; margin-bottom: 14px; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
 
-        /* Multi-Select Contact Picker Styling */
+        /* Full Screen Native Contact Picker */
+        .fullscreen-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            width: 100vw;
+            height: 100vh;
+            background: var(--bg);
+            z-index: 500;
+            flex-direction: column;
+        }
+        .fs-header {
+            background: var(--surface);
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .fs-search-container {
+            padding: 10px 16px;
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+        }
+        .fs-sub-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 16px;
+            background: rgba(0, 168, 132, 0.08);
+            border-bottom: 1px solid var(--border);
+        }
+        .fs-list-scroll {
+            flex: 1;
+            overflow-y: auto;
+            padding: 4px 0;
+        }
+        .fs-bottom-bar {
+            padding: 12px 16px;
+            background: var(--surface);
+            border-top: 1px solid var(--border);
+        }
+
         .contact-picker-row { 
             display: flex; 
             align-items: center; 
-            padding: 12px 10px; 
+            padding: 12px 16px; 
             border-bottom: 1px solid var(--border); 
             gap: 12px; 
             cursor: pointer;
-            transition: background 0.15s ease;
         }
-        .contact-picker-row:active {
-            background: rgba(0, 168, 132, 0.15);
-        }
-        .contact-picker-row.selected {
-            background: rgba(0, 168, 132, 0.12);
-        }
+        .contact-picker-row:active { background: rgba(0, 168, 132, 0.15); }
+        .contact-picker-row.selected { background: rgba(0, 168, 132, 0.12); }
         .contact-avatar { 
             width: 40px; 
             height: 40px; 
@@ -151,7 +189,6 @@
             font-size: 0.85rem;
             color: transparent;
             font-weight: 900;
-            transition: all 0.2s;
         }
         .contact-picker-row.selected .contact-chk-box {
             background: var(--primary);
@@ -168,61 +205,14 @@
         .group-checkbox-custom { width: 22px; height: 22px; border-radius: 6px; border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; color: #fff; }
         .group-select-card.selected .group-checkbox-custom { background: var(--primary); border-color: var(--primary); }
 
-        /* Professional Version Sync Card */
-        .version-card {
-            background: rgba(0, 168, 132, 0.05);
-            border: 1px solid var(--border);
-            border-radius: 10px;
-            padding: 12px;
-            margin-top: 8px;
-        }
-        .version-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 6px;
-            font-size: 0.86rem;
-        }
-        .version-highlight-banner {
-            display: none;
-            background: rgba(0, 168, 132, 0.18);
-            border: 1px solid var(--primary);
-            border-radius: 8px;
-            padding: 10px;
-            margin-top: 8px;
-            margin-bottom: 8px;
-            text-align: center;
-        }
+        .version-card { background: rgba(0, 168, 132, 0.05); border: 1px solid var(--border); border-radius: 10px; padding: 12px; margin-top: 8px; }
+        .version-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; font-size: 0.86rem; }
+        .version-highlight-banner { display: none; background: rgba(0, 168, 132, 0.18); border: 1px solid var(--primary); border-radius: 8px; padding: 10px; margin-top: 8px; margin-bottom: 8px; text-align: center; }
 
-        /* Live Campaign Controller Panel */
-        .campaign-ctrl-panel {
-            background: var(--surface-card);
-            border: 1px solid var(--primary);
-            border-radius: 12px;
-            padding: 14px;
-            margin-bottom: 14px;
-            display: none;
-        }
-        .campaign-ctrl-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 10px;
-        }
-        .ctrl-btn-group {
-            display: flex;
-            gap: 8px;
-            margin-top: 10px;
-        }
-        .ctrl-btn {
-            flex: 1;
-            padding: 10px;
-            border-radius: 8px;
-            font-weight: 700;
-            font-size: 0.88rem;
-            cursor: pointer;
-            border: none;
-        }
+        .campaign-ctrl-panel { background: var(--surface-card); border: 1px solid var(--primary); border-radius: 12px; padding: 14px; margin-bottom: 14px; display: none; }
+        .campaign-ctrl-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .ctrl-btn-group { display: flex; gap: 8px; margin-top: 10px; }
+        .ctrl-btn { flex: 1; padding: 10px; border-radius: 8px; font-weight: 700; font-size: 0.88rem; cursor: pointer; border: none; }
     </style>
 </head>
 <body>
@@ -254,14 +244,17 @@
 
     <!-- 2. CAMPAIGN -->
     <div class="page-content" id="viewCampaign">
-        <label id="lblMessage">Marketing Message (Optional if Media Attached)</label>
-        <textarea id="campGlobalMessage" class="safe-textarea" placeholder="Type message..." oninput="updateLivePreview()"></textarea>
+        <label id="lblMessage">Marketing Message (Supports {{name}})</label>
+        <textarea id="campGlobalMessage" class="safe-textarea" placeholder="Type message... Use {{name}} to personalize" oninput="updateLivePreview()"></textarea>
 
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
             <label id="lblAttachments" style="margin-bottom: 0;">Attachments (Images, Videos, PDF)</label>
             <button id="btnClearMedia" type="button" style="display: none; background: none; border: none; color: var(--danger); font-size: 0.8rem; font-weight: bold; cursor: pointer;" onclick="clearMediaAttachment()">✖ Clear File</button>
         </div>
         <input type="file" id="campGlobalMedia" multiple accept="image/*,video/*,application/pdf" onchange="handleMediaAttachment(event)">
+
+        <label>Schedule Send (Optional - Max 7 Days)</label>
+        <input type="datetime-local" id="campScheduleTime" style="margin-bottom: 14px;">
 
         <label id="lblPreview">Realistic WhatsApp Preview</label>
         <div class="preview-wrapper" id="previewWrapper">
@@ -283,7 +276,6 @@
 
     <!-- 3. DASHBOARD -->
     <div class="page-content" id="viewDashboard">
-        <!-- Active Live Campaign Controls -->
         <div class="campaign-ctrl-panel" id="campaignCtrlPanel">
             <div class="campaign-ctrl-header">
                 <div>
@@ -322,7 +314,7 @@
                     <b id="lblConnectedPhone" style="font-size: 1rem;"></b>
                 </div>
                 <div id="txtServerOfflineNotice" style="font-size: 0.78rem; color: var(--warning); display: none; margin-bottom: 8px;">
-                    Laptop is offline. Campaigns will resume automatically when online.
+                    Server is offline. Background execution will resume when online.
                 </div>
                 <button class="btn btn-danger" id="btnUnlink" onclick="unlinkAccount()">Unlink WhatsApp</button>
             </div>
@@ -332,6 +324,22 @@
                 <button class="btn btn-primary" id="btnPair" onclick="requestPairCode()">Pair WhatsApp</button>
                 <div id="pairCodeDisplay" style="font-size: 1.5rem; letter-spacing: 4px; font-weight: bold; color: var(--primary); text-align: center; margin-top: 10px; display: none;"></div>
             </div>
+        </div>
+
+        <!-- Multi-Message Auto Welcome Setup Card -->
+        <div class="card">
+            <label>Auto Welcome Responder (Option A)</label>
+            <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <span style="font-size: 0.85rem; color: var(--text);">Enable Auto-Reply</span>
+                <input type="checkbox" id="chkEnableWelcome" style="width: 22px; height: 22px; margin-bottom: 0;">
+            </div>
+            <textarea id="txtWelcomeMessage" class="safe-textarea" placeholder="Welcome message text..." style="min-height: 70px;"></textarea>
+            
+            <label>Welcome Media (1 Video / Image)</label>
+            <input type="file" id="fileWelcomeMedia" accept="image/*,video/*" style="margin-bottom: 8px;">
+            <input type="text" id="txtWelcomeMediaCaption" placeholder="Media caption..." style="margin-bottom: 12px;">
+
+            <button class="btn btn-primary" onclick="saveWelcomeRules()">Save Welcome Configuration</button>
         </div>
 
         <label id="lblLanguage">Language</label>
@@ -347,7 +355,6 @@
             <option value="light">Light Theme</option>
         </select>
 
-        <!-- Professional Version Control Card -->
         <div class="card" style="margin-top: 20px;">
             <label id="lblUpdates">App Version & Updates</label>
             <div class="version-card">
@@ -389,7 +396,7 @@
     <!-- Modals -->
     <div class="modal" id="createGroupModal">
         <div class="modal-content">
-            <div class="modal-title" id="lblCreateGroup">Create Group</div>
+            <div class="modal-title" id="lblCreateGroup">Create Group (Max 250 Contacts)</div>
             <label id="lblGroupName">Group Name</label>
             <input type="text" id="newGroupName" placeholder="e.g. VIP Customers">
 
@@ -400,7 +407,7 @@
                 <input type="file" id="csvFileInputCreate" accept=".csv,.txt,.vcf" style="display: none;" onchange="handleFileImport(event, 'create')">
             </div>
 
-            <div id="createStagedCount" style="font-size: 0.8rem; color: var(--primary); font-weight: bold; margin-bottom: 8px;">0 Contacts Staged</div>
+            <div id="createStagedCount" style="font-size: 0.8rem; color: var(--primary); font-weight: bold; margin-bottom: 8px;">0 / 250 Contacts Staged</div>
 
             <button class="btn btn-primary" id="btnSaveGroup" onclick="saveGroup()">Save Group</button>
             <button class="btn btn-secondary" onclick="closeTopModal()">Cancel</button>
@@ -417,7 +424,7 @@
                 <button class="btn btn-primary" style="width: auto; padding: 0 14px;" onclick="renameActiveGroup()">Save</button>
             </div>
 
-            <label>Add Contacts</label>
+            <label>Add Contacts (Limit: 250)</label>
             <div style="display: flex; gap: 8px; margin-bottom: 12px;">
                 <button type="button" class="btn btn-outline" onclick="openPhonebookSelector('edit')">📱 Pick Contacts</button>
                 <button type="button" class="btn btn-outline" onclick="document.getElementById('csvFileInputEdit').click()">📁 Import File</button>
@@ -461,20 +468,22 @@
         </div>
     </div>
 
-    <!-- Multi-Select Phonebook Picker Modal -->
-    <div class="modal modal-high" id="phonebookModal">
-        <div class="modal-content">
-            <div class="modal-title" id="lblDeviceContacts">Device Contacts</div>
-            <input type="text" id="phonebookSearch" placeholder="🔍 Search contacts..." oninput="filterPhonebook()">
-            
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                <span id="pbSelectionCounter" style="font-size: 0.82rem; color: var(--primary); font-weight: bold;">0 Selected</span>
-                <button type="button" class="btn btn-outline" style="width: auto; padding: 4px 10px; font-size: 0.75rem;" onclick="toggleSelectAllFilteredContacts()">Select / Deselect All</button>
-            </div>
-
-            <div id="phonebookListContainer" style="max-height: 320px; overflow-y: auto; border: 1px solid var(--border); border-radius: 8px;"></div>
-            <button class="btn btn-primary" style="margin-top: 12px;" id="btnAddSelectedPbContacts" onclick="confirmPhonebookSelection()">Add Selected</button>
-            <button class="btn btn-secondary" onclick="closeTopModal()">Back</button>
+    <!-- FULLSCREEN NATIVE CONTACT PICKER OVERLAY -->
+    <div class="fullscreen-overlay" id="phonebookOverlay">
+        <div class="fs-header">
+            <button class="icon-btn" onclick="closePhonebookOverlay()">←</button>
+            <div style="font-size: 1.1rem; font-weight: bold;" id="lblDeviceContacts">Device Contacts</div>
+        </div>
+        <div class="fs-search-container">
+            <input type="text" id="phonebookSearch" placeholder="🔍 Search by name or phone..." oninput="filterPhonebook()" style="margin-bottom: 0;">
+        </div>
+        <div class="fs-sub-bar">
+            <span id="pbSelectionCounter" style="font-size: 0.85rem; color: var(--primary); font-weight: bold;">0 Selected</span>
+            <button type="button" class="btn btn-outline" style="width: auto; padding: 4px 12px; font-size: 0.75rem;" onclick="toggleSelectAllFilteredContacts()">Select / Deselect All</button>
+        </div>
+        <div class="fs-list-scroll" id="phonebookListContainer"></div>
+        <div class="fs-bottom-bar">
+            <button class="btn btn-primary" id="btnAddSelectedPbContacts" onclick="confirmPhonebookSelection()">Add Selected (0)</button>
         </div>
     </div>
 
@@ -490,6 +499,7 @@
         const FIXED_BACKEND_URL = "https://rinse-chest-dish.ngrok-free.dev";
         const API_BEARER_TOKEN = "marketing_engine_secret_2026";
         const SESSION_ID = "main_account";
+        const MAX_GROUP_CONTACTS = 250;
 
         const CURRENT_BUILD_NUMBER = parseInt("__CLIENT_BUILD_NUMBER__") || 37;
         const CURRENT_VERSION_STRING = `v3.6.${CURRENT_BUILD_NUMBER}`;
@@ -511,7 +521,7 @@
                 campaign: "Campaign",
                 dashboard: "Dashboard",
                 settings: "Settings",
-                message: "Marketing Message (Optional if Media Attached)",
+                message: "Marketing Message (Supports {{name}})",
                 attachments: "Attachments (Images, Videos, PDF)",
                 preview: "Realistic WhatsApp Preview",
                 launch: "Select Target Groups & Send",
@@ -524,9 +534,8 @@
                 language: "Language",
                 theme: "Theme",
                 updates: "App Version & Updates",
-                updateCheck: "⚡ Update Now (Zero Data Loss)",
                 shareApp: "Share WA Campaign App",
-                createGroup: "Create Group",
+                createGroup: "Create Group (Max 250 Contacts)",
                 groupName: "Group Name",
                 addContacts: "Add Contacts",
                 saveGroup: "Save Group",
@@ -542,7 +551,7 @@
                 campaign: "பிரச்சாரம்",
                 dashboard: "முகப்பு",
                 settings: "அமைப்புகள்",
-                message: "அனுப்ப வேண்டிய செய்தி",
+                message: "அனுப்ப வேண்டிய செய்தி ({{name}} பயன்படுத்தலாம்)",
                 attachments: "கோப்புகள் (புகைப்படம், வீடியோ, PDF)",
                 preview: "நேரடி முன்னோட்டம்",
                 launch: "குழுக்களை தேர்வு செய்து அனுப்பு",
@@ -555,9 +564,8 @@
                 language: "மொழி",
                 theme: "வண்ண தீம்",
                 updates: "செயலி பதிப்பு & புதுப்பிப்புகள்",
-                updateCheck: "⚡ புதிய பதிப்பை நிறுவவும் (தரவு அழியாது)",
                 shareApp: "செயலியை பகிரவும்",
-                createGroup: "புதிய குழு உருவாக்கு",
+                createGroup: "புதிய குழு (அதிகபட்சம் 250 நபர்கள்)",
                 groupName: "குழுவின் பெயர்",
                 addContacts: "தொடர்புகளை சேர்க்கவும்",
                 saveGroup: "குழுவை சேமி",
@@ -573,7 +581,7 @@
                 campaign: "अभियान",
                 dashboard: "डैशबोर्ड",
                 settings: "सेटिंग्स",
-                message: "विपणन संदेश",
+                message: "विपणन संदेश ({{name}} उपलब्ध)",
                 attachments: "फ़ाइलें (फोटो, वीडियो, पीडीएफ)",
                 preview: "व्हाट्सएप पूर्वावलोकन",
                 launch: "समूह चुनें और भेजें",
@@ -586,9 +594,8 @@
                 language: "भाषा",
                 theme: "थीम",
                 updates: "ऐप संस्करण और अपडेट",
-                updateCheck: "⚡ नया संस्करण स्थापित करें",
                 shareApp: "ऐप साझा करें",
-                createGroup: "समूह बनाएं",
+                createGroup: "समूह बनाएं (अधिकतम 250 संपर्क)",
                 groupName: "समूह का नाम",
                 addContacts: "संपर्क जोड़ें",
                 saveGroup: "समूह सहेजें",
@@ -635,8 +642,14 @@
             const AppPlugin = window.Capacitor?.Plugins?.App;
             if (AppPlugin) {
                 AppPlugin.addListener('backButton', () => {
-                    if (modalStack.length > 0) closeTopModal();
-                    else if (confirm('Are you sure you want to exit?')) AppPlugin.exitApp();
+                    const overlay = document.getElementById('phonebookOverlay');
+                    if (overlay && overlay.style.display === 'flex') {
+                        closePhonebookOverlay();
+                    } else if (modalStack.length > 0) {
+                        closeTopModal();
+                    } else if (confirm('Are you sure you want to exit?')) {
+                        AppPlugin.exitApp();
+                    }
                 });
             }
         }
@@ -659,6 +672,7 @@
             window.addEventListener('touchend', async () => {
                 if (spinner.style.display === 'block') {
                     await syncWhatsAppAccountStatus();
+                    await hydrateCampaignStateFromServer();
                     renderGroups();
                     renderDashboard();
                     checkForAppUpdatesBackground();
@@ -813,6 +827,90 @@
             }
         }
 
+        async function syncGroupsToServer() {
+            try {
+                await fetch(`${FIXED_BACKEND_URL}/api/groups/sync`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${API_BEARER_TOKEN}`, 'ngrok-skip-browser-warning': 'true' },
+                    body: JSON.stringify({ sessionId: SESSION_ID, groups })
+                });
+            } catch(e) {}
+        }
+
+        async function restoreGroupsFromServer() {
+            try {
+                const res = await fetch(`${FIXED_BACKEND_URL}/api/groups/restore?sessionId=${SESSION_ID}`, {
+                    headers: { 'Authorization': `Bearer ${API_BEARER_TOKEN}`, 'ngrok-skip-browser-warning': 'true' }
+                });
+                const d = await res.json();
+                if (d.groups && d.groups.length > 0 && groups.length === 0) {
+                    groups = d.groups;
+                    localStorage.setItem('app_groups', JSON.stringify(groups));
+                    renderGroups();
+                }
+            } catch(e) {}
+        }
+
+        async function hydrateCampaignStateFromServer() {
+            try {
+                const res = await fetch(`${FIXED_BACKEND_URL}/api/campaign/state?sessionId=${SESSION_ID}`, {
+                    headers: { 'Authorization': `Bearer ${API_BEARER_TOKEN}`, 'ngrok-skip-browser-warning': 'true' }
+                });
+                const d = await res.json();
+                if (d.hasState && d.queue && d.queue.state !== 'STOPPED') {
+                    const q = d.queue;
+                    currentActiveCampaignId = q.campaignId;
+                    const panel = document.getElementById('campaignCtrlPanel');
+                    panel.style.display = 'block';
+                    document.getElementById('txtLiveCampaignProgress').innerText = `${q.sent || 0} / ${q.total} Sent`;
+
+                    if (q.state === 'PAUSED') {
+                        document.getElementById('txtLiveCampaignState').innerText = 'PAUSED';
+                        document.getElementById('txtLiveCampaignState').style.color = 'var(--warning)';
+                        document.getElementById('btnPauseCampaign').style.display = 'none';
+                        document.getElementById('btnResumeCampaign').style.display = 'block';
+                    } else if (q.isRunning) {
+                        document.getElementById('txtLiveCampaignState').innerText = 'RUNNING';
+                        document.getElementById('txtLiveCampaignState').style.color = 'var(--primary)';
+                        document.getElementById('btnPauseCampaign').style.display = 'block';
+                        document.getElementById('btnResumeCampaign').style.display = 'none';
+                        pollCampaignLive(q.campaignId);
+                    }
+                }
+            } catch(e) {}
+        }
+
+        async function saveWelcomeRules() {
+            const enabled = document.getElementById('chkEnableWelcome').checked;
+            const textContent = document.getElementById('txtWelcomeMessage').value.trim();
+            const fileInput = document.getElementById('fileWelcomeMedia');
+            const mediaCaption = document.getElementById('txtWelcomeMediaCaption').value.trim();
+
+            const fd = new FormData();
+            fd.append('sessionId', SESSION_ID);
+            fd.append('enabled', enabled);
+            fd.append('textContent', textContent);
+            fd.append('imageCaption', mediaCaption);
+            fd.append('videoCaption', mediaCaption);
+
+            if (fileInput.files && fileInput.files[0]) {
+                fd.append('welcome_media', fileInput.files[0]);
+            }
+
+            try {
+                const res = await fetch(`${FIXED_BACKEND_URL}/api/welcome/setup`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${API_BEARER_TOKEN}`, 'ngrok-skip-browser-warning': 'true' },
+                    body: fd
+                });
+                const d = await res.json();
+                if (d.success) alert('Auto-welcome rules saved successfully.');
+                else alert(d.error || 'Failed to save rules');
+            } catch(e) {
+                alert('Connection error: ' + e.message);
+            }
+        }
+
         async function requestPairCode() {
             const phone = document.getElementById('txtPairPhone').value.trim();
             if (!phone) return alert('Enter phone number');
@@ -838,7 +936,7 @@
                     disp.innerText = d.error || 'Pairing error';
                 }
             } catch(e) {
-                disp.innerText = 'Connection Error: Laptop Offline';
+                disp.innerText = 'Connection Error: Server Offline';
             }
         }
 
@@ -879,6 +977,7 @@
             if (!confirm(`Delete ${selectedGroupsForDelete.size} selected group(s)?`)) return;
             groups = groups.filter(g => !selectedGroupsForDelete.has(g.id));
             localStorage.setItem('app_groups', JSON.stringify(groups));
+            syncGroupsToServer();
             toggleGroupSelectMode();
         }
 
@@ -901,7 +1000,7 @@
                     <div class="group-select-card ${isSelected ? 'selected' : ''}" onclick="toggleTargetGroupSelect('${g.id}')">
                         <div>
                             <div style="font-weight: 600;">${g.name}</div>
-                            <div style="font-size: 0.78rem; color: var(--text-muted);">${g.contacts.length} contacts</div>
+                            <div style="font-size: 0.78rem; color: var(--text-muted);">${g.contacts.length} / 250 contacts</div>
                         </div>
                         <div class="group-checkbox-custom">${isSelected ? '✓' : ''}</div>
                     </div>
@@ -935,11 +1034,21 @@
 
             const message = document.getElementById('campGlobalMessage').value.trim();
             const mediaInput = document.getElementById('campGlobalMedia');
+            const scheduleTime = document.getElementById('campScheduleTime').value;
+
+            if (scheduleTime) {
+                const chosen = new Date(scheduleTime).getTime();
+                const now = Date.now();
+                const maxAllowed = now + (7 * 24 * 60 * 60 * 1000);
+                if (chosen <= now) return alert('Schedule time must be in the future.');
+                if (chosen > maxAllowed) return alert('Schedule cannot exceed 7 days ahead.');
+            }
 
             const formData = new FormData();
             formData.append('sessionId', SESSION_ID);
             formData.append('recipients', JSON.stringify(uniqueRecipients));
             formData.append('message', message);
+            if (scheduleTime) formData.append('scheduleTime', scheduleTime);
 
             for (let i = 0; i < mediaInput.files.length; i++) {
                 formData.append('media', mediaInput.files[i]);
@@ -954,7 +1063,9 @@
                     body: formData
                 });
                 const d = await res.json();
-                if (d.status === 'QUEUED') {
+                if (d.status === 'SCHEDULED') {
+                    alert(`Campaign successfully scheduled for ${new Date(scheduleTime).toLocaleString()}`);
+                } else if (d.status === 'QUEUED') {
                     const newCamp = {
                         id: d.campaignId || ('cmp_' + Date.now()),
                         timestamp: new Date().toLocaleString(),
@@ -979,7 +1090,6 @@
             } catch(e) { alert('Connection Error: ' + e.message); }
         }
 
-        // --- Live Campaign Controls ---
         function showLiveCampaignController(camp) {
             const panel = document.getElementById('campaignCtrlPanel');
             panel.style.display = 'block';
@@ -1246,7 +1356,7 @@
                                 <div style="font-size: 0.75rem; color: var(--text-muted);">Created: ${new Date(g.createdAt).toLocaleDateString()}</div>
                             </div>
                         </div>
-                        <span class="group-card-badge">${g.contacts.length} Contacts</span>
+                        <span class="group-card-badge">${g.contacts.length} / 250</span>
                     </div>
                 `;
             }).join('');
@@ -1255,15 +1365,19 @@
         function openCreateGroupModal() {
             document.getElementById('newGroupName').value = '';
             stagedContacts = [];
-            document.getElementById('createStagedCount').innerText = '0 Contacts Staged';
+            document.getElementById('createStagedCount').innerText = `0 / ${MAX_GROUP_CONTACTS} Contacts Staged`;
             openModal('createGroupModal');
         }
 
         function saveGroup() {
             const name = document.getElementById('newGroupName').value.trim();
             if (!name) return alert('Enter group name');
+            if (stagedContacts.length > MAX_GROUP_CONTACTS) {
+                return alert(`Group limit exceeded! Maximum allowed is ${MAX_GROUP_CONTACTS} contacts.`);
+            }
             groups.push({ id: 'grp_' + Date.now(), name, contacts: stagedContacts, createdAt: Date.now() });
             localStorage.setItem('app_groups', JSON.stringify(groups));
+            syncGroupsToServer();
             closeTopModal();
             renderGroups();
         }
@@ -1283,6 +1397,7 @@
             if (g && val) {
                 g.name = val;
                 localStorage.setItem('app_groups', JSON.stringify(groups));
+                syncGroupsToServer();
                 renderGroups();
                 alert('Group name updated.');
             }
@@ -1328,26 +1443,31 @@
 
             g.contacts[editingMemberIndex] = { name, phone };
             localStorage.setItem('app_groups', JSON.stringify(groups));
+            syncGroupsToServer();
             closeTopModal();
             renderMembers();
             renderGroups();
         }
 
         function addSingleContact() {
+            const g = groups.find(x => x.id === activeGroupId);
+            if (!g) return;
+            if (g.contacts.length >= MAX_GROUP_CONTACTS) {
+                return alert(`This group already reached the maximum safe limit of ${MAX_GROUP_CONTACTS} contacts.`);
+            }
+
             const name = document.getElementById('quickAddName').value.trim();
             const rawPhone = document.getElementById('quickAddPhone').value.trim();
             const phone = normalizeNumber(rawPhone);
             if (!phone || phone.length < 10) return alert('Enter valid phone number');
 
-            const g = groups.find(x => x.id === activeGroupId);
-            if (g) {
-                g.contacts.push({ name, phone });
-                localStorage.setItem('app_groups', JSON.stringify(groups));
-                document.getElementById('quickAddName').value = '';
-                document.getElementById('quickAddPhone').value = '';
-                renderMembers();
-                renderGroups();
-            }
+            g.contacts.push({ name, phone });
+            localStorage.setItem('app_groups', JSON.stringify(groups));
+            syncGroupsToServer();
+            document.getElementById('quickAddName').value = '';
+            document.getElementById('quickAddPhone').value = '';
+            renderMembers();
+            renderGroups();
         }
 
         function deleteMember(idx) {
@@ -1355,12 +1475,13 @@
             if (g) {
                 g.contacts.splice(idx, 1);
                 localStorage.setItem('app_groups', JSON.stringify(groups));
+                syncGroupsToServer();
                 renderMembers();
                 renderGroups();
             }
         }
 
-        // --- Multi-Select Phonebook Logic ---
+        // --- FULL-SCREEN NATIVE CONTACT PICKER LOGIC ---
         async function openPhonebookSelector(mode) {
             pbTargetMode = mode;
             selectedPbContacts.clear();
@@ -1386,7 +1507,7 @@
                         currentlyFilteredContacts = [...cachedDeviceContacts];
                         renderPhonebook(currentlyFilteredContacts);
                         updatePbSelectionCounter();
-                        openModal('phonebookModal');
+                        showPhonebookOverlay();
                         return;
                     }
                 } catch(e) {}
@@ -1410,6 +1531,14 @@
             alert('Contacts permission not granted.');
         }
 
+        function showPhonebookOverlay() {
+            document.getElementById('phonebookOverlay').style.display = 'flex';
+        }
+
+        function closePhonebookOverlay() {
+            document.getElementById('phonebookOverlay').style.display = 'none';
+        }
+
         function updatePbSelectionCounter() {
             const count = selectedPbContacts.size;
             document.getElementById('pbSelectionCounter').innerText = `${count} Selected`;
@@ -1419,7 +1548,7 @@
         function renderPhonebook(list) {
             const container = document.getElementById('phonebookListContainer');
             if (list.length === 0) {
-                container.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 20px;">No contacts found.</div>';
+                container.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 40px;">No contacts found.</div>';
                 return;
             }
 
@@ -1443,6 +1572,16 @@
             if (selectedPbContacts.has(phone)) {
                 selectedPbContacts.delete(phone);
             } else {
+                let currentTotal = 0;
+                if (pbTargetMode === 'create') currentTotal = stagedContacts.length;
+                else {
+                    const g = groups.find(x => x.id === activeGroupId);
+                    if (g) currentTotal = g.contacts.length;
+                }
+
+                if (currentTotal + selectedPbContacts.size + 1 > MAX_GROUP_CONTACTS) {
+                    return alert(`Cannot select more. Group limit is capped at ${MAX_GROUP_CONTACTS} contacts.`);
+                }
                 selectedPbContacts.add(phone);
             }
             renderPhonebook(currentlyFilteredContacts);
@@ -1454,7 +1593,17 @@
             if (allSelected) {
                 currentlyFilteredContacts.forEach(c => selectedPbContacts.delete(c.phone));
             } else {
-                currentlyFilteredContacts.forEach(c => selectedPbContacts.add(c.phone));
+                let currentTotal = 0;
+                if (pbTargetMode === 'create') currentTotal = stagedContacts.length;
+                else {
+                    const g = groups.find(x => x.id === activeGroupId);
+                    if (g) currentTotal = g.contacts.length;
+                }
+
+                for (const c of currentlyFilteredContacts) {
+                    if (currentTotal + selectedPbContacts.size >= MAX_GROUP_CONTACTS) break;
+                    selectedPbContacts.add(c.phone);
+                }
             }
             renderPhonebook(currentlyFilteredContacts);
             updatePbSelectionCounter();
@@ -1472,7 +1621,7 @@
             if (selectedPbContacts.size === 0) return alert('Select at least one contact.');
             const selected = cachedDeviceContacts.filter(c => selectedPbContacts.has(c.phone));
             applyImportedContacts(pbTargetMode, selected);
-            closeTopModal();
+            closePhonebookOverlay();
         }
 
         function handleFileImport(e, mode) {
@@ -1502,28 +1651,44 @@
 
         function applyImportedContacts(mode, list) {
             if (mode === 'create') {
-                stagedContacts.push(...list);
-                document.getElementById('createStagedCount').innerText = `${stagedContacts.length} Contacts Staged`;
+                const spaceLeft = MAX_GROUP_CONTACTS - stagedContacts.length;
+                const toAdd = list.slice(0, spaceLeft);
+                stagedContacts.push(...toAdd);
+                document.getElementById('createStagedCount').innerText = `${stagedContacts.length} / ${MAX_GROUP_CONTACTS} Contacts Staged`;
+                if (list.length > spaceLeft) {
+                    alert(`Added ${toAdd.length} contacts. Remaining contacts were skipped to enforce the ${MAX_GROUP_CONTACTS} group cap.`);
+                } else {
+                    alert(`Added ${toAdd.length} contacts.`);
+                }
             } else {
                 const g = groups.find(x => x.id === activeGroupId);
                 if (g) {
-                    g.contacts.push(...list);
+                    const spaceLeft = MAX_GROUP_CONTACTS - g.contacts.length;
+                    const toAdd = list.slice(0, spaceLeft);
+                    g.contacts.push(...toAdd);
                     localStorage.setItem('app_groups', JSON.stringify(groups));
+                    syncGroupsToServer();
                     renderMembers();
                     renderGroups();
+                    if (list.length > spaceLeft) {
+                        alert(`Added ${toAdd.length} contacts. Group reached the ${MAX_GROUP_CONTACTS} contact cap.`);
+                    } else {
+                        alert(`Added ${toAdd.length} contacts.`);
+                    }
                 }
             }
-            alert(`Added ${list.length} contacts.`);
         }
 
-        window.onload = () => {
+        window.onload = async () => {
             switchTheme(localStorage.getItem('app_theme') || 'dark');
             switchLanguage(localStorage.getItem('app_lang') || 'en');
             renderGroups();
             renderDashboard();
             setupBackNavigation();
             setupPullToRefresh();
-            syncWhatsAppAccountStatus();
+            await syncWhatsAppAccountStatus();
+            await restoreGroupsFromServer();
+            await hydrateCampaignStateFromServer();
             checkForAppUpdatesBackground();
         };
     </script>
