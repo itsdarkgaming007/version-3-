@@ -85,10 +85,27 @@
         .modal-content { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; width: 100%; max-width: 500px; padding: 20px; max-height: 90vh; display: flex; flex-direction: column; overflow-y: auto; }
         .modal-title { font-size: 1.15rem; font-weight: 700; margin-bottom: 14px; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
 
-        /* Full Screen Native Contact Picker with Proper Back Arrow */
+        /* Full Screen Native Contact Picker with Bold High-Contrast Back Button */
         .fullscreen-overlay { display: none; position: fixed; inset: 0; width: 100vw; height: 100vh; background: var(--bg); z-index: 500; flex-direction: column; }
-        .fs-header { background: var(--surface); padding: 14px 18px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 14px; }
-        .back-arrow-btn { background: rgba(0, 168, 132, 0.15); color: var(--primary); border: none; font-size: 1.2rem; width: 38px; height: 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-weight: bold; }
+        .fs-header { background: var(--surface); padding: 12px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 14px; }
+        .back-arrow-btn {
+            background: var(--primary);
+            color: #ffffff;
+            border: none;
+            padding: 8px 14px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            cursor: pointer;
+            font-weight: 800;
+            font-size: 0.92rem;
+            box-shadow: 0 2px 6px rgba(0, 168, 132, 0.35);
+            flex-shrink: 0;
+        }
+        .back-arrow-btn:active { transform: scale(0.96); }
         .fs-search-container { padding: 10px 16px; background: var(--surface); border-bottom: 1px solid var(--border); }
         .fs-sub-bar { display: flex; justify-content: space-between; align-items: center; padding: 8px 16px; background: rgba(0, 168, 132, 0.08); border-bottom: 1px solid var(--border); }
         .fs-list-scroll { flex: 1; overflow-y: auto; padding: 4px 0; }
@@ -123,8 +140,10 @@
         .ctrl-btn-group { display: flex; gap: 8px; margin-top: 10px; }
         .ctrl-btn { flex: 1; padding: 10px; border-radius: 8px; font-weight: 700; font-size: 0.88rem; cursor: pointer; border: none; }
 
-        /* Multi-media dynamic item row */
-        .media-item-box { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 10px; margin-bottom: 10px; }
+        /* Welcome Multi-Block Builder Styling */
+        .welcome-block-item { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px; margin-bottom: 10px; }
+        .welcome-add-bar { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; }
+        .welcome-add-btn { background: rgba(0, 168, 132, 0.12); border: 1px solid var(--primary); color: var(--primary); border-radius: 8px; padding: 8px 6px; font-size: 0.78rem; font-weight: 700; cursor: pointer; text-align: center; }
     </style>
 </head>
 <body>
@@ -182,13 +201,19 @@
         <div id="groupsListContainer"></div>
     </div>
 
-    <!-- 2. CAMPAIGN -->
+    <!-- 2. CAMPAIGN (Includes Campaign Blast, Scheduler, and Multi-Block Auto Welcome Responder) -->
     <div class="page-content" id="viewCampaign">
-        <!-- Card 1: Marketing Message & Live Preview -->
+        <!-- Card 1: Marketing Message & Attachment -->
         <div class="card">
-            <label style="color: var(--primary); font-size: 0.9rem; margin-bottom: 8px;">1. Marketing Message</label>
-            <label id="lblMessage">Message Body (Supports {{name}})</label>
+            <label style="color: var(--primary); font-size: 0.92rem; margin-bottom: 10px;">📢 1. Campaign Broadcast Message</label>
+            <label id="lblMessage">Marketing Message (Supports {{name}})</label>
             <textarea id="campGlobalMessage" class="safe-textarea" placeholder="Type message... Use {{name}} to personalize" oninput="updateLivePreview()"></textarea>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                <label id="lblAttachments" style="margin-bottom: 0;">Attachments (Images, Videos, PDF)</label>
+                <button id="btnClearMedia" type="button" style="display: none; background: none; border: none; color: var(--danger); font-size: 0.8rem; font-weight: bold; cursor: pointer;" onclick="clearMediaAttachment()">✖ Clear File</button>
+            </div>
+            <input type="file" id="campGlobalMedia" multiple accept="image/*,video/*,application/pdf" onchange="handleMediaAttachment(event)">
 
             <label id="lblPreview">Live Preview</label>
             <div class="preview-wrapper" id="previewWrapper">
@@ -204,38 +229,53 @@
                     </div>
                 </div>
             </div>
-        </div>
 
-        <!-- Card 2: Advanced Multi-Media Attachments -->
-        <div class="card">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                <label style="color: var(--primary); font-size: 0.9rem; margin-bottom: 0;">2. Multi-Media Attachments (Max 4 Img / 2 Vid)</label>
-                <button type="button" class="btn btn-outline" style="width: auto; padding: 4px 10px; font-size: 0.75rem;" onclick="addMediaAttachmentRow()">+ Add File</button>
-            </div>
-            <div id="mediaAttachmentsContainer"></div>
-        </div>
-
-        <!-- Card 3: Smart Scheduler with ON/OFF Toggle -->
-        <div class="card">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                <label style="color: var(--primary); font-size: 0.9rem; margin-bottom: 0;">3. Smart Campaign Scheduler</label>
-                <div style="display: flex; align-items: center; gap: 8px;">
-                    <span style="font-size: 0.8rem; color: var(--text-muted);" id="lblScheduleToggleText">Enable Schedule</span>
-                    <input type="checkbox" id="chkEnableSchedule" style="width: 20px; height: 20px; margin-bottom: 0; cursor: pointer;" onchange="toggleScheduleInput(this)">
+            <!-- Card 2: Smart Scheduler Toggle Inside Campaign Section -->
+            <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px; margin-bottom: 12px;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <div style="font-size: 0.88rem; font-weight: 700; color: var(--primary);">⏰ Schedule Campaign</div>
+                        <div style="font-size: 0.74rem; color: var(--text-muted);">Auto-send later (Max 7 Days)</div>
+                    </div>
+                    <input type="checkbox" id="chkEnableSchedule" style="width: 22px; height: 22px; margin-bottom: 0; cursor: pointer;" onchange="toggleScheduleInput(this)">
+                </div>
+                <div id="scheduleInputWrapper" style="display: none; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border);">
+                    <label>Select Date & Time</label>
+                    <input type="datetime-local" id="campScheduleTime" style="margin-bottom: 0;">
                 </div>
             </div>
-            <div id="scheduleInputWrapper" style="display: none;">
-                <label>Schedule Send (Max 7 Days Ahead)</label>
-                <input type="datetime-local" id="campScheduleTime">
+
+            <div style="font-size: 0.75rem; color: var(--text-muted); text-align: center; margin-bottom: 12px; line-height: 1.3;">
+                ⚠️ Use responsibly. Sending unsolicited bulk messages violates WhatsApp policies.
             </div>
+
+            <button class="btn btn-primary" id="btnLaunch" onclick="openMultiGroupDispatchModal()">Select Target Groups & Send</button>
         </div>
 
-        <!-- Explicit Disclaimer Footer Warning -->
-        <div style="font-size: 0.75rem; color: var(--text-muted); text-align: center; margin-bottom: 12px; line-height: 1.3;">
-            ⚠️ Use responsibly. Sending unsolicited bulk messages violates WhatsApp policies.
-        </div>
+        <!-- Card 3: Multi-Media Auto Welcome Responder (Moved to Campaign Page!) -->
+        <div class="card" style="border-color: rgba(0, 168, 132, 0.4);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px solid var(--border);">
+                <div>
+                    <div style="font-size: 0.95rem; font-weight: 700; color: var(--primary);">🤖 Auto Welcome Responder</div>
+                    <div style="font-size: 0.74rem; color: var(--text-muted);">Max: 4 Text, 4 Images, 2 Videos (With Custom Captions)</div>
+                </div>
+                <input type="checkbox" id="chkEnableWelcome" style="width: 24px; height: 24px; margin-bottom: 0; cursor: pointer;">
+            </div>
 
-        <button class="btn btn-primary" id="btnLaunch" onclick="openMultiGroupDispatchModal()">Select Target Groups & Send</button>
+            <div style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 8px;" id="welcomeCounterSummary">
+                Used: 0/4 Text • 0/4 Images • 0/2 Videos
+            </div>
+
+            <div class="welcome-add-bar">
+                <button type="button" class="welcome-add-btn" onclick="addWelcomeBlock('text')">+ Add Text</button>
+                <button type="button" class="welcome-add-btn" onclick="addWelcomeBlock('image')">+ Add Image</button>
+                <button type="button" class="welcome-add-btn" onclick="addWelcomeBlock('video')">+ Add Video</button>
+            </div>
+
+            <div id="welcomeSequenceContainer"></div>
+
+            <button class="btn btn-primary" onclick="saveWelcomeRules()">💾 Save Welcome Sequence</button>
+        </div>
     </div>
 
     <!-- 3. DASHBOARD -->
@@ -290,25 +330,6 @@
             </div>
         </div>
 
-        <!-- Advanced Multi-Message Auto Welcome Setup Card -->
-        <div class="card">
-            <label style="color: var(--primary); font-size: 0.9rem; margin-bottom: 8px;">Auto Welcome Responder</label>
-            <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                <span style="font-size: 0.85rem; color: var(--text);">Enable Auto-Reply</span>
-                <input type="checkbox" id="chkEnableWelcome" style="width: 22px; height: 22px; margin-bottom: 0;">
-            </div>
-            <textarea id="txtWelcomeMessage" class="safe-textarea" placeholder="Welcome message text..." style="min-height: 70px;"></textarea>
-            
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                <label style="margin-bottom: 0;">Welcome Media Attachment</label>
-                <button type="button" style="background:none; border:none; color:var(--danger); font-size:0.75rem; font-weight:bold; cursor:pointer;" onclick="clearWelcomeMedia()">✖ Clear File</button>
-            </div>
-            <input type="file" id="fileWelcomeMedia" accept="image/*,video/*" style="margin-bottom: 8px;">
-            <input type="text" id="txtWelcomeMediaCaption" placeholder="Media caption..." style="margin-bottom: 12px;">
-
-            <button class="btn btn-primary" onclick="saveWelcomeRules()">Save Welcome Configuration</button>
-        </div>
-
         <label id="lblLanguage">Language</label>
         <select id="selLanguage" onchange="switchLanguage(this.value)">
             <option value="en">English</option>
@@ -327,7 +348,7 @@
             <div class="version-card">
                 <div class="version-row">
                     <span style="color: var(--text-muted);">Current Version:</span>
-                    <b id="lblCurrentVer">v3.6.38</b>
+                    <b id="lblCurrentVer">v3.6.52</b>
                 </div>
                 <div class="version-row">
                     <span style="color: var(--text-muted);">Cloud Status:</span>
@@ -432,10 +453,16 @@
         </div>
     </div>
 
-    <!-- FULLSCREEN NATIVE CONTACT PICKER OVERLAY WITH PROPER BACK ARROW -->
+    <!-- FULLSCREEN NATIVE CONTACT PICKER OVERLAY WITH BOLD VECTOR BACK BUTTON -->
     <div class="fullscreen-overlay" id="phonebookOverlay">
         <div class="fs-header">
-            <button class="back-arrow-btn" onclick="closePhonebookOverlay()">←</button>
+            <button class="back-arrow-btn" onclick="closePhonebookOverlay()">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M19 12H5"></path>
+                    <path d="M12 19l-7-7 7-7"></path>
+                </svg>
+                <span>Back</span>
+            </button>
             <div style="font-size: 1.1rem; font-weight: bold;" id="lblDeviceContacts">Device Contacts</div>
         </div>
         <div class="fs-search-container">
@@ -463,17 +490,25 @@
         const FIXED_BACKEND_URL = "https://rinse-chest-dish.ngrok-free.dev";
         const API_BEARER_TOKEN = "marketing_engine_secret_2026";
         
-        // Dynamic Tenant Session Binding
-        let SESSION_ID = localStorage.getItem('tenant_session_id') || ('usr_' + Math.floor(100000 + Math.random() * 900000));
+        // Stable Tenant Session Binding (Defaults to main_account so existing pairings never break)
+        let SESSION_ID = localStorage.getItem('tenant_session_id') || 'main_account';
+        if (SESSION_ID.startsWith('usr_')) {
+            SESSION_ID = 'main_account';
+        }
         localStorage.setItem('tenant_session_id', SESSION_ID);
 
         const MAX_GROUP_CONTACTS = 250;
-        const CURRENT_BUILD_NUMBER = 38;
-        const CURRENT_VERSION_STRING = `v3.6.${CURRENT_BUILD_NUMBER}`;
+
+        // Dynamic Build Version Resolution (Prevents false "Update Available" loops)
+        const CI_INJECTED_BUILD = parseInt("__CLIENT_BUILD_NUMBER__");
+        let CURRENT_BUILD_NUMBER = !isNaN(CI_INJECTED_BUILD) ? CI_INJECTED_BUILD : (parseInt(localStorage.getItem('acknowledged_release_build')) || 52);
 
         let currentActiveCampaignId = null;
         let pollTimer = null;
-        let mediaAttachmentRows = [];
+        let latestDetectedRemoteBuild = CURRENT_BUILD_NUMBER;
+
+        // Multi-Block Welcome Sequence State (Max: 4 Text, 4 Images, 2 Videos)
+        let welcomeBlocks = [];
 
         function normalizeNumber(num) {
             let clean = String(num || '').replace(/[^0-9]/g, '');
@@ -490,7 +525,7 @@
                 dashboard: "Dashboard",
                 settings: "Settings",
                 message: "Marketing Message (Supports {{name}})",
-                attachments: "Attachments",
+                attachments: "Attachments (Images, Videos, PDF)",
                 preview: "Live Preview",
                 launch: "Select Target Groups & Send",
                 totalContacts: "Total Contacts",
@@ -607,15 +642,20 @@
             });
         }
 
-        function navigateTab(tabId, el) {
+        async function navigateTab(tabId, el) {
             document.querySelectorAll('.page-content').forEach(p => p.classList.remove('active'));
             document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
             document.getElementById(tabId).classList.add('active');
             el.classList.add('active');
 
             document.getElementById('fabAddGroup').style.display = (tabId === 'viewGroups') ? 'flex' : 'none';
-            if (tabId === 'viewDashboard') renderDashboard();
-            if (tabId === 'viewSettings') syncWhatsAppAccountStatus();
+            if (tabId === 'viewDashboard') {
+                await hydrateCampaignStateFromServer();
+                renderDashboard();
+            }
+            if (tabId === 'viewSettings') {
+                await syncWhatsAppAccountStatus();
+            }
         }
 
         function switchTheme(theme) {
@@ -634,6 +674,7 @@
             document.getElementById('tabDashboard').innerText = d.dashboard;
             document.getElementById('tabSettings').innerText = d.settings;
             document.getElementById('lblMessage').innerText = d.message;
+            document.getElementById('lblAttachments').innerText = d.attachments;
             document.getElementById('lblPreview').innerText = d.preview;
             document.getElementById('btnLaunch').innerText = d.launch;
             document.getElementById('lblTotalContacts').innerText = d.totalContacts;
@@ -658,55 +699,47 @@
             document.getElementById('selLanguage').value = lang;
         }
 
-        // Multi-media row management for Campaign page
-        function addMediaAttachmentRow() {
-            let imgCount = mediaAttachmentRows.filter(r => r.type === 'image').length;
-            let vidCount = mediaAttachmentRows.filter(r => r.type === 'video').length;
+        // --- Campaign Media Attachment Handling ---
+        function handleMediaAttachment(e) {
+            const files = e.target.files;
+            const previewBox = document.getElementById('previewMediaBox');
+            const previewImg = document.getElementById('previewImg');
+            const previewVideo = document.getElementById('previewVideo');
+            const btnClear = document.getElementById('btnClearMedia');
 
-            const id = 'media_row_' + Date.now();
-            mediaAttachmentRows.push({ id, file: null, caption: '', type: 'image' });
-            renderMediaAttachmentRows();
-        }
+            previewBox.style.display = 'none';
+            previewImg.style.display = 'none';
+            previewVideo.style.display = 'none';
 
-        function removeMediaAttachmentRow(id) {
-            mediaAttachmentRows = mediaAttachmentRows.filter(r => r.id !== id);
-            renderMediaAttachmentRows();
-            updateLivePreview();
-        }
+            if (files && files[0]) {
+                btnClear.style.display = 'block';
+                const file = files[0];
+                const mime = file.type || '';
+                const url = URL.createObjectURL(file);
 
-        function renderMediaAttachmentRows() {
-            const container = document.getElementById('mediaAttachmentsContainer');
-            if (mediaAttachmentRows.length === 0) {
-                container.innerHTML = '<div style="font-size: 0.8rem; color: var(--text-muted); text-align: center; padding: 8px;">No attachments added. Tap "+ Add File" above.</div>';
-                return;
-            }
-
-            container.innerHTML = mediaAttachmentRows.map((row, idx) => `
-                <div class="media-item-box" id="${row.id}">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                        <span style="font-size: 0.8rem; font-weight: bold; color: var(--primary);">Attachment #${idx + 1}</span>
-                        <button type="button" class="btn btn-danger" style="width: auto; padding: 2px 8px; font-size: 0.72rem;" onclick="removeMediaAttachmentRow('${row.id}')">✖ Remove</button>
-                    </div>
-                    <input type="file" accept="image/*,video/*,application/pdf" onchange="handleRowFileSelect(event, '${row.id}')" style="margin-bottom: 8px;">
-                    <input type="text" placeholder="Custom caption for this file..." value="${row.caption}" oninput="updateRowCaption('${row.id}', this.value)" style="margin-bottom: 0;">
-                </div>
-            `).join('');
-        }
-
-        function handleRowFileSelect(e, id) {
-            const file = e.target.files[0];
-            const row = mediaAttachmentRows.find(r => r.id === id);
-            if (row && file) {
-                row.file = file;
-                if (file.type.startsWith('video/')) row.type = 'video';
-                else row.type = 'image';
+                if (mime.startsWith('image/')) {
+                    previewBox.style.display = 'block';
+                    previewImg.style.display = 'block';
+                    previewImg.src = url;
+                } else if (mime.startsWith('video/')) {
+                    previewBox.style.display = 'block';
+                    previewVideo.style.display = 'block';
+                    previewVideo.src = url;
+                }
+            } else {
+                btnClear.style.display = 'none';
             }
             updateLivePreview();
         }
 
-        function updateRowCaption(id, val) {
-            const row = mediaAttachmentRows.find(r => r.id === id);
-            if (row) row.caption = val;
+        function clearMediaAttachment() {
+            const input = document.getElementById('campGlobalMedia');
+            input.value = '';
+            document.getElementById('btnClearMedia').style.display = 'none';
+            document.getElementById('previewMediaBox').style.display = 'none';
+            document.getElementById('previewImg').src = '';
+            document.getElementById('previewVideo').src = '';
+            updateLivePreview();
         }
 
         function toggleScheduleInput(checkbox) {
@@ -716,31 +749,11 @@
 
         function updateLivePreview() {
             const text = document.getElementById('campGlobalMessage').value;
+            const hasMedia = document.getElementById('campGlobalMedia').files.length > 0;
             const wrapper = document.getElementById('previewWrapper');
             const previewText = document.getElementById('previewText');
-            const previewBox = document.getElementById('previewMediaBox');
-            const previewImg = document.getElementById('previewImg');
-            const previewVideo = document.getElementById('previewVideo');
 
-            previewBox.style.display = 'none';
-            previewImg.style.display = 'none';
-            previewVideo.style.display = 'none';
-
-            let firstMedia = mediaAttachmentRows.find(r => r.file !== null);
-            if (firstMedia && firstMedia.file) {
-                const url = URL.createObjectURL(firstMedia.file);
-                if (firstMedia.type === 'video') {
-                    previewBox.style.display = 'block';
-                    previewVideo.style.display = 'block';
-                    previewVideo.src = url;
-                } else {
-                    previewBox.style.display = 'block';
-                    previewImg.style.display = 'block';
-                    previewImg.src = url;
-                }
-            }
-
-            if (!text && !firstMedia) {
+            if (!text && !hasMedia) {
                 wrapper.style.display = 'none';
                 return;
             }
@@ -751,19 +764,182 @@
             document.getElementById('previewTime').innerText = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         }
 
-        function clearWelcomeMedia() {
-            document.getElementById('fileWelcomeMedia').value = '';
-            document.getElementById('txtWelcomeMediaCaption').value = '';
+        // --- Multi-Block Auto Welcome Sequence Builder (Max: 4 Text, 4 Images, 2 Videos) ---
+        function addWelcomeBlock(type) {
+            const textCount = welcomeBlocks.filter(b => b.type === 'text').length;
+            const imgCount = welcomeBlocks.filter(b => b.type === 'image').length;
+            const vidCount = welcomeBlocks.filter(b => b.type === 'video').length;
+
+            if (type === 'text' && textCount >= 4) return alert('Maximum 4 Text messages allowed in Welcome Sequence.');
+            if (type === 'image' && imgCount >= 4) return alert('Maximum 4 Images allowed in Welcome Sequence.');
+            if (type === 'video' && vidCount >= 2) return alert('Maximum 2 Videos allowed in Welcome Sequence.');
+
+            welcomeBlocks.push({
+                id: 'wb_' + Date.now() + '_' + Math.floor(Math.random() * 1000),
+                type,
+                content: '',
+                file: null,
+                fileName: '',
+                existingFilePath: '',
+                mimetype: '',
+                caption: ''
+            });
+            renderWelcomeSequence();
         }
 
-        async function syncWhatsAppAccountStatus() {
-            const savedPhone = localStorage.getItem('connected_phone_permanent');
-            if (savedPhone) {
-                document.getElementById('statusConnectedBox').style.display = 'block';
-                document.getElementById('statusPairingBox').style.display = 'none';
-                document.getElementById('lblConnectedPhone').innerText = `+${savedPhone}`;
+        function removeWelcomeBlock(id) {
+            welcomeBlocks = welcomeBlocks.filter(b => b.id !== id);
+            renderWelcomeSequence();
+        }
+
+        function clearWelcomeBlockFile(id) {
+            const b = welcomeBlocks.find(x => x.id === id);
+            if (b) {
+                b.file = null;
+                b.fileName = '';
+                b.existingFilePath = '';
+                const fileInput = document.getElementById(`wb_file_${id}`);
+                if (fileInput) fileInput.value = '';
+                renderWelcomeSequence();
+            }
+        }
+
+        function handleWelcomeBlockFile(e, id) {
+            const file = e.target.files[0];
+            const b = welcomeBlocks.find(x => x.id === id);
+            if (b && file) {
+                b.file = file;
+                b.fileName = file.name;
+                b.mimetype = file.type;
+                renderWelcomeSequence();
+            }
+        }
+
+        function updateWelcomeBlockText(id, val) {
+            const b = welcomeBlocks.find(x => x.id === id);
+            if (b) b.content = val;
+        }
+
+        function updateWelcomeBlockCaption(id, val) {
+            const b = welcomeBlocks.find(x => x.id === id);
+            if (b) b.caption = val;
+        }
+
+        function renderWelcomeSequence() {
+            const textCount = welcomeBlocks.filter(b => b.type === 'text').length;
+            const imgCount = welcomeBlocks.filter(b => b.type === 'image').length;
+            const vidCount = welcomeBlocks.filter(b => b.type === 'video').length;
+
+            document.getElementById('welcomeCounterSummary').innerText = `Used: ${textCount}/4 Text • ${imgCount}/4 Images • ${vidCount}/2 Videos`;
+
+            const container = document.getElementById('welcomeSequenceContainer');
+            if (welcomeBlocks.length === 0) {
+                container.innerHTML = '<div style="text-align:center; padding: 14px; font-size: 0.8rem; color: var(--text-muted); border: 1px dashed var(--border); border-radius: 8px; margin-bottom: 12px;">No welcome steps added yet. Tap + Add Text, + Add Image, or + Add Video above.</div>';
+                return;
             }
 
+            container.innerHTML = welcomeBlocks.map((b, idx) => {
+                if (b.type === 'text') {
+                    return `
+                        <div class="welcome-block-item">
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                                <span style="font-size:0.8rem; font-weight:bold; color:var(--primary);">Step #${idx + 1} • Text Message</span>
+                                <button type="button" class="btn btn-danger" style="width:auto; padding:2px 8px; font-size:0.72rem;" onclick="removeWelcomeBlock('${b.id}')">✖ Remove</button>
+                            </div>
+                            <textarea class="safe-textarea" style="min-height:65px; margin-bottom:0;" placeholder="Enter welcome text..." oninput="updateWelcomeBlockText('${b.id}', this.value)">${b.content || ''}</textarea>
+                        </div>
+                    `;
+                } else {
+                    const acceptType = b.type === 'image' ? 'image/*' : 'video/*';
+                    const typeLabel = b.type === 'image' ? '🖼️ Image + Custom Caption' : '🎥 Video + Custom Caption';
+                    const hasFileLabel = b.fileName ? `<div style="font-size:0.75rem; color:var(--primary); margin-bottom:6px;">✔ Attached: ${b.fileName}</div>` : '';
+                    return `
+                        <div class="welcome-block-item">
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                                <span style="font-size:0.8rem; font-weight:bold; color:var(--primary);">Step #${idx + 1} • ${typeLabel}</span>
+                                <div style="display:flex; gap:6px;">
+                                    <button type="button" class="btn btn-outline" style="width:auto; padding:2px 8px; font-size:0.72rem; color:var(--warning); border-color:var(--warning);" onclick="clearWelcomeBlockFile('${b.id}')">Clear File</button>
+                                    <button type="button" class="btn btn-danger" style="width:auto; padding:2px 8px; font-size:0.72rem;" onclick="removeWelcomeBlock('${b.id}')">✖</button>
+                                </div>
+                            </div>
+                            ${hasFileLabel}
+                            <input type="file" id="wb_file_${b.id}" accept="${acceptType}" onchange="handleWelcomeBlockFile(event, '${b.id}')" style="margin-bottom:8px;">
+                            <input type="text" placeholder="Custom caption for this ${b.type} (optional)..." value="${(b.caption || '').replace(/"/g, '&quot;')}" oninput="updateWelcomeBlockCaption('${b.id}', this.value)" style="margin-bottom:0;">
+                        </div>
+                    `;
+                }
+            }).join('');
+        }
+
+        async function loadWelcomeRulesFromServer() {
+            try {
+                const res = await fetch(`${FIXED_BACKEND_URL}/api/welcome/rules?sessionId=${SESSION_ID}`, {
+                    headers: { 'Authorization': `Bearer ${API_BEARER_TOKEN}`, 'ngrok-skip-browser-warning': 'true' }
+                });
+                const d = await res.json();
+                if (d.success && d.config) {
+                    document.getElementById('chkEnableWelcome').checked = !!d.config.enabled;
+                    if (Array.isArray(d.config.sequence) && d.config.sequence.length > 0) {
+                        welcomeBlocks = d.config.sequence.map((s, idx) => ({
+                            id: s.id || ('wb_restored_' + idx),
+                            type: s.type === 'media' ? ((s.mimetype || '').startsWith('video/') ? 'video' : 'image') : s.type,
+                            content: s.content || '',
+                            file: null,
+                            fileName: s.fileName || (s.filePath ? s.filePath.split(/[\\/]/).pop() : ''),
+                            existingFilePath: s.filePath || '',
+                            mimetype: s.mimetype || '',
+                            caption: s.caption || ''
+                        }));
+                    }
+                }
+            } catch (e) {}
+            renderWelcomeSequence();
+        }
+
+        async function saveWelcomeRules() {
+            const enabled = document.getElementById('chkEnableWelcome').checked;
+            const fd = new FormData();
+            fd.append('sessionId', SESSION_ID);
+            fd.append('enabled', enabled);
+
+            const blocksMeta = welcomeBlocks.map(b => ({
+                id: b.id,
+                type: b.type,
+                content: b.content || '',
+                caption: b.caption || '',
+                existingFilePath: b.existingFilePath || '',
+                fileName: b.fileName || '',
+                mimetype: b.mimetype || ''
+            }));
+
+            fd.append('blocksMeta', JSON.stringify(blocksMeta));
+
+            welcomeBlocks.forEach(b => {
+                if (b.file) {
+                    fd.append(`file_${b.id}`, b.file);
+                }
+            });
+
+            try {
+                const res = await fetch(`${FIXED_BACKEND_URL}/api/welcome/setup`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${API_BEARER_TOKEN}`, 'ngrok-skip-browser-warning': 'true' },
+                    body: fd
+                });
+                const d = await res.json();
+                if (d.success) {
+                    await loadWelcomeRulesFromServer();
+                    alert('Auto-welcome sequence saved successfully!');
+                } else {
+                    alert(d.error || 'Failed to save rules');
+                }
+            } catch(e) {
+                alert('Connection error: ' + e.message);
+            }
+        }
+
+        // --- Accurate Live WhatsApp Status & Unlink Sync ---
+        async function syncWhatsAppAccountStatus() {
             try {
                 const res = await fetch(`${FIXED_BACKEND_URL}/api/status/${SESSION_ID}`, {
                     headers: { 'Authorization': `Bearer ${API_BEARER_TOKEN}`, 'ngrok-skip-browser-warning': 'true' }
@@ -778,16 +954,25 @@
                     document.getElementById('badgeServerStatus').innerText = "● CONNECTED";
                     document.getElementById('badgeServerStatus').style.color = "var(--primary)";
                     document.getElementById('txtServerOfflineNotice').style.display = "none";
-                } else if (d.status === 'DISCONNECTED' && !d.phone) {
+                } else {
+                    // Server explicitly reports DISCONNECTED or NOT_FOUND -> Clear stale UI immediately
                     localStorage.removeItem('connected_phone_permanent');
                     document.getElementById('statusConnectedBox').style.display = 'none';
                     document.getElementById('statusPairingBox').style.display = 'block';
+                    document.getElementById('pairCodeDisplay').style.display = 'none';
                 }
             } catch(e) {
+                const savedPhone = localStorage.getItem('connected_phone_permanent');
                 if (savedPhone) {
-                    document.getElementById('badgeServerStatus').innerText = "● RECONNECTING...";
+                    document.getElementById('statusConnectedBox').style.display = 'block';
+                    document.getElementById('statusPairingBox').style.display = 'none';
+                    document.getElementById('lblConnectedPhone').innerText = `+${savedPhone}`;
+                    document.getElementById('badgeServerStatus').innerText = "● SERVER OFFLINE";
                     document.getElementById('badgeServerStatus').style.color = "var(--warning)";
                     document.getElementById('txtServerOfflineNotice').style.display = "block";
+                } else {
+                    document.getElementById('statusConnectedBox').style.display = 'none';
+                    document.getElementById('statusPairingBox').style.display = 'block';
                 }
             }
         }
@@ -816,16 +1001,23 @@
             } catch(e) {}
         }
 
+        // --- Zero-Desync Campaign & History Hydration ---
         async function hydrateCampaignStateFromServer() {
             try {
                 const res = await fetch(`${FIXED_BACKEND_URL}/api/campaign/state?sessionId=${SESSION_ID}`, {
                     headers: { 'Authorization': `Bearer ${API_BEARER_TOKEN}`, 'ngrok-skip-browser-warning': 'true' }
                 });
                 const d = await res.json();
+
+                if (Array.isArray(d.history) && d.history.length > 0) {
+                    globalCampaigns = d.history;
+                    localStorage.setItem('app_campaigns', JSON.stringify(globalCampaigns));
+                }
+
+                const panel = document.getElementById('campaignCtrlPanel');
                 if (d.hasState && d.queue && d.queue.state !== 'STOPPED') {
                     const q = d.queue;
                     currentActiveCampaignId = q.campaignId;
-                    const panel = document.getElementById('campaignCtrlPanel');
                     panel.style.display = 'block';
                     document.getElementById('txtLiveCampaignProgress').innerText = `${q.sent || 0} / ${q.total} Sent`;
 
@@ -834,45 +1026,18 @@
                         document.getElementById('txtLiveCampaignState').style.color = 'var(--warning)';
                         document.getElementById('btnPauseCampaign').style.display = 'none';
                         document.getElementById('btnResumeCampaign').style.display = 'block';
-                    } else if (q.isRunning) {
+                    } else if (q.isRunning || q.state === 'RUNNING') {
                         document.getElementById('txtLiveCampaignState').innerText = 'RUNNING';
                         document.getElementById('txtLiveCampaignState').style.color = 'var(--primary)';
                         document.getElementById('btnPauseCampaign').style.display = 'block';
                         document.getElementById('btnResumeCampaign').style.display = 'none';
                         pollCampaignLive(q.campaignId);
                     }
+                } else {
+                    panel.style.display = 'none';
                 }
+                renderDashboard();
             } catch(e) {}
-        }
-
-        async function saveWelcomeRules() {
-            const enabled = document.getElementById('chkEnableWelcome').checked;
-            const textContent = document.getElementById('txtWelcomeMessage').value.trim();
-            const fileInput = document.getElementById('fileWelcomeMedia');
-            const mediaCaption = document.getElementById('txtWelcomeMediaCaption').value.trim();
-
-            const fd = new FormData();
-            fd.append('sessionId', SESSION_ID);
-            fd.append('enabled', enabled);
-            fd.append('textContent', textContent);
-            fd.append('mediaCaption', mediaCaption);
-
-            if (fileInput.files && fileInput.files[0]) {
-                fd.append('welcome_media', fileInput.files[0]);
-            }
-
-            try {
-                const res = await fetch(`${FIXED_BACKEND_URL}/api/welcome/setup`, {
-                    method: 'POST',
-                    headers: { 'Authorization': `Bearer ${API_BEARER_TOKEN}`, 'ngrok-skip-browser-warning': 'true' },
-                    body: fd
-                });
-                const d = await res.json();
-                if (d.success) alert('Auto-welcome rules saved successfully.');
-                else alert(d.error || 'Failed to save rules');
-            } catch(e) {
-                alert('Connection error: ' + e.message);
-            }
         }
 
         async function requestPairCode() {
@@ -895,7 +1060,6 @@
                 const d = await res.json();
                 if (d.pairingCode) {
                     disp.innerText = d.pairingCode;
-                    localStorage.setItem('connected_phone_permanent', normalizeNumber(phone));
                 } else {
                     disp.innerText = d.error || 'Pairing error';
                 }
@@ -905,7 +1069,11 @@
         }
 
         async function unlinkAccount() {
-            if (!confirm('Unlink this WhatsApp session?')) return;
+            if (!confirm('Unlink and disconnect this WhatsApp account?')) return;
+            const btn = document.getElementById('btnUnlink');
+            btn.innerText = 'Disconnecting...';
+            btn.disabled = true;
+
             try {
                 await fetch(`${FIXED_BACKEND_URL}/api/logout`, {
                     method: 'POST',
@@ -913,10 +1081,14 @@
                     body: JSON.stringify({ sessionId: SESSION_ID })
                 });
             } catch(e) {}
+
             localStorage.removeItem('connected_phone_permanent');
+            btn.innerText = 'Unlink WhatsApp';
+            btn.disabled = false;
             document.getElementById('statusConnectedBox').style.display = 'none';
             document.getElementById('statusPairingBox').style.display = 'block';
             document.getElementById('pairCodeDisplay').style.display = 'none';
+            alert('WhatsApp account unlinked successfully.');
         }
 
         function toggleGroupSelectMode() {
@@ -947,7 +1119,7 @@
 
         function openMultiGroupDispatchModal() {
             const text = document.getElementById('campGlobalMessage').value.trim();
-            const hasMedia = mediaAttachmentRows.some(r => r.file !== null);
+            const hasMedia = document.getElementById('campGlobalMedia').files.length > 0;
             if (!text && !hasMedia) return alert('Enter a message or attach media first.');
             if (groups.length === 0) return alert('No groups available.');
 
@@ -997,10 +1169,12 @@
             if (uniqueRecipients.length === 0) return alert('Selected groups contain no contacts.');
 
             const message = document.getElementById('campGlobalMessage').value.trim();
+            const mediaInput = document.getElementById('campGlobalMedia');
             const isScheduleEnabled = document.getElementById('chkEnableSchedule').checked;
             const scheduleTime = document.getElementById('campScheduleTime').value;
 
-            if (isScheduleEnabled && scheduleTime) {
+            if (isScheduleEnabled) {
+                if (!scheduleTime) return alert('Please select a schedule date and time.');
                 const chosen = new Date(scheduleTime).getTime();
                 const now = Date.now();
                 const maxAllowed = now + (7 * 24 * 60 * 60 * 1000);
@@ -1015,12 +1189,9 @@
             formData.append('isScheduled', isScheduleEnabled);
             if (isScheduleEnabled && scheduleTime) formData.append('scheduleTime', scheduleTime);
 
-            mediaAttachmentRows.forEach((row, idx) => {
-                if (row.file) {
-                    formData.append('media_' + idx, row.file);
-                    formData.append(`caption_media_${idx}`, row.caption);
-                }
-            });
+            for (let i = 0; i < mediaInput.files.length; i++) {
+                formData.append('media_' + i, mediaInput.files[i]);
+            }
 
             closeTopModal();
 
@@ -1034,38 +1205,13 @@
                 if (d.status === 'SCHEDULED') {
                     alert(`Campaign successfully scheduled for ${new Date(scheduleTime).toLocaleString()}`);
                 } else if (d.status === 'QUEUED') {
-                    const newCamp = {
-                        id: d.campaignId || ('cmp_' + Date.now()),
-                        timestamp: new Date().toLocaleString(),
-                        total: uniqueRecipients.length,
-                        sent: 0,
-                        failed: 0,
-                        pending: uniqueRecipients.length,
-                        recipients: uniqueRecipients.map(r => ({ name: r.name || 'Unsaved', phone: r.phone, status: 'PENDING' }))
-                    };
-                    
-                    globalCampaigns.unshift(newCamp);
-                    if (globalCampaigns.length > 3) globalCampaigns = globalCampaigns.slice(0, 3);
-                    localStorage.setItem('app_campaigns', JSON.stringify(globalCampaigns));
-
-                    currentActiveCampaignId = newCamp.id;
-                    showLiveCampaignController(newCamp);
-
+                    currentActiveCampaignId = d.campaignId;
+                    await hydrateCampaignStateFromServer();
                     alert(`Campaign launched to ${uniqueRecipients.length} contacts!`);
                     navigateTab('viewDashboard', document.querySelectorAll('.nav-tab')[2]);
-                    pollCampaignLive(newCamp.id);
+                    pollCampaignLive(d.campaignId);
                 } else alert(d.error || 'Failed to dispatch');
             } catch(e) { alert('Connection Error: ' + e.message); }
-        }
-
-        function showLiveCampaignController(camp) {
-            const panel = document.getElementById('campaignCtrlPanel');
-            panel.style.display = 'block';
-            document.getElementById('txtLiveCampaignState').innerText = 'RUNNING';
-            document.getElementById('txtLiveCampaignState').style.color = 'var(--primary)';
-            document.getElementById('btnPauseCampaign').style.display = 'block';
-            document.getElementById('btnResumeCampaign').style.display = 'none';
-            document.getElementById('txtLiveCampaignProgress').innerText = `${camp.sent || 0} / ${camp.total} Sent`;
         }
 
         async function pauseCurrentCampaign() {
@@ -1081,6 +1227,7 @@
                     document.getElementById('txtLiveCampaignState').style.color = 'var(--warning)';
                     document.getElementById('btnPauseCampaign').style.display = 'none';
                     document.getElementById('btnResumeCampaign').style.display = 'block';
+                    await hydrateCampaignStateFromServer();
                 }
             } catch(e) { alert('Failed to pause: ' + e.message); }
         }
@@ -1098,6 +1245,7 @@
                     document.getElementById('txtLiveCampaignState').style.color = 'var(--primary)';
                     document.getElementById('btnPauseCampaign').style.display = 'block';
                     document.getElementById('btnResumeCampaign').style.display = 'none';
+                    pollCampaignLive(currentActiveCampaignId);
                 }
             } catch(e) { alert('Failed to resume: ' + e.message); }
         }
@@ -1114,8 +1262,8 @@
                 if (d.status === 'STOPPED') {
                     document.getElementById('campaignCtrlPanel').style.display = 'none';
                     if (pollTimer) clearInterval(pollTimer);
-                    alert('Campaign terminated.');
-                    renderDashboard();
+                    await hydrateCampaignStateFromServer();
+                    alert('Campaign stopped.');
                 }
             } catch(e) { alert('Failed to stop: ' + e.message); }
         }
@@ -1129,43 +1277,36 @@
                         headers: { 'Authorization': `Bearer ${API_BEARER_TOKEN}`, 'ngrok-skip-browser-warning': 'true' }
                     });
                     const q = await res.json();
-                    
-                    const camp = globalCampaigns.find(c => c.id === campId);
-                    if (camp && q) {
-                        camp.sent = q.sent || 0;
-                        camp.failed = q.failed || 0;
-                        camp.pending = q.remaining || 0;
 
-                        camp.recipients.forEach((r, idx) => {
-                            if (idx < camp.sent) r.status = 'SENT';
-                            else if (idx < camp.sent + camp.failed) r.status = 'FAILED';
-                            else r.status = 'PENDING';
-                        });
-
-                        document.getElementById('txtLiveCampaignProgress').innerText = `${camp.sent} / ${camp.total} Sent`;
-
-                        if (q.state === 'PAUSED') {
-                            document.getElementById('txtLiveCampaignState').innerText = 'PAUSED';
-                            document.getElementById('txtLiveCampaignState').style.color = 'var(--warning)';
-                            document.getElementById('btnPauseCampaign').style.display = 'none';
-                            document.getElementById('btnResumeCampaign').style.display = 'block';
-                        } else if (q.isRunning) {
-                            document.getElementById('txtLiveCampaignState').innerText = 'RUNNING';
-                            document.getElementById('txtLiveCampaignState').style.color = 'var(--primary)';
-                            document.getElementById('btnPauseCampaign').style.display = 'block';
-                            document.getElementById('btnResumeCampaign').style.display = 'none';
-                        }
-
+                    if (Array.isArray(q.history) && q.history.length > 0) {
+                        globalCampaigns = q.history;
                         localStorage.setItem('app_campaigns', JSON.stringify(globalCampaigns));
-                        renderDashboard();
                     }
+
+                    if (q && q.total > 0) {
+                        document.getElementById('txtLiveCampaignProgress').innerText = `${q.sent || 0} / ${q.total} Sent`;
+                    }
+
+                    if (q.state === 'PAUSED') {
+                        document.getElementById('txtLiveCampaignState').innerText = 'PAUSED';
+                        document.getElementById('txtLiveCampaignState').style.color = 'var(--warning)';
+                        document.getElementById('btnPauseCampaign').style.display = 'none';
+                        document.getElementById('btnResumeCampaign').style.display = 'block';
+                    } else if (q.isRunning) {
+                        document.getElementById('txtLiveCampaignState').innerText = 'RUNNING';
+                        document.getElementById('txtLiveCampaignState').style.color = 'var(--primary)';
+                        document.getElementById('btnPauseCampaign').style.display = 'block';
+                        document.getElementById('btnResumeCampaign').style.display = 'none';
+                    }
+
+                    renderDashboard();
 
                     if (!q.isRunning && q.state !== 'PAUSED') {
                         clearInterval(pollTimer);
                         document.getElementById('campaignCtrlPanel').style.display = 'none';
                     }
                 } catch(e) {}
-            }, 1800);
+            }, 1500);
         }
 
         function renderDashboard() {
@@ -1212,9 +1353,9 @@
             const camp = globalCampaigns.find(c => c.id === campId);
             if (!camp) return;
 
-            let list = camp.recipients;
+            let list = camp.recipients || [];
             if (filterType !== 'ALL') {
-                list = camp.recipients.filter(r => r.status === filterType);
+                list = list.filter(r => r.status === filterType);
             }
 
             document.getElementById('filterModalTitle').innerText = `${filterType} Contacts (${list.length})`;
@@ -1243,7 +1384,11 @@
         }
 
         async function checkForAppUpdatesBackground(isManual = false) {
-            document.getElementById('lblCurrentVer').innerText = CURRENT_VERSION_STRING;
+            const ackBuild = parseInt(localStorage.getItem('acknowledged_release_build')) || 0;
+            if (ackBuild > CURRENT_BUILD_NUMBER) {
+                CURRENT_BUILD_NUMBER = ackBuild;
+            }
+            document.getElementById('lblCurrentVer').innerText = `v3.6.${CURRENT_BUILD_NUMBER}`;
 
             try {
                 const res = await fetch("https://api.github.com/repos/itsdarkgaming007/version-3-/releases/latest", {
@@ -1253,6 +1398,14 @@
                 
                 if (rel && rel.name) {
                     const latestBuild = extractRunNumber(rel.name);
+                    latestDetectedRemoteBuild = latestBuild;
+
+                    // If first time running without CI number, sync to current remote build so it doesn't false-trigger
+                    if (!localStorage.getItem('acknowledged_release_build') && isNaN(CI_INJECTED_BUILD)) {
+                        CURRENT_BUILD_NUMBER = latestBuild;
+                        localStorage.setItem('acknowledged_release_build', String(latestBuild));
+                        document.getElementById('lblCurrentVer').innerText = `v3.6.${CURRENT_BUILD_NUMBER}`;
+                    }
 
                     if (latestBuild > CURRENT_BUILD_NUMBER) {
                         document.getElementById('lblCloudSyncStatus').innerText = "Update available";
@@ -1273,6 +1426,14 @@
         }
 
         function downloadDirectUpdate() {
+            if (latestDetectedRemoteBuild > CURRENT_BUILD_NUMBER) {
+                localStorage.setItem('acknowledged_release_build', String(latestDetectedRemoteBuild));
+                CURRENT_BUILD_NUMBER = latestDetectedRemoteBuild;
+                document.getElementById('lblCurrentVer').innerText = `v3.6.${CURRENT_BUILD_NUMBER}`;
+                document.getElementById('updateBanner').style.display = 'none';
+                document.getElementById('lblCloudSyncStatus').innerText = "Up to date";
+                document.getElementById('lblCloudSyncStatus').style.color = "var(--primary)";
+            }
             window.open("https://github.com/itsdarkgaming007/version-3-/releases/download/latest/WA_Campaign_Latest.apk", '_system');
         }
 
@@ -1393,7 +1554,6 @@
             `).join('');
         }
 
-        // Mandatory confirmation warning on group contact deletion
         function confirmAndDeleteMember(idx) {
             const g = groups.find(x => x.id === activeGroupId);
             if (!g) return;
@@ -1667,6 +1827,7 @@
             setupPullToRefresh();
             await syncWhatsAppAccountStatus();
             await restoreGroupsFromServer();
+            await loadWelcomeRulesFromServer();
             await hydrateCampaignStateFromServer();
             checkForAppUpdatesBackground();
         };
