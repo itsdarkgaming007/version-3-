@@ -63,16 +63,26 @@ jobs:
 
       - name: Setup Deterministic Keystore
         run: |
-          keytool -genkeypair \
-            -keystore android/app/release.keystore \
-            -alias wacampaign \
-            -keyalg RSA \
-            -keysize 2048 \
-            -validity 10000 \
-            -storepass "wacampaignpass2026" \
-            -keypass "wacampaignpass2026" \
-            -startdate "2026/01/01 00:00:00" \
-            -dname "CN=WACampaign, OU=Production, O=WACampaign, L=Chennai, ST=TamilNadu, C=IN"
+          if [ -n "${{ secrets.RELEASE_KEYSTORE_BASE64 }}" ]; then
+            echo "Loading permanent keystore from repository secrets..."
+            echo "${{ secrets.RELEASE_KEYSTORE_BASE64 }}" | base64 -d > android/app/release.keystore
+          else
+            echo "No permanent keystore found! Generating one-time base64 export..."
+            keytool -genkeypair -v \
+              -keystore android/app/release.keystore \
+              -alias wacampaign \
+              -keyalg RSA \
+              -keysize 2048 \
+              -validity 10000 \
+              -storepass "wacampaignpass2026" \
+              -keypass "wacampaignpass2026" \
+              -dname "CN=WACampaign, OU=Production, O=WACampaign, L=Chennai, ST=TamilNadu, C=IN"
+            
+            echo "==================== COPY BELOW THIS LINE ===================="
+            base64 -w 0 android/app/release.keystore
+            echo ""
+            echo "==================== COPY ABOVE THIS LINE ===================="
+          fi
 
           cat << 'EOF' > android/app/build_signing.gradle
           android {
