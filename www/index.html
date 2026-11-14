@@ -58,8 +58,8 @@
         input, select { width: 100%; padding: 11px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface-card); color: var(--text); font-size: 0.92rem; margin-bottom: 12px; outline: none; }
         
         textarea.safe-textarea {
-            width: 100%; min-height: 90px; max-height: 180px; padding: 12px; border-radius: 8px; border: 1px solid var(--border);
-            background: var(--surface-card); color: var(--text); font-size: 0.94rem; resize: none !important; outline: none; overflow-y: auto; line-height: 1.4; margin-bottom: 12px;
+            width: 100%; min-height: 95px; max-height: 180px; padding: 12px; border-radius: 8px; border: 1px solid var(--border);
+            background: var(--surface); color: var(--text); font-size: 0.94rem; resize: none !important; outline: none; overflow-y: auto; line-height: 1.4; margin-bottom: 12px;
         }
 
         .btn { width: 100%; padding: 12px; border-radius: 8px; font-weight: 600; cursor: pointer; border: none; font-size: 0.95rem; }
@@ -71,7 +71,69 @@
 
         .fab { position: fixed; bottom: 80px; right: 24px; width: 56px; height: 56px; border-radius: 28px; background: var(--primary); color: #fff; border: none; font-size: 1.8rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0,0,0,0.5); cursor: pointer; z-index: 90; }
 
-        .preview-wrapper { background-color: #0b141a; border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 14px; display: none; }
+        /* Top Segmented 2-Tab Switcher for Campaign Page */
+        .segmented-tabs {
+            display: flex;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 4px;
+            margin-bottom: 14px;
+            gap: 4px;
+        }
+        .seg-tab-btn {
+            flex: 1;
+            padding: 10px 8px;
+            border: none;
+            border-radius: 7px;
+            background: transparent;
+            color: var(--text-muted);
+            font-size: 0.86rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .seg-tab-btn.active {
+            background: var(--primary);
+            color: #ffffff;
+            box-shadow: 0 2px 6px rgba(0, 168, 132, 0.3);
+        }
+
+        /* Quick Tag & Preset Chips */
+        .tag-chip-btn {
+            background: rgba(0, 168, 132, 0.15);
+            color: var(--primary);
+            border: 1px solid var(--primary);
+            border-radius: 6px;
+            padding: 3px 9px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            cursor: pointer;
+        }
+        .schedule-presets-row {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 6px;
+            margin-bottom: 10px;
+        }
+        .preset-chip {
+            background: var(--surface-card);
+            border: 1px solid var(--border);
+            color: var(--text);
+            border-radius: 7px;
+            padding: 7px 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            text-align: center;
+        }
+        .preset-chip.active {
+            border-color: var(--primary);
+            background: rgba(0, 168, 132, 0.15);
+            color: var(--primary);
+        }
+
+        .preview-wrapper { background-color: #0b141a; border: 1px solid var(--border); border-radius: 12px; padding: 14px; margin-bottom: 14px; display: none; }
         body.light-theme .preview-wrapper { background-color: #efeae2; }
         .wa-bubble-realistic { background: var(--wa-bubble); color: #fff; border-radius: 8px 8px 2px 8px; max-width: 85%; margin-left: auto; box-shadow: 0 1px 2px rgba(0,0,0,0.3); overflow: hidden; position: relative; }
         body.light-theme .wa-bubble-realistic { color: #111b21; }
@@ -143,7 +205,8 @@
         /* Welcome Multi-Block Builder Styling */
         .welcome-block-item { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px; margin-bottom: 10px; }
         .welcome-add-bar { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; }
-        .welcome-add-btn { background: rgba(0, 168, 132, 0.12); border: 1px solid var(--primary); color: var(--primary); border-radius: 8px; padding: 8px 6px; font-size: 0.78rem; font-weight: 700; cursor: pointer; text-align: center; }
+        .welcome-add-btn { background: rgba(0, 168, 132, 0.12); border: 1px solid var(--primary); color: var(--primary); border-radius: 8px; padding: 10px 4px; font-size: 0.78rem; font-weight: 700; cursor: pointer; text-align: center; }
+        .welcome-add-btn:active { transform: scale(0.97); }
     </style>
 </head>
 <body>
@@ -201,80 +264,92 @@
         <div id="groupsListContainer"></div>
     </div>
 
-    <!-- 2. CAMPAIGN (Includes Campaign Blast, Scheduler, and Multi-Block Auto Welcome Responder) -->
+    <!-- 2. CAMPAIGN (Clean 2-Tab Segmented Layout: Bulk Campaign | Auto Welcome) -->
     <div class="page-content" id="viewCampaign">
-        <!-- Card 1: Marketing Message & Attachment -->
-        <div class="card">
-            <label style="color: var(--primary); font-size: 0.92rem; margin-bottom: 10px;">📢 1. Campaign Broadcast Message</label>
-            <label id="lblMessage">Marketing Message (Supports {{name}})</label>
-            <textarea id="campGlobalMessage" class="safe-textarea" placeholder="Type message... Use {{name}} to personalize" oninput="updateLivePreview()"></textarea>
-
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                <label id="lblAttachments" style="margin-bottom: 0;">Attachments (Images, Videos, PDF)</label>
-                <button id="btnClearMedia" type="button" style="display: none; background: none; border: none; color: var(--danger); font-size: 0.8rem; font-weight: bold; cursor: pointer;" onclick="clearMediaAttachment()">✖ Clear File</button>
-            </div>
-            <input type="file" id="campGlobalMedia" multiple accept="image/*,video/*,application/pdf" onchange="handleMediaAttachment(event)">
-
-            <label id="lblPreview">Live Preview</label>
-            <div class="preview-wrapper" id="previewWrapper">
-                <div class="wa-bubble-realistic">
-                    <div class="wa-preview-img-container" id="previewMediaBox">
-                        <img id="previewImg" src="" alt="preview">
-                        <video id="previewVideo" controls style="display: none;"></video>
-                    </div>
-                    <div class="wa-bubble-caption" id="previewText"></div>
-                    <div class="wa-bubble-meta">
-                        <span id="previewTime">10:00 AM</span>
-                        <span>✓✓</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Card 2: Smart Scheduler Toggle Inside Campaign Section -->
-            <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px; margin-bottom: 12px;">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <div>
-                        <div style="font-size: 0.88rem; font-weight: 700; color: var(--primary);">⏰ Schedule Campaign</div>
-                        <div style="font-size: 0.74rem; color: var(--text-muted);">Auto-send later (Max 7 Days)</div>
-                    </div>
-                    <input type="checkbox" id="chkEnableSchedule" style="width: 22px; height: 22px; margin-bottom: 0; cursor: pointer;" onchange="toggleScheduleInput(this)">
-                </div>
-                <div id="scheduleInputWrapper" style="display: none; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border);">
-                    <label>Select Date & Time</label>
-                    <input type="datetime-local" id="campScheduleTime" style="margin-bottom: 0;">
-                </div>
-            </div>
-
-            <div style="font-size: 0.75rem; color: var(--text-muted); text-align: center; margin-bottom: 12px; line-height: 1.3;">
-                ⚠️ Use responsibly. Sending unsolicited bulk messages violates WhatsApp policies.
-            </div>
-
-            <button class="btn btn-primary" id="btnLaunch" onclick="openMultiGroupDispatchModal()">Select Target Groups & Send</button>
+        <!-- Top Segmented Pill Switcher -->
+        <div class="segmented-tabs">
+            <button type="button" class="seg-tab-btn active" id="btnSubTabBlast" onclick="switchCampaignSubTab('blast')">📢 Bulk Campaign</button>
+            <button type="button" class="seg-tab-btn" id="btnSubTabWelcome" onclick="switchCampaignSubTab('welcome')">🤖 Auto Welcome</button>
         </div>
 
-        <!-- Card 3: Multi-Media Auto Welcome Responder (Moved to Campaign Page!) -->
-        <div class="card" style="border-color: rgba(0, 168, 132, 0.4);">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px solid var(--border);">
-                <div>
-                    <div style="font-size: 0.95rem; font-weight: 700; color: var(--primary);">🤖 Auto Welcome Responder</div>
-                    <div style="font-size: 0.74rem; color: var(--text-muted);">Max: 4 Text, 4 Images, 2 Videos (With Custom Captions)</div>
+        <!-- SUB-PANEL A: BULK CAMPAIGN -->
+        <div id="subPanelBlast">
+            <div class="card">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                    <label id="lblMessage" style="margin-bottom: 0;">Message</label>
+                    <button type="button" class="tag-chip-btn" onclick="insertNameTag()">+ {{name}}</button>
                 </div>
-                <input type="checkbox" id="chkEnableWelcome" style="width: 24px; height: 24px; margin-bottom: 0; cursor: pointer;">
+                <textarea id="campGlobalMessage" class="safe-textarea" placeholder="Type message here..." oninput="updateLivePreview()"></textarea>
+
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                    <label id="lblAttachments" style="margin-bottom: 0;">Attachments (Image, Video, PDF)</label>
+                    <button id="btnClearMedia" type="button" style="display: none; background: none; border: none; color: var(--danger); font-size: 0.8rem; font-weight: bold; cursor: pointer;" onclick="clearMediaAttachment()">✖ Clear</button>
+                </div>
+                <input type="file" id="campGlobalMedia" multiple accept="image/*,video/*,application/pdf" onchange="handleMediaAttachment(event)" style="background: var(--surface);">
+
+                <!-- Auto-Hiding Live Preview (Only visible when content exists) -->
+                <div class="preview-wrapper" id="previewWrapper">
+                    <div style="font-size: 0.74rem; font-weight: 700; color: var(--primary); margin-bottom: 8px; text-transform: uppercase;" id="lblPreview">Live Preview</div>
+                    <div class="wa-bubble-realistic">
+                        <div class="wa-preview-img-container" id="previewMediaBox">
+                            <img id="previewImg" src="" alt="preview">
+                            <video id="previewVideo" controls style="display: none;"></video>
+                        </div>
+                        <div class="wa-bubble-caption" id="previewText"></div>
+                        <div class="wa-bubble-meta">
+                            <span id="previewTime">10:00 AM</span>
+                            <span>✓✓</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Smart Campaign Scheduler with Quick Presets & Auto-Filled Time -->
+                <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px; margin-bottom: 12px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <div style="font-size: 0.88rem; font-weight: 700; color: var(--text);" id="lblScheduleTitle">⏰ Schedule Campaign</div>
+                            <div style="font-size: 0.74rem; color: var(--text-muted);" id="lblScheduleSub">Auto-send later (Max 7 Days)</div>
+                        </div>
+                        <input type="checkbox" id="chkEnableSchedule" style="width: 22px; height: 22px; margin-bottom: 0; cursor: pointer;" onchange="toggleScheduleInput(this)">
+                    </div>
+
+                    <div id="scheduleInputWrapper" style="display: none; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border);">
+                        <div class="schedule-presets-row">
+                            <button type="button" class="preset-chip active" id="chipPreset1h" onclick="applySchedulePreset('1h', this)">+1 Hour</button>
+                            <button type="button" class="preset-chip" id="chipPresetTom9" onclick="applySchedulePreset('tom9', this)">Tomorrow 9 AM</button>
+                            <button type="button" class="preset-chip" id="chipPresetTom18" onclick="applySchedulePreset('tom18', this)">Tomorrow 6 PM</button>
+                        </div>
+                        <input type="datetime-local" id="campScheduleTime" style="margin-bottom: 4px; background: var(--surface-card);" onchange="clearPresetHighlight()">
+                        <div style="font-size: 0.74rem; color: var(--primary); font-weight: 600;" id="lblScheduleFormattedPreview"></div>
+                    </div>
+                </div>
+
+                <div id="lblDisclaimerFooter" style="font-size: 0.74rem; color: var(--text-muted); text-align: center; margin-bottom: 12px; line-height: 1.3;">
+                    ⚠️ Use responsibly. Sending unsolicited bulk messages violates WhatsApp policies.
+                </div>
+
+                <button class="btn btn-primary" id="btnLaunch" onclick="openMultiGroupDispatchModal()">Select Target Groups & Send</button>
             </div>
+        </div>
 
-            <div style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 8px;" id="welcomeCounterSummary">
-                Used: 0/4 Text • 0/4 Images • 0/2 Videos
+        <!-- SUB-PANEL B: AUTO WELCOME RESPONDER -->
+        <div id="subPanelWelcome" style="display: none;">
+            <div class="card">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--border);">
+                    <span style="font-size: 0.92rem; font-weight: 700; color: var(--text);" id="lblEnableWelcome">Enable Auto-Reply</span>
+                    <input type="checkbox" id="chkEnableWelcome" style="width: 24px; height: 24px; margin-bottom: 0; cursor: pointer;">
+                </div>
+
+                <div class="welcome-add-bar">
+                    <button type="button" class="welcome-add-btn" id="btnAddWelcomeText" onclick="addWelcomeBlock('text')">+ Text (0/4)</button>
+                    <button type="button" class="welcome-add-btn" id="btnAddWelcomeImage" onclick="addWelcomeBlock('image')">+ Image (0/4)</button>
+                    <button type="button" class="welcome-add-btn" id="btnAddWelcomeVideo" onclick="addWelcomeBlock('video')">+ Video (0/2)</button>
+                </div>
+
+                <div id="welcomeSequenceContainer"></div>
+
+                <button class="btn btn-primary" id="btnSaveWelcome" onclick="saveWelcomeRules()">💾 Save Welcome Sequence</button>
             </div>
-
-            <div class="welcome-add-bar">
-                <button type="button" class="welcome-add-btn" onclick="addWelcomeBlock('text')">+ Add Text</button>
-                <button type="button" class="welcome-add-btn" onclick="addWelcomeBlock('image')">+ Add Image</button>
-                <button type="button" class="welcome-add-btn" onclick="addWelcomeBlock('video')">+ Add Video</button>
-            </div>
-
-            <div id="welcomeSequenceContainer"></div>
-
-            <button class="btn btn-primary" onclick="saveWelcomeRules()">💾 Save Welcome Sequence</button>
         </div>
     </div>
 
@@ -517,6 +592,7 @@
             return clean;
         }
 
+        // Complete Multi-Language Dictionary (English, Tamil, Hindi)
         const i18n = {
             en: {
                 title: "WA Campaign",
@@ -524,10 +600,27 @@
                 campaign: "Campaign",
                 dashboard: "Dashboard",
                 settings: "Settings",
-                message: "Marketing Message (Supports {{name}})",
-                attachments: "Attachments (Images, Videos, PDF)",
+                sortNewest: "Sort: Newest First",
+                sortAlpha: "Sort: Alphabetical (A-Z)",
+                sortCount: "Sort: Most Contacts",
+                subTabBlast: "📢 Bulk Campaign",
+                subTabWelcome: "🤖 Auto Welcome",
+                message: "Message",
+                msgPlaceholder: "Type message here...",
+                attachments: "Attachments (Image, Video, PDF)",
                 preview: "Live Preview",
+                scheduleTitle: "⏰ Schedule Campaign",
+                scheduleSub: "Auto-send later (Max 7 Days)",
+                preset1h: "+1 Hour",
+                presetTom9: "Tomorrow 9 AM",
+                presetTom18: "Tomorrow 6 PM",
+                disclaimerFooter: "⚠️ Use responsibly. Sending unsolicited bulk messages violates WhatsApp policies.",
                 launch: "Select Target Groups & Send",
+                enableWelcome: "Enable Auto-Reply",
+                addTextBtn: "+ Text",
+                addImageBtn: "+ Image",
+                addVideoBtn: "+ Video",
+                saveWelcome: "💾 Save Welcome Sequence",
                 totalContacts: "Total Contacts",
                 totalGroups: "Total Groups",
                 recentHistory: "Recent Campaigns History (Last 3)",
@@ -537,6 +630,7 @@
                 language: "Language",
                 theme: "Theme",
                 updates: "App Version & Updates",
+                updateCheck: "⚡ Update Now (Zero Data Loss)",
                 shareApp: "Share WA Campaign App",
                 createGroup: "Create Group (Max 250 Contacts)",
                 groupName: "Group Name",
@@ -547,6 +641,102 @@
                 targetGroups: "Select Target Groups",
                 deduplicateNote: "Duplicates merged automatically.",
                 deviceContacts: "Device Contacts"
+            },
+            ta: {
+                title: "வாட்ஸ்அப் விளம்பரம்",
+                groups: "குழுக்கள்",
+                campaign: "பிரச்சாரம்",
+                dashboard: "முகப்பு",
+                settings: "அமைப்புகள்",
+                sortNewest: "வரிசை: புதியவை முதலில்",
+                sortAlpha: "வரிசை: அகரவரிசை (A-Z)",
+                sortCount: "வரிசை: அதிக தொடர்புகள்",
+                subTabBlast: "📢 குழு பிரச்சாரம்",
+                subTabWelcome: "🤖 தானியங்கி வரவேற்பு",
+                message: "அனுப்ப வேண்டிய செய்தி",
+                msgPlaceholder: "செய்தியை இங்கே உள்ளிடவும்...",
+                attachments: "கோப்புகள் (புகைப்படம், வீடியோ, PDF)",
+                preview: "நேரடி முன்னோட்டம்",
+                scheduleTitle: "⏰ நேரத்தை திட்டமிடு (Schedule)",
+                scheduleSub: "பின்னர் தானாக அனுப்ப (அதிகபட்சம் 7 நாட்கள்)",
+                preset1h: "+1 மணி நேரம்",
+                presetTom9: "நாளை காலை 9",
+                presetTom18: "நாளை மாலை 6",
+                disclaimerFooter: "⚠️ பொறுப்புடன் பயன்படுத்தவும். அனுமதியின்றி அதிக செய்திகள் அனுப்புவது வாட்ஸ்அப் விதிகளுக்கு எதிரானது.",
+                launch: "குழுக்களை தேர்வு செய்து அனுப்பு",
+                enableWelcome: "தானியங்கி வரவேற்பு (Auto-Reply)",
+                addTextBtn: "+ செய்தி",
+                addImageBtn: "+ படம்",
+                addVideoBtn: "+ வீடியோ",
+                saveWelcome: "💾 வரவேற்பு செய்தியை சேமி",
+                totalContacts: "மொத்த தொடர்புகள்",
+                totalGroups: "மொத்த குழுக்கள்",
+                recentHistory: "முந்தைய 3 பிரச்சாரங்கள்",
+                connection: "வாட்ஸ்அப் இணைப்பு நிலை",
+                unlink: "வாட்ஸ்அப் துண்டி",
+                pair: "வாட்ஸ்அப் இணை",
+                language: "மொழி",
+                theme: "வண்ண தீம்",
+                updates: "செயலி பதிப்பு & புதுப்பிப்புகள்",
+                updateCheck: "⚡ புதிய பதிப்பை நிறுவவும் (தரவு அழியாது)",
+                shareApp: "செயலியை பகிரவும்",
+                createGroup: "புதிய குழு (அதிகபட்சம் 250 நபர்கள்)",
+                groupName: "குழுவின் பெயர்",
+                addContacts: "தொடர்புகளை சேர்க்கவும்",
+                saveGroup: "குழுவை சேமி",
+                manageGroup: "குழு உறுப்பினர்கள்",
+                renameGroup: "குழு பெயர் திருத்து",
+                targetGroups: "இலக்கு குழுக்கள்",
+                deduplicateNote: "இரட்டை எண்கள் தானாக நீக்கப்படும்.",
+                deviceContacts: "மொபைல் தொடர்புகள்"
+            },
+            hi: {
+                title: "व्हाट्सएप अभियान",
+                groups: "समूह",
+                campaign: "अभियान",
+                dashboard: "डैशबोर्ड",
+                settings: "सेटिंग्स",
+                sortNewest: "क्रम: नवीनतम पहले",
+                sortAlpha: "क्रम: वर्णमाला (A-Z)",
+                sortCount: "क्रम: सर्वाधिक संपर्क",
+                subTabBlast: "📢 बल्क अभियान",
+                subTabWelcome: "🤖 ऑटो वेलकम",
+                message: "संदेश",
+                msgPlaceholder: "यहाँ संदेश टाइप करें...",
+                attachments: "फ़ाइलें (फोटो, वीडियो, पीडीएफ)",
+                preview: "लाइव पूर्वावलोकन",
+                scheduleTitle: "⏰ अभियान शेड्यूल करें",
+                scheduleSub: "बाद में स्वतः भेजें (अधिकतम 7 दिन)",
+                preset1h: "+1 घंटा",
+                presetTom9: "कल सुबह 9 बजे",
+                presetTom18: "कल शाम 6 बजे",
+                disclaimerFooter: "⚠️ जिम्मेदारी से उपयोग करें। अनचाहे बल्क संदेश भेजना व्हाट्सएप नीतियों के विरुद्ध है।",
+                launch: "समूह चुनें और भेजें",
+                enableWelcome: "ऑटो-रिप्लाई चालू करें",
+                addTextBtn: "+ टेक्स्ट",
+                addImageBtn: "+ फोटो",
+                addVideoBtn: "+ वीडियो",
+                saveWelcome: "💾 वेलकम सीक्वेंस सहेजें",
+                totalContacts: "कुल संपर्क",
+                totalGroups: "कुल समूह",
+                recentHistory: "हाल के 3 अभियान",
+                connection: "व्हाट्सएप कनेक्शन स्थिति",
+                unlink: "व्हाट्सएप हटाएं",
+                pair: "व्हाट्सएप जोड़ें",
+                language: "भाषा",
+                theme: "थीम",
+                updates: "ऐप संस्करण और अपडेट",
+                updateCheck: "⚡ नया संस्करण स्थापित करें",
+                shareApp: "ऐप साझा करें",
+                createGroup: "समूह बनाएं (अधिकतम 250 संपर्क)",
+                groupName: "समूह का नाम",
+                addContacts: "संपर्क जोड़ें",
+                saveGroup: "समूह सहेजें",
+                manageGroup: "समूह के सदस्य",
+                renameGroup: "समूह का नाम बदलें",
+                targetGroups: "लक्षित समूह चुनें",
+                deduplicateNote: "डुप्लिकेट संपर्क स्वतः हटा दिए जाएंगे।",
+                deviceContacts: "फ़ोन संपर्क"
             }
         };
 
@@ -658,6 +848,39 @@
             }
         }
 
+        // Switch between Bulk Campaign and Auto Welcome sub-tabs
+        function switchCampaignSubTab(mode) {
+            const btnBlast = document.getElementById('btnSubTabBlast');
+            const btnWelcome = document.getElementById('btnSubTabWelcome');
+            const panelBlast = document.getElementById('subPanelBlast');
+            const panelWelcome = document.getElementById('subPanelWelcome');
+
+            if (mode === 'welcome') {
+                btnBlast.classList.remove('active');
+                btnWelcome.classList.add('active');
+                panelBlast.style.display = 'none';
+                panelWelcome.style.display = 'block';
+            } else {
+                btnWelcome.classList.remove('active');
+                btnBlast.classList.add('active');
+                panelWelcome.style.display = 'none';
+                panelBlast.style.display = 'block';
+            }
+        }
+
+        // Insert {{name}} tag at current cursor position in campaign message
+        function insertNameTag() {
+            const ta = document.getElementById('campGlobalMessage');
+            const start = ta.selectionStart || 0;
+            const end = ta.selectionEnd || 0;
+            const current = ta.value;
+            const tag = '{{name}}';
+            ta.value = current.substring(0, start) + tag + current.substring(end);
+            ta.focus();
+            ta.selectionStart = ta.selectionEnd = start + tag.length;
+            updateLivePreview();
+        }
+
         function switchTheme(theme) {
             localStorage.setItem('app_theme', theme);
             if (theme === 'light') document.body.classList.add('light-theme');
@@ -673,10 +896,28 @@
             document.getElementById('tabCampaign').innerText = d.campaign;
             document.getElementById('tabDashboard').innerText = d.dashboard;
             document.getElementById('tabSettings').innerText = d.settings;
+
+            document.getElementById('optSortNewest').innerText = d.sortNewest;
+            document.getElementById('optSortAlpha').innerText = d.sortAlpha;
+            document.getElementById('optSortCount').innerText = d.sortCount;
+
+            document.getElementById('btnSubTabBlast').innerText = d.subTabBlast;
+            document.getElementById('btnSubTabWelcome').innerText = d.subTabWelcome;
             document.getElementById('lblMessage').innerText = d.message;
+            document.getElementById('campGlobalMessage').placeholder = d.msgPlaceholder;
             document.getElementById('lblAttachments').innerText = d.attachments;
             document.getElementById('lblPreview').innerText = d.preview;
+            document.getElementById('lblScheduleTitle').innerText = d.scheduleTitle;
+            document.getElementById('lblScheduleSub').innerText = d.scheduleSub;
+            document.getElementById('chipPreset1h').innerText = d.preset1h;
+            document.getElementById('chipPresetTom9').innerText = d.presetTom9;
+            document.getElementById('chipPresetTom18').innerText = d.presetTom18;
+            document.getElementById('lblDisclaimerFooter').innerText = d.disclaimerFooter;
             document.getElementById('btnLaunch').innerText = d.launch;
+
+            document.getElementById('lblEnableWelcome').innerText = d.enableWelcome;
+            document.getElementById('btnSaveWelcome').innerText = d.saveWelcome;
+
             document.getElementById('lblTotalContacts').innerText = d.totalContacts;
             document.getElementById('lblTotalGroups').innerText = d.totalGroups;
             document.getElementById('lblRecentHistory').innerText = d.recentHistory;
@@ -686,6 +927,7 @@
             document.getElementById('lblLanguage').innerText = d.language;
             document.getElementById('lblTheme').innerText = d.theme;
             document.getElementById('lblUpdates').innerText = d.updates;
+            document.getElementById('btnUpdateNow').innerText = d.updateCheck;
             document.getElementById('btnShareApp').innerText = d.shareApp;
             document.getElementById('lblCreateGroup').innerText = d.createGroup;
             document.getElementById('lblGroupName').innerText = d.groupName;
@@ -697,6 +939,8 @@
             document.getElementById('lblDeduplicateNote').innerText = d.deduplicateNote;
             document.getElementById('lblDeviceContacts').innerText = d.deviceContacts;
             document.getElementById('selLanguage').value = lang;
+
+            renderWelcomeSequence();
         }
 
         // --- Campaign Media Attachment Handling ---
@@ -742,9 +986,73 @@
             updateLivePreview();
         }
 
+        // --- Smart Date & Time Scheduler Helpers ---
+        function toLocalDateTimeInputString(dateObj) {
+            const pad = n => String(n).padStart(2, '0');
+            return `${dateObj.getFullYear()}-${pad(dateObj.getMonth() + 1)}-${pad(dateObj.getDate())}T${pad(dateObj.getHours())}:${pad(dateObj.getMinutes())}`;
+        }
+
+        function updateScheduleMinMaxGuards() {
+            const input = document.getElementById('campScheduleTime');
+            const now = new Date(Date.now() + 5 * 60 * 1000);
+            const maxDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+            input.min = toLocalDateTimeInputString(now);
+            input.max = toLocalDateTimeInputString(maxDate);
+        }
+
+        function updateScheduleReadableLabel() {
+            const val = document.getElementById('campScheduleTime').value;
+            const lbl = document.getElementById('lblScheduleFormattedPreview');
+            if (!val) {
+                lbl.innerText = '';
+                return;
+            }
+            const dt = new Date(val);
+            if (!isNaN(dt.getTime())) {
+                lbl.innerText = `📅 Scheduled for: ${dt.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}`;
+            }
+        }
+
         function toggleScheduleInput(checkbox) {
             const wrapper = document.getElementById('scheduleInputWrapper');
-            wrapper.style.display = checkbox.checked ? 'block' : 'none';
+            if (checkbox.checked) {
+                wrapper.style.display = 'block';
+                updateScheduleMinMaxGuards();
+                const input = document.getElementById('campScheduleTime');
+                if (!input.value) {
+                    applySchedulePreset('1h', document.getElementById('chipPreset1h'));
+                } else {
+                    updateScheduleReadableLabel();
+                }
+            } else {
+                wrapper.style.display = 'none';
+            }
+        }
+
+        function applySchedulePreset(presetType, btnEl) {
+            document.querySelectorAll('.preset-chip').forEach(c => c.classList.remove('active'));
+            if (btnEl) btnEl.classList.add('active');
+
+            updateScheduleMinMaxGuards();
+            const target = new Date();
+            if (presetType === '1h') {
+                target.setHours(target.getHours() + 1);
+            } else if (presetType === 'tom9') {
+                target.setDate(target.getDate() + 1);
+                target.setHours(9, 0, 0, 0);
+            } else if (presetType === 'tom18') {
+                target.setDate(target.getDate() + 1);
+                target.setHours(18, 0, 0, 0);
+            }
+
+            const input = document.getElementById('campScheduleTime');
+            input.value = toLocalDateTimeInputString(target);
+            updateScheduleReadableLabel();
+        }
+
+        function clearPresetHighlight() {
+            document.querySelectorAll('.preset-chip').forEach(c => c.classList.remove('active'));
+            updateScheduleReadableLabel();
         }
 
         function updateLivePreview() {
@@ -826,15 +1134,23 @@
         }
 
         function renderWelcomeSequence() {
+            const lang = localStorage.getItem('app_lang') || 'en';
+            const d = i18n[lang] || i18n.en;
+
             const textCount = welcomeBlocks.filter(b => b.type === 'text').length;
             const imgCount = welcomeBlocks.filter(b => b.type === 'image').length;
             const vidCount = welcomeBlocks.filter(b => b.type === 'video').length;
 
-            document.getElementById('welcomeCounterSummary').innerText = `Used: ${textCount}/4 Text • ${imgCount}/4 Images • ${vidCount}/2 Videos`;
+            const btnTxt = document.getElementById('btnAddWelcomeText');
+            const btnImg = document.getElementById('btnAddWelcomeImage');
+            const btnVid = document.getElementById('btnAddWelcomeVideo');
+            if (btnTxt) btnTxt.innerText = `${d.addTextBtn} (${textCount}/4)`;
+            if (btnImg) btnImg.innerText = `${d.addImageBtn} (${imgCount}/4)`;
+            if (btnVid) btnVid.innerText = `${d.addVideoBtn} (${vidCount}/2)`;
 
             const container = document.getElementById('welcomeSequenceContainer');
             if (welcomeBlocks.length === 0) {
-                container.innerHTML = '<div style="text-align:center; padding: 14px; font-size: 0.8rem; color: var(--text-muted); border: 1px dashed var(--border); border-radius: 8px; margin-bottom: 12px;">No welcome steps added yet. Tap + Add Text, + Add Image, or + Add Video above.</div>';
+                container.innerHTML = '';
                 return;
             }
 
@@ -843,28 +1159,28 @@
                     return `
                         <div class="welcome-block-item">
                             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-                                <span style="font-size:0.8rem; font-weight:bold; color:var(--primary);">Step #${idx + 1} • Text Message</span>
-                                <button type="button" class="btn btn-danger" style="width:auto; padding:2px 8px; font-size:0.72rem;" onclick="removeWelcomeBlock('${b.id}')">✖ Remove</button>
+                                <span style="font-size:0.8rem; font-weight:bold; color:var(--primary);">#${idx + 1} • Text</span>
+                                <button type="button" class="btn btn-danger" style="width:auto; padding:2px 8px; font-size:0.72rem;" onclick="removeWelcomeBlock('${b.id}')">✖</button>
                             </div>
                             <textarea class="safe-textarea" style="min-height:65px; margin-bottom:0;" placeholder="Enter welcome text..." oninput="updateWelcomeBlockText('${b.id}', this.value)">${b.content || ''}</textarea>
                         </div>
                     `;
                 } else {
                     const acceptType = b.type === 'image' ? 'image/*' : 'video/*';
-                    const typeLabel = b.type === 'image' ? '🖼️ Image + Custom Caption' : '🎥 Video + Custom Caption';
-                    const hasFileLabel = b.fileName ? `<div style="font-size:0.75rem; color:var(--primary); margin-bottom:6px;">✔ Attached: ${b.fileName}</div>` : '';
+                    const typeLabel = b.type === 'image' ? '🖼️ Image' : '🎥 Video';
+                    const hasFileLabel = b.fileName ? `<div style="font-size:0.75rem; color:var(--primary); margin-bottom:6px;">✔ ${b.fileName}</div>` : '';
                     return `
                         <div class="welcome-block-item">
                             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-                                <span style="font-size:0.8rem; font-weight:bold; color:var(--primary);">Step #${idx + 1} • ${typeLabel}</span>
+                                <span style="font-size:0.8rem; font-weight:bold; color:var(--primary);">#${idx + 1} • ${typeLabel}</span>
                                 <div style="display:flex; gap:6px;">
-                                    <button type="button" class="btn btn-outline" style="width:auto; padding:2px 8px; font-size:0.72rem; color:var(--warning); border-color:var(--warning);" onclick="clearWelcomeBlockFile('${b.id}')">Clear File</button>
+                                    <button type="button" class="btn btn-outline" style="width:auto; padding:2px 8px; font-size:0.72rem; color:var(--warning); border-color:var(--warning);" onclick="clearWelcomeBlockFile('${b.id}')">Clear</button>
                                     <button type="button" class="btn btn-danger" style="width:auto; padding:2px 8px; font-size:0.72rem;" onclick="removeWelcomeBlock('${b.id}')">✖</button>
                                 </div>
                             </div>
                             ${hasFileLabel}
                             <input type="file" id="wb_file_${b.id}" accept="${acceptType}" onchange="handleWelcomeBlockFile(event, '${b.id}')" style="margin-bottom:8px;">
-                            <input type="text" placeholder="Custom caption for this ${b.type} (optional)..." value="${(b.caption || '').replace(/"/g, '&quot;')}" oninput="updateWelcomeBlockCaption('${b.id}', this.value)" style="margin-bottom:0;">
+                            <input type="text" placeholder="Custom caption (optional)..." value="${(b.caption || '').replace(/"/g, '&quot;')}" oninput="updateWelcomeBlockCaption('${b.id}', this.value)" style="margin-bottom:0;">
                         </div>
                     `;
                 }
@@ -955,7 +1271,6 @@
                     document.getElementById('badgeServerStatus').style.color = "var(--primary)";
                     document.getElementById('txtServerOfflineNotice').style.display = "none";
                 } else {
-                    // Server explicitly reports DISCONNECTED or NOT_FOUND -> Clear stale UI immediately
                     localStorage.removeItem('connected_phone_permanent');
                     document.getElementById('statusConnectedBox').style.display = 'none';
                     document.getElementById('statusPairingBox').style.display = 'block';
@@ -1400,7 +1715,6 @@
                     const latestBuild = extractRunNumber(rel.name);
                     latestDetectedRemoteBuild = latestBuild;
 
-                    // If first time running without CI number, sync to current remote build so it doesn't false-trigger
                     if (!localStorage.getItem('acknowledged_release_build') && isNaN(CI_INJECTED_BUILD)) {
                         CURRENT_BUILD_NUMBER = latestBuild;
                         localStorage.setItem('acknowledged_release_build', String(latestBuild));
