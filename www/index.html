@@ -99,17 +99,6 @@
             box-shadow: 0 2px 6px rgba(0, 168, 132, 0.3);
         }
 
-        /* Quick Tag & Preset Chips */
-        .tag-chip-btn {
-            background: rgba(0, 168, 132, 0.15);
-            color: var(--primary);
-            border: 1px solid var(--primary);
-            border-radius: 6px;
-            padding: 3px 9px;
-            font-size: 0.75rem;
-            font-weight: 700;
-            cursor: pointer;
-        }
         .schedule-presets-row {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
@@ -266,7 +255,6 @@
 
     <!-- 2. CAMPAIGN (Clean 2-Tab Segmented Layout: Bulk Campaign | Auto Welcome) -->
     <div class="page-content" id="viewCampaign">
-        <!-- Top Segmented Pill Switcher -->
         <div class="segmented-tabs">
             <button type="button" class="seg-tab-btn active" id="btnSubTabBlast" onclick="switchCampaignSubTab('blast')">📢 Bulk Campaign</button>
             <button type="button" class="seg-tab-btn" id="btnSubTabWelcome" onclick="switchCampaignSubTab('welcome')">🤖 Auto Welcome</button>
@@ -275,10 +263,7 @@
         <!-- SUB-PANEL A: BULK CAMPAIGN -->
         <div id="subPanelBlast">
             <div class="card">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                    <label id="lblMessage" style="margin-bottom: 0;">Message</label>
-                    <button type="button" class="tag-chip-btn" onclick="insertNameTag()">+ {{name}}</button>
-                </div>
+                <label id="lblMessage">Message</label>
                 <textarea id="campGlobalMessage" class="safe-textarea" placeholder="Type message here..." oninput="updateLivePreview()"></textarea>
 
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
@@ -287,7 +272,7 @@
                 </div>
                 <input type="file" id="campGlobalMedia" multiple accept="image/*,video/*,application/pdf" onchange="handleMediaAttachment(event)" style="background: var(--surface);">
 
-                <!-- Auto-Hiding Live Preview (Only visible when content exists) -->
+                <!-- Auto-Hiding Live Preview -->
                 <div class="preview-wrapper" id="previewWrapper">
                     <div style="font-size: 0.74rem; font-weight: 700; color: var(--primary); margin-bottom: 8px; text-transform: uppercase;" id="lblPreview">Live Preview</div>
                     <div class="wa-bubble-realistic">
@@ -336,7 +321,7 @@
         <div id="subPanelWelcome" style="display: none;">
             <div class="card">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--border);">
-                    <span style="font-size: 0.92rem; font-weight: 700; color: var(--text);" id="lblEnableWelcome">Enable Auto-Reply</span>
+                    <span style="font-size: 0.92rem; font-weight: 700; color: var(--text);" id="lblEnableWelcome">Enable Welcome Message</span>
                     <input type="checkbox" id="chkEnableWelcome" style="width: 24px; height: 24px; margin-bottom: 0; cursor: pointer;">
                 </div>
 
@@ -399,8 +384,9 @@
             </div>
 
             <div id="statusPairingBox">
-                <input type="tel" id="txtPairPhone" placeholder="91XXXXXXXXXX">
-                <button class="btn btn-primary" id="btnPair" onclick="requestPairCode()">Pair WhatsApp</button>
+                <input type="tel" id="txtPairPhone" placeholder="Enter WhatsApp Number (e.g. 9876543210)">
+                <button class="btn btn-primary" id="btnPair" onclick="requestPairCode()">Pair WhatsApp & Sync Backup</button>
+                <button class="btn btn-outline" style="margin-top: 8px; font-size: 0.82rem; padding: 9px;" onclick="syncExistingAccountBackup()">🔄 Restore Groups by Phone Number</button>
                 <div id="pairCodeDisplay" style="font-size: 1.5rem; letter-spacing: 4px; font-weight: bold; color: var(--primary); text-align: center; margin-top: 10px; display: none;"></div>
             </div>
         </div>
@@ -565,8 +551,8 @@
         const FIXED_BACKEND_URL = "https://rinse-chest-dish.ngrok-free.dev";
         const API_BEARER_TOKEN = "marketing_engine_secret_2026";
         
-        // Stable Tenant Session Binding (Defaults to main_account so existing pairings never break)
-        let SESSION_ID = localStorage.getItem('tenant_session_id') || 'main_account';
+        // Phone-Number Bound Multi-Tenant Session ID (Ensures isolation & 100% Group Recovery across reinstalls)
+        let SESSION_ID = localStorage.getItem('connected_phone_permanent') || localStorage.getItem('tenant_session_id') || 'main_account';
         if (SESSION_ID.startsWith('usr_')) {
             SESSION_ID = 'main_account';
         }
@@ -574,7 +560,7 @@
 
         const MAX_GROUP_CONTACTS = 250;
 
-        // Dynamic Build Version Resolution (Prevents false "Update Available" loops)
+        // Dynamic Build Version Resolution
         const CI_INJECTED_BUILD = parseInt("__CLIENT_BUILD_NUMBER__");
         let CURRENT_BUILD_NUMBER = !isNaN(CI_INJECTED_BUILD) ? CI_INJECTED_BUILD : (parseInt(localStorage.getItem('acknowledged_release_build')) || 52);
 
@@ -616,7 +602,7 @@
                 presetTom18: "Tomorrow 6 PM",
                 disclaimerFooter: "⚠️ Use responsibly. Sending unsolicited bulk messages violates WhatsApp policies.",
                 launch: "Select Target Groups & Send",
-                enableWelcome: "Enable Auto-Reply",
+                enableWelcome: "Enable Welcome Message",
                 addTextBtn: "+ Text",
                 addImageBtn: "+ Image",
                 addVideoBtn: "+ Video",
@@ -626,7 +612,7 @@
                 recentHistory: "Recent Campaigns History (Last 3)",
                 connection: "WhatsApp Account Status",
                 unlink: "Unlink WhatsApp",
-                pair: "Pair WhatsApp",
+                pair: "Pair WhatsApp & Sync Backup",
                 language: "Language",
                 theme: "Theme",
                 updates: "App Version & Updates",
@@ -664,7 +650,7 @@
                 presetTom18: "நாளை மாலை 6",
                 disclaimerFooter: "⚠️ பொறுப்புடன் பயன்படுத்தவும். அனுமதியின்றி அதிக செய்திகள் அனுப்புவது வாட்ஸ்அப் விதிகளுக்கு எதிரானது.",
                 launch: "குழுக்களை தேர்வு செய்து அனுப்பு",
-                enableWelcome: "தானியங்கி வரவேற்பு (Auto-Reply)",
+                enableWelcome: "வரவேற்பு செய்தியை இயக்கு",
                 addTextBtn: "+ செய்தி",
                 addImageBtn: "+ படம்",
                 addVideoBtn: "+ வீடியோ",
@@ -712,7 +698,7 @@
                 presetTom18: "कल शाम 6 बजे",
                 disclaimerFooter: "⚠️ जिम्मेदारी से उपयोग करें। अनचाहे बल्क संदेश भेजना व्हाट्सएप नीतियों के विरुद्ध है।",
                 launch: "समूह चुनें और भेजें",
-                enableWelcome: "ऑटो-रिप्लाई चालू करें",
+                enableWelcome: "वेलकम मैसेज चालू करें",
                 addTextBtn: "+ टेक्स्ट",
                 addImageBtn: "+ फोटो",
                 addVideoBtn: "+ वीडियो",
@@ -823,6 +809,7 @@
             window.addEventListener('touchend', async () => {
                 if (spinner.style.display === 'block') {
                     await syncWhatsAppAccountStatus();
+                    await restoreGroupsFromServer();
                     await hydrateCampaignStateFromServer();
                     renderGroups();
                     renderDashboard();
@@ -848,7 +835,6 @@
             }
         }
 
-        // Switch between Bulk Campaign and Auto Welcome sub-tabs
         function switchCampaignSubTab(mode) {
             const btnBlast = document.getElementById('btnSubTabBlast');
             const btnWelcome = document.getElementById('btnSubTabWelcome');
@@ -866,19 +852,6 @@
                 panelWelcome.style.display = 'none';
                 panelBlast.style.display = 'block';
             }
-        }
-
-        // Insert {{name}} tag at current cursor position in campaign message
-        function insertNameTag() {
-            const ta = document.getElementById('campGlobalMessage');
-            const start = ta.selectionStart || 0;
-            const end = ta.selectionEnd || 0;
-            const current = ta.value;
-            const tag = '{{name}}';
-            ta.value = current.substring(0, start) + tag + current.substring(end);
-            ta.focus();
-            ta.selectionStart = ta.selectionEnd = start + tag.length;
-            updateLivePreview();
         }
 
         function switchTheme(theme) {
@@ -1212,17 +1185,35 @@
             renderWelcomeSequence();
         }
 
+        // Strict Validation & Accurate Popups for Auto-Welcome Save
         async function saveWelcomeRules() {
             const enabled = document.getElementById('chkEnableWelcome').checked;
+
+            const validBlocks = welcomeBlocks.filter(b => {
+                if (b.type === 'text') return (b.content || '').trim().length > 0;
+                if (b.type === 'image' || b.type === 'video') return (b.file !== null) || ((b.existingFilePath || '').trim().length > 0);
+                return false;
+            });
+
+            // Bug #5 Fix: If enabled is ON, require at least one valid text or media block
+            if (enabled && validBlocks.length === 0) {
+                return alert('Please add a welcome text or select a media file before saving.');
+            }
+
+            // Also check if user added an empty block while ON
+            if (enabled && welcomeBlocks.length > validBlocks.length) {
+                return alert('One or more added blocks are empty. Please enter text / select a file or remove the empty block.');
+            }
+
             const fd = new FormData();
             fd.append('sessionId', SESSION_ID);
             fd.append('enabled', enabled);
 
-            const blocksMeta = welcomeBlocks.map(b => ({
+            const blocksMeta = validBlocks.map(b => ({
                 id: b.id,
                 type: b.type,
-                content: b.content || '',
-                caption: b.caption || '',
+                content: (b.content || '').trim(),
+                caption: (b.caption || '').trim(),
                 existingFilePath: b.existingFilePath || '',
                 fileName: b.fileName || '',
                 mimetype: b.mimetype || ''
@@ -1230,7 +1221,7 @@
 
             fd.append('blocksMeta', JSON.stringify(blocksMeta));
 
-            welcomeBlocks.forEach(b => {
+            validBlocks.forEach(b => {
                 if (b.file) {
                     fd.append(`file_${b.id}`, b.file);
                 }
@@ -1245,7 +1236,12 @@
                 const d = await res.json();
                 if (d.success) {
                     await loadWelcomeRulesFromServer();
-                    alert('Auto-welcome sequence saved successfully!');
+                    // Bug #4 Fix: Explicit Turned OFF vs Saved & Enabled Popups
+                    if (!enabled) {
+                        alert('Welcome message turned OFF.');
+                    } else {
+                        alert('Welcome message enabled and saved successfully!');
+                    }
                 } else {
                     alert(d.error || 'Failed to save rules');
                 }
@@ -1254,7 +1250,7 @@
             }
         }
 
-        // --- Accurate Live WhatsApp Status & Unlink Sync ---
+        // --- Accurate Live WhatsApp Status & Phone-Based Tenant Binding ---
         async function syncWhatsAppAccountStatus() {
             try {
                 const res = await fetch(`${FIXED_BACKEND_URL}/api/status/${SESSION_ID}`, {
@@ -1263,6 +1259,11 @@
                 const d = await res.json();
                 
                 if (d.status === 'CONNECTED' && d.phone) {
+                    const resolvedTenant = d.tenantId || d.phone;
+                    if (SESSION_ID !== resolvedTenant) {
+                        SESSION_ID = resolvedTenant;
+                        localStorage.setItem('tenant_session_id', SESSION_ID);
+                    }
                     localStorage.setItem('connected_phone_permanent', d.phone);
                     document.getElementById('statusConnectedBox').style.display = 'block';
                     document.getElementById('statusPairingBox').style.display = 'none';
@@ -1292,28 +1293,56 @@
             }
         }
 
-        async function syncGroupsToServer() {
+        async function syncGroupsToServer(allowEmptyOverwrite = false) {
             try {
                 await fetch(`${FIXED_BACKEND_URL}/api/groups/sync`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${API_BEARER_TOKEN}`, 'ngrok-skip-browser-warning': 'true' },
-                    body: JSON.stringify({ sessionId: SESSION_ID, groups })
+                    body: JSON.stringify({ sessionId: SESSION_ID, groups, allowEmptyOverwrite })
                 });
             } catch(e) {}
         }
 
-        async function restoreGroupsFromServer() {
+        // Reliable Group Restore Across Uninstall/Reinstall
+        async function restoreGroupsFromServer(forcePull = false) {
             try {
                 const res = await fetch(`${FIXED_BACKEND_URL}/api/groups/restore?sessionId=${SESSION_ID}`, {
                     headers: { 'Authorization': `Bearer ${API_BEARER_TOKEN}`, 'ngrok-skip-browser-warning': 'true' }
                 });
                 const d = await res.json();
-                if (d.groups && d.groups.length > 0 && groups.length === 0) {
-                    groups = d.groups;
-                    localStorage.setItem('app_groups', JSON.stringify(groups));
-                    renderGroups();
+                if (d.groups && Array.isArray(d.groups) && d.groups.length > 0) {
+                    if (groups.length === 0 || forcePull) {
+                        groups = d.groups;
+                        localStorage.setItem('app_groups', JSON.stringify(groups));
+                        renderGroups();
+                        renderDashboard();
+                        return true;
+                    }
                 }
             } catch(e) {}
+            return false;
+        }
+
+        // Restore groups by phone number after app reinstall without re-pairing
+        async function syncExistingAccountBackup() {
+            const rawPhone = document.getElementById('txtPairPhone').value.trim();
+            if (!rawPhone) return alert('Enter your 10-digit WhatsApp number above to restore your groups.');
+            const cleanPhone = normalizeNumber(rawPhone);
+            if (!cleanPhone || cleanPhone.length < 10) return alert('Enter a valid 10-digit phone number.');
+
+            SESSION_ID = cleanPhone;
+            localStorage.setItem('tenant_session_id', SESSION_ID);
+
+            const restored = await restoreGroupsFromServer(true);
+            await syncWhatsAppAccountStatus();
+            await loadWelcomeRulesFromServer();
+            await hydrateCampaignStateFromServer();
+
+            if (restored) {
+                alert(`Backup restored! ${groups.length} group(s) recovered for +${cleanPhone}.`);
+            } else {
+                alert(`Account switched to +${cleanPhone}.`);
+            }
         }
 
         // --- Zero-Desync Campaign & History Hydration ---
@@ -1358,6 +1387,13 @@
         async function requestPairCode() {
             const phone = document.getElementById('txtPairPhone').value.trim();
             if (!phone) return alert('Enter phone number');
+            const cleanPhone = normalizeNumber(phone);
+            if (!cleanPhone || cleanPhone.length < 10) return alert('Enter valid 10-digit phone number');
+
+            // Bind SESSION_ID to the user's phone number for multi-tenant isolation & backup recovery
+            SESSION_ID = cleanPhone;
+            localStorage.setItem('tenant_session_id', SESSION_ID);
+
             const disp = document.getElementById('pairCodeDisplay');
             disp.style.display = 'block';
             disp.innerText = 'Requesting...';
@@ -1370,11 +1406,12 @@
                         'Authorization': `Bearer ${API_BEARER_TOKEN}`,
                         'ngrok-skip-browser-warning': 'true'
                     },
-                    body: JSON.stringify({ sessionId: SESSION_ID, phoneNumber: normalizeNumber(phone) })
+                    body: JSON.stringify({ sessionId: SESSION_ID, phoneNumber: cleanPhone })
                 });
                 const d = await res.json();
                 if (d.pairingCode) {
                     disp.innerText = d.pairingCode;
+                    await restoreGroupsFromServer(true);
                 } else {
                     disp.innerText = d.error || 'Pairing error';
                 }
@@ -1428,7 +1465,7 @@
             if (!confirm(`Delete ${selectedGroupsForDelete.size} selected group(s)?`)) return;
             groups = groups.filter(g => !selectedGroupsForDelete.has(g.id));
             localStorage.setItem('app_groups', JSON.stringify(groups));
-            syncGroupsToServer();
+            syncGroupsToServer(true);
             toggleGroupSelectMode();
         }
 
@@ -1669,6 +1706,13 @@
             if (!camp) return;
 
             let list = camp.recipients || [];
+            if (list.length === 0) {
+                document.getElementById('filterModalTitle').innerText = `Campaign Summary`;
+                document.getElementById('filterModalContainer').innerHTML = `<div style="text-align: center; color: var(--text-muted); padding: 20px;">Recipient phone numbers are automatically cleared after campaign completion for privacy and storage optimization.<br><br><b style="color:var(--text);">Total: ${camp.total} • Sent: ${camp.sent} • Failed: ${camp.failed} • Pending: ${camp.pending}</b></div>`;
+                openModal('contactFilterModal');
+                return;
+            }
+
             if (filterType !== 'ALL') {
                 list = list.filter(r => r.status === filterType);
             }
@@ -1928,7 +1972,7 @@
             if (g) {
                 g.contacts.splice(idx, 1);
                 localStorage.setItem('app_groups', JSON.stringify(groups));
-                syncGroupsToServer();
+                syncGroupsToServer(true);
                 renderMembers();
                 renderGroups();
             }
