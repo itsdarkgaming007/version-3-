@@ -740,7 +740,10 @@
         };
 
         let groups = [];
-        try { groups = JSON.parse(localStorage.getItem('app_groups') || '[]'); } catch(e) { groups = []; }
+        // Strict Isolation: Do not load groups if unpaired
+        if (SESSION_ID !== 'unpaired_user') {
+            try { groups = JSON.parse(localStorage.getItem('app_groups') || '[]'); } catch(e) { groups = []; }
+        }
 
         let globalCampaigns = [];
         try { globalCampaigns = JSON.parse(localStorage.getItem('app_campaigns') || '[]'); } catch(e) { globalCampaigns = []; }
@@ -932,7 +935,6 @@
             renderWelcomeSequence();
         }
 
-        // --- Media Preview with Blob Revocation (Memory Leak Prevention) ---
         function handleMediaAttachment(e) {
             const files = e.target.files;
             const previewBox = document.getElementById('previewMediaBox');
@@ -1066,7 +1068,6 @@
             document.getElementById('previewTime').innerText = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         }
 
-        // --- Multi-Block Auto Welcome Sequence Builder ---
         function addWelcomeBlock(type) {
             const textCount = welcomeBlocks.filter(b => b.type === 'text').length;
             const imgCount = welcomeBlocks.filter(b => b.type === 'image').length;
@@ -1774,7 +1775,6 @@
                 const res = await fetch(`https://rinse-chest-dish.ngrok-free.dev/api/campaign/state?sessionId=${SESSION_ID}`, {
                     headers: { 'Authorization': `Bearer ${API_BEARER_TOKEN}`, 'ngrok-skip-browser-warning': 'true' }
                 });
-                // We can fetch scheduled jobs via a dedicated endpoint or state. For now show placeholder if empty.
                 container.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 12px; font-size: 0.85rem;">No upcoming scheduled campaigns.</div>';
             } catch (e) {
                 container.innerHTML = '';
@@ -2024,7 +2024,6 @@
             const phone = normalizeNumber(rawPhone);
             if (!phone || phone.length < 10) return alert('Enter valid phone number');
 
-            // Auto-Deduplicate check inside group
             if (g.contacts.some(c => c.phone === phone)) {
                 return alert('This phone number already exists in this group.');
             }
@@ -2200,7 +2199,7 @@
                 const lines = text.split(/[\r\n]+/);
                 const imported = [];
                 for (let i = 0; i < lines.length; i++) {
-                    if (imported.length >= MAX_GROUP_CONTACTS) break; // Strict cap
+                    if (imported.length >= MAX_GROUP_CONTACTS) break;
                     const parts = lines[i].split(/[,;\t]+/);
                     if (parts.length >= 2) {
                         const name = parts[0].trim();
