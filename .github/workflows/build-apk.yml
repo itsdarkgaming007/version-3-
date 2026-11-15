@@ -38,28 +38,39 @@ jobs:
       - name: Install Dependencies
         run: npm install
 
-      - name: Add and Sync Android Platform
-        run: |
-          npx cap add android || true
-          npx cap sync android
-
-      - name: Inject Synchronized Version
+      - name: Inject Synchronized Version into Web Source
         run: |
           BUILD_NUM=${{ github.run_number }}
           VERSION_NAME="v3.6.$BUILD_NUM"
           echo "BUILD_NUM=$BUILD_NUM" >> $GITHUB_ENV
           echo "VERSION_NAME=$VERSION_NAME" >> $GITHUB_ENV
 
+          # Pre-inject version number into www/index.html BEFORE Capacitor syncs to Android
+          sed -i "s/__CLIENT_BUILD_NUMBER__/$BUILD_NUM/g" www/index.html || true
+          sed -i "s/__CLIENT_BUILD_NUMBER__/$BUILD_NUM/g" index.html || true
+
+      - name: Add and Sync Android Platform
+        run: |
+          npx cap add android || true
+          npx cap sync android
+
+      - name: Inject Gradle and Android Manifest Configurations
+        run: |
+          BUILD_NUM=${{ env.BUILD_NUM }}
+          VERSION_NAME="${{ env.VERSION_NAME }}"
+
           # Inject into Gradle
           sed -i "s/versionCode 1/versionCode $BUILD_NUM/g" android/app/build.gradle
-          sed -i "s/versionName \"1.0\"/versionName \"$VERSION_NAME\"/g" android/app/build.gradle
+          sed -i "s/versionName "1.0"/versionName "$VERSION_NAME"/g" android/app/build.gradle
 
-          # Inject current version directly into HTML client so update dot clears
-          sed -i "s/__CLIENT_BUILD_NUMBER__/$BUILD_NUM/g" www/index.html
+          # Secondary safety: ensure android asset copy also has the exact build number
+          if [ -f "android/app/src/main/assets/public/index.html" ]; then
+            sed -i "s/__CLIENT_BUILD_NUMBER__/$BUILD_NUM/g" android/app/src/main/assets/public/index.html || true
+          fi
 
           # Enable cleartext traffic and permissions
           sed -i 's/<application/<application android:usesCleartextTraffic="true"/g' android/app/src/main/AndroidManifest.xml
-          sed -i '/<manifest/a \    <uses-permission android:name="android.permission.READ_CONTACTS" />\n    <uses-permission android:name="android.permission.WRITE_CONTACTS" />\n    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />\n    <uses-permission android:name="android.permission.INTERNET" />' android/app/src/main/AndroidManifest.xml
+          sed -i '/<manifest/a \    <uses-permission android:name="android.permission.READ_CONTACTS" />\n    <uses-permission android:name="android.permission.WRITE_CONTACTS" />\n    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />\n    <uses-permission android:name="android.permission.INTERNET" />\n    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />\n    <uses-permission android:name="android.permission.WAKE_LOCK" />' android/app/src/main/AndroidManifest.xml
 
       - name: Setup Deterministic Keystore
         run: |
