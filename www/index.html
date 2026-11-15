@@ -394,7 +394,7 @@
             <div id="statusPairingBox">
                 <input type="tel" id="txtPairPhone" placeholder="Enter WhatsApp Number (e.g. 9876543210)">
                 <button class="btn btn-primary" id="btnPair" onclick="requestPairCode()">Pair WhatsApp & Sync Backup</button>
-                <button class="btn btn-outline" style="margin-top: 8px; font-size: 0.82rem; padding: 9px;" onclick="syncExistingAccountBackup()">🔄 Restore Groups by Phone Number</button>
+                
                 <div id="pairCodeDisplay" style="font-size: 1.5rem; letter-spacing: 4px; font-weight: bold; color: var(--primary); text-align: center; margin-top: 10px; display: none;"></div>
             </div>
         </div>
@@ -556,9 +556,10 @@
 
     <script>
         const FIXED_BACKEND_URL = "https://rinse-chest-dish.ngrok-free.dev";
+        const DEFAULT_TOKEN = "marketing_engine_secret_2026";
         
-        let SESSION_ID = localStorage.getItem('connected_phone_permanent') || localStorage.getItem('tenant_session_id') || 'unpaired_user';
-        let API_BEARER_TOKEN = localStorage.getItem('tenant_token') || 'marketing_engine_secret_2026';
+        let SESSION_ID = localStorage.getItem('connected_phone_permanent') || 'unpaired_user';
+        let API_BEARER_TOKEN = localStorage.getItem('tenant_token') || DEFAULT_TOKEN;
 
         const MAX_GROUP_CONTACTS = 250;
 
@@ -567,6 +568,7 @@
 
         let currentActiveCampaignId = null;
         let pollTimer = null;
+        let pairingPollTimer = null;
         let latestDetectedRemoteBuild = CURRENT_BUILD_NUMBER;
         let activeObjectURLs = [];
 
@@ -625,7 +627,7 @@
                 recentHistory: "Recent Campaigns History (Last 3)",
                 connection: "WhatsApp Account Status",
                 unlink: "Unlink WhatsApp",
-                pair: "Pair WhatsApp & Sync Backup",
+                pair: "Pair WhatsApp",
                 language: "Language",
                 theme: "Theme",
                 updates: "App Version & Updates",
@@ -694,7 +696,7 @@
                 groups: "समूह",
                 campaign: "अभियान",
                 dashboard: "डैशबोर्ड",
-                settings: "सेटिंग्स",
+                settings: "सेTINGS",
                 sortNewest: "क्रम: नवीनतम पहले",
                 sortAlpha: "क्रम: वर्णमाला (A-Z)",
                 sortCount: "क्रम: सर्वाधिक संपर्क",
@@ -740,8 +742,8 @@
         };
 
         let groups = [];
-        // Strict Isolation: Do not load groups if unpaired
-        if (SESSION_ID !== 'unpaired_user') {
+        // Strict Data Isolation: If unpaired, groups MUST be completely empty!
+        if (SESSION_ID && SESSION_ID !== 'unpaired_user') {
             try { groups = JSON.parse(localStorage.getItem('app_groups') || '[]'); } catch(e) { groups = []; }
         }
 
@@ -827,8 +829,6 @@
             window.addEventListener('touchend', async () => {
                 if (spinner.style.display === 'block') {
                     await syncWhatsAppAccountStatus();
-                    await restoreGroupsFromServer();
-                    await hydrateCampaignStateFromServer();
                     renderGroups();
                     renderDashboard();
                     checkForAppUpdatesBackground();
@@ -1196,7 +1196,7 @@
         async function loadWelcomeRulesFromServer() {
             if (SESSION_ID === 'unpaired_user') return;
             try {
-                const res = await fetch(`https://rinse-chest-dish.ngrok-free.dev/api/welcome/rules?sessionId=${SESSION_ID}`, {
+                const res = await fetch(`${FIXED_BACKEND_URL}/api/welcome/rules?sessionId=${SESSION_ID}`, {
                     headers: { 'Authorization': `Bearer ${API_BEARER_TOKEN}`, 'ngrok-skip-browser-warning': 'true' }
                 });
                 const d = await res.json();
@@ -1260,7 +1260,7 @@
             });
 
             try {
-                const res = await fetch(`https://rinse-chest-dish.ngrok-free.dev/api/welcome/setup`, {
+                const res = await fetch(`${FIXED_BACKEND_URL}/api/welcome/setup`, {
                     method: 'POST',
                     headers: { 'Authorization': `Bearer ${API_BEARER_TOKEN}`, 'ngrok-skip-browser-warning': 'true' },
                     body: fd
@@ -1281,40 +1281,45 @@
             }
         }
 
+        // --- Core Authentication & WhatsApp Handshake ---
         async function syncWhatsAppAccountStatus() {
-            if (SESSION_ID === 'unpaired_user') {
+            const checkSession = localStorage.getItem('connected_phone_permanent') || SESSION_ID;
+            if (!checkSession || checkSession === 'unpaired_user') {
                 document.getElementById('statusConnectedBox').style.display = 'none';
                 document.getElementById('statusPairingBox').style.display = 'block';
                 return;
             }
+
             try {
-                const res = await fetch(`https://rinse-chest-dish.ngrok-free.dev/api/status/${SESSION_ID}`, {
+                const res = await fetch(`${FIXED_BACKEND_URL}/api/status/${checkSession}`, {
                     headers: { 'Authorization': `Bearer ${API_BEARER_TOKEN}`, 'ngrok-skip-browser-warning': 'true' }
                 });
                 const d = await res.json();
                 
                 if (d.status === 'CONNECTED' && d.phone) {
-                    const resolvedTenant = d.tenantId || d.phone;
-                    if (SESSION_ID !== resolvedTenant) {
-                        SESSION_ID = resolvedTenant;
-                        localStorage.setItem('tenant_session_id', SESSION_ID);
-                    }
+                    SESSION_ID = d.phone;
+                    localStorage.setItem('connected_phone_permanent', d.phone);
+                    localStorage.setItem('tenant_session_id', d.phone);
                     if (d.tenantToken) {
                         API_BEARER_TOKEN = d.tenantToken;
                         localStorage.setItem('tenant_token', API_BEARER_TOKEN);
                     }
-                    localStorage.setItem('connected_phone_permanent', d.phone);
+
                     document.getElementById('statusConnectedBox').style.display = 'block';
                     document.getElementById('statusPairingBox').style.display = 'none';
                     document.getElementById('lblConnectedPhone').innerText = `+${d.phone}`;
                     document.getElementById('badgeServerStatus').innerText = "● CONNECTED";
                     document.getElementById('badgeServerStatus').style.color = "var(--primary)";
                     document.getElementById('txtServerOfflineNotice').style.display = "none";
+
+                    // Now safe to load account groups and campaign state!
+                    await restoreGroupsFromServer(false);
+                    await hydrateCampaignStateFromServer();
+                    await loadWelcomeRulesFromServer();
                 } else {
-                    localStorage.removeItem('connected_phone_permanent');
+                    // Not connected yet
                     document.getElementById('statusConnectedBox').style.display = 'none';
                     document.getElementById('statusPairingBox').style.display = 'block';
-                    document.getElementById('pairCodeDisplay').style.display = 'none';
                 }
             } catch(e) {
                 const savedPhone = localStorage.getItem('connected_phone_permanent');
@@ -1333,9 +1338,9 @@
         }
 
         async function syncGroupsToServer(allowEmptyOverwrite = false) {
-            if (SESSION_ID === 'unpaired_user') return;
+            if (!SESSION_ID || SESSION_ID === 'unpaired_user') return;
             try {
-                await fetch(`https://rinse-chest-dish.ngrok-free.dev/api/groups/sync`, {
+                await fetch(`${FIXED_BACKEND_URL}/api/groups/sync`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${API_BEARER_TOKEN}`, 'ngrok-skip-browser-warning': 'true' },
                     body: JSON.stringify({ sessionId: SESSION_ID, groups, allowEmptyOverwrite })
@@ -1344,13 +1349,13 @@
         }
 
         async function restoreGroupsFromServer(forcePull = false) {
-            if (SESSION_ID === 'unpaired_user') return false;
+            if (!SESSION_ID || SESSION_ID === 'unpaired_user') return false;
             try {
-                const res = await fetch(`https://rinse-chest-dish.ngrok-free.dev/api/groups/restore?sessionId=${SESSION_ID}`, {
+                const res = await fetch(`${FIXED_BACKEND_URL}/api/groups/restore?sessionId=${SESSION_ID}`, {
                     headers: { 'Authorization': `Bearer ${API_BEARER_TOKEN}`, 'ngrok-skip-browser-warning': 'true' }
                 });
                 const d = await res.json();
-                if (d.groups && Array.isArray(d.groups) && d.groups.length > 0) {
+                if (d.groups && Array.isArray(d.groups)) {
                     if (groups.length === 0 || forcePull) {
                         groups = d.groups;
                         localStorage.setItem('app_groups', JSON.stringify(groups));
@@ -1363,31 +1368,10 @@
             return false;
         }
 
-        async function syncExistingAccountBackup() {
-            const rawPhone = document.getElementById('txtPairPhone').value.trim();
-            if (!rawPhone) return alert('Enter your 10-digit WhatsApp number above to restore your groups.');
-            const cleanPhone = normalizeNumber(rawPhone);
-            if (!cleanPhone || cleanPhone.length < 10) return alert('Enter a valid 10-digit phone number.');
-
-            SESSION_ID = cleanPhone;
-            localStorage.setItem('tenant_session_id', SESSION_ID);
-
-            const restored = await restoreGroupsFromServer(true);
-            await syncWhatsAppAccountStatus();
-            await loadWelcomeRulesFromServer();
-            await hydrateCampaignStateFromServer();
-
-            if (restored) {
-                alert(`Backup restored! ${groups.length} group(s) recovered for +${cleanPhone}.`);
-            } else {
-                alert(`Account switched to +${cleanPhone}. No remote backup found.`);
-            }
-        }
-
         async function hydrateCampaignStateFromServer() {
-            if (SESSION_ID === 'unpaired_user') return;
+            if (!SESSION_ID || SESSION_ID === 'unpaired_user') return;
             try {
-                const res = await fetch(`https://rinse-chest-dish.ngrok-free.dev/api/campaign/state?sessionId=${SESSION_ID}`, {
+                const res = await fetch(`${FIXED_BACKEND_URL}/api/campaign/state?sessionId=${SESSION_ID}`, {
                     headers: { 'Authorization': `Bearer ${API_BEARER_TOKEN}`, 'ngrok-skip-browser-warning': 'true' }
                 });
                 const d = await res.json();
@@ -1423,39 +1407,52 @@
             } catch(e) {}
         }
 
+        // Request WhatsApp Pairing Code without Restoring Data Prematurely
         async function requestPairCode() {
             const phone = document.getElementById('txtPairPhone').value.trim();
-            if (!phone) return alert('Enter phone number');
+            if (!phone) return alert('Enter WhatsApp phone number');
             const cleanPhone = normalizeNumber(phone);
-            if (!cleanPhone || cleanPhone.length < 10) return alert('Enter valid 10-digit phone number');
-
-            SESSION_ID = cleanPhone;
-            localStorage.setItem('tenant_session_id', SESSION_ID);
+            if (!cleanPhone || cleanPhone.length < 10) return alert('Enter a valid 10-digit phone number');
 
             const disp = document.getElementById('pairCodeDisplay');
             disp.style.display = 'block';
-            disp.innerText = 'Requesting...';
+            disp.innerText = 'Requesting code...';
             const btnPair = document.getElementById('btnPair');
             btnPair.disabled = true;
 
             try {
-                const res = await fetch(`https://rinse-chest-dish.ngrok-free.dev/api/pair`, {
+                const res = await fetch(`${FIXED_BACKEND_URL}/api/pair`, {
                     method: 'POST',
                     headers: { 
                         'Content-Type': 'application/json', 
-                        'Authorization': `Bearer ${API_BEARER_TOKEN}`,
+                        'Authorization': `Bearer ${DEFAULT_TOKEN}`,
                         'ngrok-skip-browser-warning': 'true'
                     },
-                    body: JSON.stringify({ sessionId: SESSION_ID, phoneNumber: cleanPhone })
+                    body: JSON.stringify({ phoneNumber: cleanPhone })
                 });
                 const d = await res.json();
                 if (d.pairingCode) {
                     disp.innerText = d.pairingCode;
-                    if (d.tenantToken) {
-                        API_BEARER_TOKEN = d.tenantToken;
-                        localStorage.setItem('tenant_token', API_BEARER_TOKEN);
-                    }
-                    await restoreGroupsFromServer(true);
+                    // Start polling status until user enters pairing code on their phone
+                    if (pairingPollTimer) clearInterval(pairingPollTimer);
+                    pairingPollTimer = setInterval(async () => {
+                        const statusRes = await fetch(`${FIXED_BACKEND_URL}/api/status/${cleanPhone}`, {
+                            headers: { 'Authorization': `Bearer ${DEFAULT_TOKEN}`, 'ngrok-skip-browser-warning': 'true' }
+                        });
+                        const sd = await statusRes.json();
+                        if (sd.status === 'CONNECTED') {
+                            clearInterval(pairingPollTimer);
+                            SESSION_ID = cleanPhone;
+                            if (sd.tenantToken) {
+                                API_BEARER_TOKEN = sd.tenantToken;
+                                localStorage.setItem('tenant_token', API_BEARER_TOKEN);
+                            }
+                            localStorage.setItem('connected_phone_permanent', cleanPhone);
+                            localStorage.setItem('tenant_session_id', cleanPhone);
+                            await syncWhatsAppAccountStatus();
+                            alert(`WhatsApp connected successfully for +${cleanPhone}!`);
+                        }
+                    }, 2500);
                 } else {
                     disp.innerText = d.error || 'Pairing error';
                 }
@@ -1466,36 +1463,26 @@
             }
         }
 
+        // Unlink & Complete Local State Purge
         async function unlinkAccount() {
-            if (!confirm('Unlink and disconnect this WhatsApp account?')) return;
+            if (!confirm('Unlink and disconnect this WhatsApp account? All local account cache will be purged.')) return;
             const btn = document.getElementById('btnUnlink');
             btn.innerText = 'Disconnecting...';
             btn.disabled = true;
 
             try {
-                await fetch(`https://rinse-chest-dish.ngrok-free.dev/api/logout`, {
+                await fetch(`${FIXED_BACKEND_URL}/api/logout`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${API_BEARER_TOKEN}`, 'ngrok-skip-browser-warning': 'true' },
                     body: JSON.stringify({ sessionId: SESSION_ID })
                 });
             } catch(e) {}
 
-            localStorage.removeItem('connected_phone_permanent');
-            localStorage.removeItem('tenant_session_id');
-            localStorage.removeItem('tenant_token');
-            SESSION_ID = 'unpaired_user';
-            API_BEARER_TOKEN = 'marketing_engine_secret_2026';
-            groups = [];
-            localStorage.removeItem('app_groups');
-
-            btn.innerText = 'Unlink WhatsApp';
-            btn.disabled = false;
-            document.getElementById('statusConnectedBox').style.display = 'none';
-            document.getElementById('statusPairingBox').style.display = 'block';
-            document.getElementById('pairCodeDisplay').style.display = 'none';
-            renderGroups();
-            renderDashboard();
-            alert('WhatsApp account unlinked successfully.');
+            // Complete wipe of all storage keys for 100% data privacy
+            localStorage.clear();
+            sessionStorage.clear();
+            alert('WhatsApp account unlinked and local state cleared.');
+            window.location.reload();
         }
 
         function toggleGroupSelectMode() {
@@ -1583,13 +1570,14 @@
             const isScheduleEnabled = document.getElementById('chkEnableSchedule').checked;
             const scheduleTime = document.getElementById('campScheduleTime').value;
 
+            let scheduleEpoch = 0;
             if (isScheduleEnabled) {
                 if (!scheduleTime) return alert('Please select a schedule date and time.');
-                const chosen = new Date(scheduleTime).getTime();
+                scheduleEpoch = new Date(scheduleTime).getTime();
                 const now = Date.now();
                 const maxAllowed = now + (7 * 24 * 60 * 60 * 1000);
-                if (chosen <= now) return alert('Schedule time must be in the future.');
-                if (chosen > maxAllowed) return alert('Schedule cannot exceed 7 days ahead.');
+                if (scheduleEpoch <= now) return alert('Schedule time must be in the future.');
+                if (scheduleEpoch > maxAllowed) return alert('Schedule cannot exceed 7 days ahead.');
             }
 
             const formData = new FormData();
@@ -1597,7 +1585,9 @@
             formData.append('recipients', JSON.stringify(uniqueRecipients));
             formData.append('message', message);
             formData.append('isScheduled', isScheduleEnabled);
-            if (isScheduleEnabled && scheduleTime) formData.append('scheduleTime', scheduleTime);
+            if (isScheduleEnabled && scheduleEpoch > 0) {
+                formData.append('scheduleEpoch', scheduleEpoch);
+            }
 
             for (let i = 0; i < mediaInput.files.length; i++) {
                 formData.append('media_' + i, mediaInput.files[i]);
@@ -1608,14 +1598,14 @@
             btnLaunch.disabled = true;
 
             try {
-                const res = await fetch(`https://rinse-chest-dish.ngrok-free.dev/api/message/send-bulk`, {
+                const res = await fetch(`${FIXED_BACKEND_URL}/api/message/send-bulk`, {
                     method: 'POST',
                     headers: { 'Authorization': `Bearer ${API_BEARER_TOKEN}`, 'ngrok-skip-browser-warning': 'true' },
                     body: formData
                 });
                 const d = await res.json();
                 if (d.status === 'SCHEDULED') {
-                    alert(`Campaign successfully scheduled for ${new Date(scheduleTime).toLocaleString()}`);
+                    alert(`Campaign successfully scheduled for ${d.scheduledForDate || new Date(scheduleEpoch).toLocaleString()}`);
                     loadScheduledCampaignsList();
                 } else if (d.status === 'QUEUED') {
                     currentActiveCampaignId = d.campaignId;
@@ -1632,7 +1622,7 @@
 
         async function pauseCurrentCampaign() {
             try {
-                const res = await fetch(`https://rinse-chest-dish.ngrok-free.dev/api/campaign/pause`, {
+                const res = await fetch(`${FIXED_BACKEND_URL}/api/campaign/pause`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${API_BEARER_TOKEN}`, 'ngrok-skip-browser-warning': 'true' },
                     body: JSON.stringify({ sessionId: SESSION_ID, campaignId: currentActiveCampaignId })
@@ -1650,7 +1640,7 @@
 
         async function resumeCurrentCampaign() {
             try {
-                const res = await fetch(`https://rinse-chest-dish.ngrok-free.dev/api/campaign/resume`, {
+                const res = await fetch(`${FIXED_BACKEND_URL}/api/campaign/resume`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${API_BEARER_TOKEN}`, 'ngrok-skip-browser-warning': 'true' },
                     body: JSON.stringify({ sessionId: SESSION_ID, campaignId: currentActiveCampaignId })
@@ -1669,7 +1659,7 @@
         async function stopCurrentCampaign() {
             if (!confirm('Are you sure you want to stop this campaign permanently?')) return;
             try {
-                const res = await fetch(`https://rinse-chest-dish.ngrok-free.dev/api/campaign/stop`, {
+                const res = await fetch(`${FIXED_BACKEND_URL}/api/campaign/stop`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${API_BEARER_TOKEN}`, 'ngrok-skip-browser-warning': 'true' },
                     body: JSON.stringify({ sessionId: SESSION_ID, campaignId: currentActiveCampaignId })
@@ -1689,7 +1679,7 @@
 
             pollTimer = setInterval(async () => {
                 try {
-                    const res = await fetch(`https://rinse-chest-dish.ngrok-free.dev/api/queue-status/${SESSION_ID}`, {
+                    const res = await fetch(`${FIXED_BACKEND_URL}/api/queue-status/${SESSION_ID}`, {
                         headers: { 'Authorization': `Bearer ${API_BEARER_TOKEN}`, 'ngrok-skip-browser-warning': 'true' }
                     });
                     const q = await res.json();
@@ -1767,18 +1757,47 @@
 
         async function loadScheduledCampaignsList() {
             const container = document.getElementById('scheduledCampaignsContainer');
-            if (SESSION_ID === 'unpaired_user') {
+            if (!SESSION_ID || SESSION_ID === 'unpaired_user') {
                 container.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 12px;">Not connected.</div>';
                 return;
             }
             try {
-                const res = await fetch(`https://rinse-chest-dish.ngrok-free.dev/api/campaign/state?sessionId=${SESSION_ID}`, {
+                const res = await fetch(`${FIXED_BACKEND_URL}/api/campaign/scheduled-jobs/${SESSION_ID}`, {
                     headers: { 'Authorization': `Bearer ${API_BEARER_TOKEN}`, 'ngrok-skip-browser-warning': 'true' }
                 });
-                container.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 12px; font-size: 0.85rem;">No upcoming scheduled campaigns.</div>';
+                const d = await res.json();
+                if (d.success && Array.isArray(d.jobs) && d.jobs.length > 0) {
+                    container.innerHTML = d.jobs.map(j => `
+                        <div class="card" style="margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
+                            <div>
+                                <div style="font-weight:bold; font-size:0.9rem;">⏰ ${escapeHtml(j.scheduledForDate)}</div>
+                                <div style="font-size:0.75rem; color:var(--text-muted);">${j.recipients.length} recipients</div>
+                            </div>
+                            <button class="btn btn-danger" style="width:auto; padding:6px 12px; font-size:0.78rem;" onclick="cancelScheduledCampaign('${j.id}')">Cancel</button>
+                        </div>
+                    `).join('');
+                } else {
+                    container.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 12px; font-size: 0.85rem;">No upcoming scheduled campaigns.</div>';
+                }
             } catch (e) {
                 container.innerHTML = '';
             }
+        }
+
+        async function cancelScheduledCampaign(jobId) {
+            if (!confirm('Cancel this scheduled campaign and purge attached media?')) return;
+            try {
+                const res = await fetch(`${FIXED_BACKEND_URL}/api/campaign/cancel-schedule`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${API_BEARER_TOKEN}`, 'ngrok-skip-browser-warning': 'true' },
+                    body: JSON.stringify({ sessionId: SESSION_ID, jobId })
+                });
+                const d = await res.json();
+                if (d.success) {
+                    alert('Scheduled campaign cancelled.');
+                    loadScheduledCampaignsList();
+                } else alert(d.error || 'Failed to cancel');
+            } catch(e) { alert('Error: ' + e.message); }
         }
 
         function showFilteredContacts(campId, filterType) {
@@ -2259,9 +2278,6 @@
             setupBackNavigation();
             setupPullToRefresh();
             await syncWhatsAppAccountStatus();
-            await restoreGroupsFromServer();
-            await loadWelcomeRulesFromServer();
-            await hydrateCampaignStateFromServer();
             checkForAppUpdatesBackground();
         };
     </script>
