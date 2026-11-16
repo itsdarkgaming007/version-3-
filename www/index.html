@@ -127,14 +127,41 @@
             color: var(--primary);
         }
 
-        .preview-wrapper { background-color: #0b141a; border: 1px solid var(--border); border-radius: 12px; padding: 14px; margin-bottom: 14px; display: none; }
-        body.light-theme .preview-wrapper { background-color: #efeae2; }
-        .wa-bubble-realistic { background: var(--wa-bubble); color: #fff; border-radius: 8px 8px 2px 8px; max-width: 85%; margin-left: auto; box-shadow: 0 1px 2px rgba(0,0,0,0.3); overflow: hidden; position: relative; }
-        body.light-theme .wa-bubble-realistic { color: #111b21; }
-        .wa-preview-img-container { width: 100%; max-height: 220px; background: #000; display: none; overflow: hidden; }
-        .wa-preview-img-container img, .wa-preview-img-container video { width: 100%; height: 100%; max-height: 220px; object-fit: cover; display: block; }
-        .wa-bubble-caption { padding: 8px 10px 4px 10px; font-size: 0.92rem; line-height: 1.35; white-space: pre-wrap; word-break: break-word; }
-        .wa-bubble-meta { display: flex; align-items: center; justify-content: flex-end; gap: 4px; padding: 0 8px 4px 8px; font-size: 0.68rem; color: rgba(255,255,255,0.65); }
+        /* Seamless Chat Stream Preview */
+        .chat-stream-preview { 
+            background: #0b141a; 
+            border: 1px solid var(--border); 
+            border-radius: 12px; 
+            padding: 12px; 
+            margin-bottom: 14px; 
+            max-height: 260px; 
+            overflow-y: auto; 
+            box-shadow: inset 0 2px 6px rgba(0,0,0,0.4);
+        }
+        body.light-theme .chat-stream-preview { background: #efeae2; box-shadow: inset 0 1px 4px rgba(0,0,0,0.1); }
+        .wa-chat-bubble { 
+            background: var(--wa-bubble); 
+            color: #fff; 
+            border-radius: 8px 8px 2px 8px; 
+            padding: 8px 10px; 
+            margin-bottom: 8px; 
+            max-width: 85%; 
+            margin-left: auto; 
+            font-size: 0.88rem; 
+            word-break: break-word; 
+            box-shadow: 0 1px 2px rgba(0,0,0,0.3);
+        }
+        body.light-theme .wa-chat-bubble { color: #111b21; }
+        .wa-bubble-meta { 
+            display: flex; 
+            align-items: center; 
+            justify-content: flex-end; 
+            gap: 4px; 
+            font-size: 0.65rem; 
+            color: rgba(255,255,255,0.65); 
+            margin-top: 4px;
+        }
+        body.light-theme .wa-bubble-meta { color: rgba(0,0,0,0.45); }
 
         .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 200; align-items: center; justify-content: center; padding: 16px; }
         .modal-high { z-index: 300; }
@@ -262,7 +289,7 @@
             <button type="button" class="seg-tab-btn" id="btnSubTabWelcome" onclick="switchCampaignSubTab('welcome')">🤖 Auto Welcome</button>
         </div>
 
-        <!-- SUB-PANEL A: BULK CAMPAIGN (Multi-block system with 4 Text, 4 Image, 2 Video) -->
+        <!-- SUB-PANEL A: BULK CAMPAIGN -->
         <div id="subPanelBlast">
             <div class="card">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
@@ -277,6 +304,15 @@
                 </div>
 
                 <div id="bulkSequenceContainer" style="margin-bottom: 12px;"></div>
+
+                <!-- Seamless Real-time WhatsApp Stream Preview -->
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                    <span style="font-size: 0.8rem; font-weight: bold; color: var(--primary);">📱 Live WhatsApp Preview</span>
+                    <span style="font-size: 0.72rem; color: var(--text-muted);">Real-time Sequence</span>
+                </div>
+                <div class="chat-stream-preview" id="bulkLiveStreamPreview">
+                    <div style="text-align:center; color:var(--text-muted); font-size:0.8rem; padding: 12px;">Sequence preview will appear here...</div>
+                </div>
 
                 <!-- Smart Campaign Scheduler (Max 3 Guarded) -->
                 <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px; margin-bottom: 12px;">
@@ -322,6 +358,14 @@
                 </div>
 
                 <div id="welcomeSequenceContainer"></div>
+
+                <!-- Auto Welcome Stream Preview -->
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; margin-top: 10px;">
+                    <span style="font-size: 0.8rem; font-weight: bold; color: var(--primary);">📱 Welcome Stream Preview</span>
+                </div>
+                <div class="chat-stream-preview" id="welcomeLiveStreamPreview">
+                    <div style="text-align:center; color:var(--text-muted); font-size:0.8rem; padding: 12px;">Welcome preview will appear here...</div>
+                </div>
 
                 <button class="btn btn-primary" id="btnSaveWelcome" onclick="saveWelcomeRules()">💾 Save Welcome Sequence</button>
             </div>
@@ -453,32 +497,54 @@
         </div>
     </div>
 
-    <div class="modal" id="membersModal">
-        <div class="modal-content">
-            <div class="modal-title" id="lblManageGroup">Group Members</div>
+    <!-- FULLSCREEN OVERLAY FOR GROUP MEMBERS (Full Screen + Live Member Search) -->
+    <div class="fullscreen-overlay" id="membersOverlay">
+        <div class="fs-header">
+            <button class="back-arrow-btn" onclick="closeGroupMembersOverlay()">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M19 12H5"></path>
+                    <path d="M12 19l-7-7 7-7"></path>
+                </svg>
+                <span>Back</span>
+            </button>
+            <div style="font-size: 1.1rem; font-weight: bold;" id="lblManageGroupTitle">Group Members</div>
+        </div>
 
-            <label id="lblRenameGroup">Group Name</label>
-            <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+        <div style="padding: 12px 16px; background: var(--surface); border-bottom: 1px solid var(--border);">
+            <label id="lblRenameGroup" style="margin-bottom: 4px;">Group Name</label>
+            <div style="display: flex; gap: 8px;">
                 <input type="text" id="editGroupNameInput" style="margin-bottom:0;">
-                <button class="btn btn-primary" style="width: auto; padding: 0 14px;" onclick="renameActiveGroup()">Save</button>
+                <button class="btn btn-primary" style="width: auto; padding: 0 16px;" onclick="renameActiveGroup()">Save</button>
             </div>
+        </div>
 
-            <label>Add Contacts (Limit: 250)</label>
-            <div style="display: flex; gap: 8px; margin-bottom: 12px;">
-                <button type="button" class="btn btn-outline" onclick="openPhonebookSelector('edit')">📱 Pick Contacts</button>
-                <button type="button" class="btn btn-outline" onclick="document.getElementById('csvFileInputEdit').click()">📁 Import File</button>
-                <input type="file" id="csvFileInputEdit" accept=".csv,.txt,.vcf" style="display: none;" onchange="handleFileImport(event, 'edit')">
-            </div>
+        <div style="padding: 10px 16px; background: var(--surface); border-bottom: 1px solid var(--border); display: flex; gap: 8px;">
+            <button type="button" class="btn btn-outline" style="flex:1; padding: 8px;" onclick="openPhonebookSelector('edit')">📱 Pick Contacts</button>
+            <button type="button" class="btn btn-outline" style="flex:1; padding: 8px;" onclick="document.getElementById('csvFileInputEdit').click()">📁 Import File</button>
+            <input type="file" id="csvFileInputEdit" accept=".csv,.txt,.vcf" style="display: none;" onchange="handleFileImport(event, 'edit')">
+        </div>
 
-            <label>Add Single Contact (Auto +91)</label>
-            <div style="display: flex; gap: 6px; margin-bottom: 12px;">
+        <div style="padding: 10px 16px; background: var(--surface); border-bottom: 1px solid var(--border);">
+            <div style="display: flex; gap: 6px;">
                 <input type="text" id="quickAddName" placeholder="Name" style="flex: 1; margin-bottom: 0;">
                 <input type="tel" id="quickAddPhone" placeholder="10 Digits or +91" style="flex: 1.4; margin-bottom: 0;">
                 <button class="btn btn-primary" style="width: auto; padding: 0 14px;" onclick="addSingleContact()">Add</button>
             </div>
+        </div>
 
-            <div id="membersListContainer" style="max-height: 250px; overflow-y: auto;"></div>
-            <button class="btn btn-secondary" style="margin-top: 14px;" onclick="closeTopModal()">Done</button>
+        <!-- Live Search Bar inside Group Members -->
+        <div class="fs-search-container">
+            <input type="text" id="groupMembersSearch" placeholder="🔍 Search members by name or phone..." oninput="filterGroupMembers()" style="margin-bottom: 0;">
+        </div>
+
+        <div class="fs-sub-bar">
+            <span id="groupMemberCountBadge" style="font-size: 0.85rem; color: var(--primary); font-weight: bold;">0 Members</span>
+        </div>
+
+        <div class="fs-list-scroll" id="membersListContainer"></div>
+
+        <div class="fs-bottom-bar">
+            <button class="btn btn-secondary" onclick="closeGroupMembersOverlay()">Done</button>
         </div>
     </div>
 
@@ -507,6 +573,7 @@
         </div>
     </div>
 
+    <!-- FULLSCREEN OVERLAY FOR DEVICE CONTACTS PICKER (Auto-ticks existing members) -->
     <div class="fullscreen-overlay" id="phonebookOverlay">
         <div class="fs-header">
             <button class="back-arrow-btn" onclick="closePhonebookOverlay()">
@@ -539,7 +606,6 @@
         </div>
     </div>
 
-    <!-- Modal: Scheduled Campaign Content Preview -->
     <div class="modal modal-high" id="scheduledDetailsModal">
         <div class="modal-content">
             <div class="modal-title" id="lblSchedModalTitle">⏰ Scheduled Campaign</div>
@@ -565,7 +631,6 @@
         let pollTimer = null;
         let pairingPollTimer = null;
         let latestDetectedRemoteBuild = CURRENT_BUILD_NUMBER;
-        let activeObjectURLs = [];
 
         let welcomeBlocks = [];
         let bulkBlocks = [{ id: 'bb_init', type: 'text', content: '', file: null, fileName: '', caption: '' }];
@@ -575,20 +640,61 @@
             return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
         }
 
-        function clearTextField(elementId) {
-            const el = document.getElementById(elementId);
-            if (el) {
-                el.value = '';
-                el.dispatchEvent(new Event('input'));
-            }
-        }
-
         function normalizeNumber(num) {
             let clean = String(num || '').replace(/[^0-9]/g, '');
             if (clean.length === 11 && clean.startsWith('0')) clean = clean.substring(1);
             if (clean.length === 10) clean = '91' + clean;
             if (clean.length < 10 || clean.length > 15) return null;
             return clean;
+        }
+
+        // --- Client-Side Image Auto-Compression (Canvas to 1080p, 70% Quality) ---
+        function compressImageBeforeUpload(file, callback) {
+            if (!file || !file.type.startsWith('image/')) {
+                callback(file);
+                return;
+            }
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = function(event) {
+                const img = new Image();
+                img.src = event.target.result;
+                img.onload = function() {
+                    const canvas = document.createElement('canvas');
+                    const MAX_WIDTH = 1080;
+                    const MAX_HEIGHT = 1080;
+                    let width = img.width;
+                    let height = img.height;
+
+                    if (width > height) {
+                        if (width > MAX_WIDTH) {
+                            height *= MAX_WIDTH / width;
+                            width = MAX_WIDTH;
+                        }
+                    } else {
+                        if (height > MAX_HEIGHT) {
+                            width *= MAX_HEIGHT / height;
+                            height = MAX_HEIGHT;
+                        }
+                    }
+
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+
+                    canvas.toBlob(function(blob) {
+                        if (!blob) { callback(file); return; }
+                        const compressedFile = new File([blob], file.name.replace(/\.[^/.]+$/, ".jpg"), {
+                            type: 'image/jpeg',
+                            lastModified: Date.now()
+                        });
+                        callback(compressedFile);
+                    }, 'image/jpeg', 0.7);
+                };
+                img.onerror = function() { callback(file); };
+            };
+            reader.onerror = function() { callback(file); };
         }
 
         const i18n = {
@@ -771,6 +877,10 @@
             }
         }
 
+        function closeGroupMembersOverlay() {
+            document.getElementById('membersOverlay').style.display = 'none';
+        }
+
         function checkDisclaimerAcceptance() {
             const accepted = localStorage.getItem('terms_accepted_permanent');
             if (!accepted) {
@@ -793,9 +903,12 @@
             const AppPlugin = window.Capacitor?.Plugins?.App;
             if (AppPlugin) {
                 AppPlugin.addListener('backButton', () => {
-                    const overlay = document.getElementById('phonebookOverlay');
-                    if (overlay && overlay.style.display === 'flex') {
+                    const pbOverlay = document.getElementById('phonebookOverlay');
+                    const memOverlay = document.getElementById('membersOverlay');
+                    if (pbOverlay && pbOverlay.style.display === 'flex') {
                         closePhonebookOverlay();
+                    } else if (memOverlay && memOverlay.style.display === 'flex') {
+                        closeGroupMembersOverlay();
                     } else if (modalStack.length > 0) {
                         closeTopModal();
                     } else if (document.querySelectorAll('.page-content.active')[0].id !== 'viewGroups') {
@@ -918,7 +1031,7 @@
             document.getElementById('lblGroupName').innerText = d.groupName;
             document.getElementById('lblAddContacts').innerText = d.addContacts;
             document.getElementById('btnSaveGroup').innerText = d.saveGroup;
-            document.getElementById('lblManageGroup').innerText = d.manageGroup;
+            document.getElementById('lblManageGroupTitle').innerText = d.manageGroup;
             document.getElementById('lblRenameGroup').innerText = d.renameGroup;
             document.getElementById('lblTargetGroups').innerText = d.targetGroups;
             document.getElementById('lblDeduplicateNote').innerText = d.deduplicateNote;
@@ -967,23 +1080,45 @@
         }
 
         function handleBulkBlockFile(e, id) {
-            const file = e.target.files[0];
+            const rawFile = e.target.files[0];
             const b = bulkBlocks.find(x => x.id === id);
-            if (b && file) {
-                b.file = file;
-                b.fileName = file.name;
+            if (!b || !rawFile) return;
+
+            // Video 15MB Safety Guard
+            if (rawFile.type.startsWith('video/') && rawFile.size > 15 * 1024 * 1024) {
+                alert('Video size exceeds 15MB limit! Please select a compressed video under 15MB.');
+                e.target.value = '';
+                return;
+            }
+
+            // Auto-compress image using client-side canvas
+            if (rawFile.type.startsWith('image/')) {
+                compressImageBeforeUpload(rawFile, (compressedFile) => {
+                    b.file = compressedFile;
+                    b.fileName = compressedFile.name;
+                    renderBulkSequence();
+                });
+            } else {
+                b.file = rawFile;
+                b.fileName = rawFile.name;
                 renderBulkSequence();
             }
         }
 
         function updateBulkBlockText(id, val) {
             const b = bulkBlocks.find(x => x.id === id);
-            if (b) b.content = val;
+            if (b) {
+                b.content = val;
+                renderBulkLiveStream();
+            }
         }
 
         function updateBulkBlockCaption(id, val) {
             const b = bulkBlocks.find(x => x.id === id);
-            if (b) b.caption = val;
+            if (b) {
+                b.caption = val;
+                renderBulkLiveStream();
+            }
         }
 
         function clearBulkBlockTextInUI(id) {
@@ -1014,6 +1149,7 @@
             const container = document.getElementById('bulkSequenceContainer');
             if (bulkBlocks.length === 0) {
                 container.innerHTML = '<div style="text-align:center; color:var(--text-muted); padding:16px; font-size:0.85rem;">No campaign blocks added. Tap + Text, + Image, or + Video above.</div>';
+                renderBulkLiveStream();
                 return;
             }
 
@@ -1033,7 +1169,7 @@
                     `;
                 } else {
                     const acceptType = b.type === 'image' ? 'image/*' : 'video/*';
-                    const typeLabel = b.type === 'image' ? '🖼️ Image Block' : '🎥 Video Block';
+                    const typeLabel = b.type === 'image' ? '🖼️ Image Block' : '🎥 Video Block (Max 15MB)';
                     const hasFileLabel = b.fileName ? `<div style="font-size:0.75rem; color:var(--primary); margin-bottom:6px;">✔ ${escapeHtml(b.fileName)}</div>` : '';
                     return `
                         <div class="welcome-block-item">
@@ -1047,6 +1183,37 @@
                             ${hasFileLabel}
                             <input type="file" id="bb_file_${b.id}" accept="${acceptType}" onchange="handleBulkBlockFile(event, '${b.id}')" style="margin-bottom:8px;">
                             <input type="text" placeholder="Custom caption for this media (optional)..." value="${escapeHtml(b.caption || '')}" oninput="updateBulkBlockCaption('${b.id}', this.value)" style="margin-bottom:0;">
+                        </div>
+                    `;
+                }
+            }).join('');
+
+            renderBulkLiveStream();
+        }
+
+        function renderBulkLiveStream() {
+            const stream = document.getElementById('bulkLiveStreamPreview');
+            const valid = bulkBlocks.filter(b => (b.type === 'text' && (b.content || '').trim()) || ((b.type === 'image' || b.type === 'video') && (b.file || b.fileName)));
+            if (valid.length === 0) {
+                stream.innerHTML = '<div style="text-align:center; color:var(--text-muted); font-size:0.8rem; padding: 12px;">Sequence preview will appear here...</div>';
+                return;
+            }
+            stream.innerHTML = valid.map(b => {
+                const nowTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                if (b.type === 'text') {
+                    return `
+                        <div class="wa-chat-bubble">
+                            ${escapeHtml(b.content || '')}
+                            <div class="wa-bubble-meta">${nowTime} <span style="color: #53bdeb; font-weight: bold;">✓✓</span></div>
+                        </div>
+                    `;
+                } else {
+                    const icon = b.type === 'image' ? '🖼️ Photo' : '🎥 Video';
+                    return `
+                        <div class="wa-chat-bubble">
+                            <div style="font-weight: 600; font-size: 0.8rem; margin-bottom: 2px;">${icon}: ${escapeHtml(b.fileName || 'Selected')}</div>
+                            ${b.caption ? `<div style="margin-top: 4px;">${escapeHtml(b.caption)}</div>` : ''}
+                            <div class="wa-bubble-meta">${nowTime} <span style="color: #53bdeb; font-weight: bold;">✓✓</span></div>
                         </div>
                     `;
                 }
@@ -1157,24 +1324,47 @@
         }
 
         function handleWelcomeBlockFile(e, id) {
-            const file = e.target.files[0];
+            const rawFile = e.target.files[0];
             const b = welcomeBlocks.find(x => x.id === id);
-            if (b && file) {
-                b.file = file;
-                b.fileName = file.name;
-                b.mimetype = file.type;
+            if (!b || !rawFile) return;
+
+            // Video 15MB Limit Guard
+            if (rawFile.type.startsWith('video/') && rawFile.size > 15 * 1024 * 1024) {
+                alert('Video size exceeds 15MB limit! Please select a compressed video under 15MB.');
+                e.target.value = '';
+                return;
+            }
+
+            // Image Auto-Compression
+            if (rawFile.type.startsWith('image/')) {
+                compressImageBeforeUpload(rawFile, (compressedFile) => {
+                    b.file = compressedFile;
+                    b.fileName = compressedFile.name;
+                    b.mimetype = compressedFile.type;
+                    renderWelcomeSequence();
+                });
+            } else {
+                b.file = rawFile;
+                b.fileName = rawFile.name;
+                b.mimetype = rawFile.type;
                 renderWelcomeSequence();
             }
         }
 
         function updateWelcomeBlockText(id, val) {
             const b = welcomeBlocks.find(x => x.id === id);
-            if (b) b.content = val;
+            if (b) {
+                b.content = val;
+                renderWelcomeLiveStream();
+            }
         }
 
         function updateWelcomeBlockCaption(id, val) {
             const b = welcomeBlocks.find(x => x.id === id);
-            if (b) b.caption = val;
+            if (b) {
+                b.caption = val;
+                renderWelcomeLiveStream();
+            }
         }
 
         function renderWelcomeSequence() {
@@ -1195,6 +1385,7 @@
             const container = document.getElementById('welcomeSequenceContainer');
             if (welcomeBlocks.length === 0) {
                 container.innerHTML = '';
+                renderWelcomeLiveStream();
                 return;
             }
 
@@ -1214,7 +1405,7 @@
                     `;
                 } else {
                     const acceptType = b.type === 'image' ? 'image/*' : 'video/*';
-                    const typeLabel = b.type === 'image' ? '🖼️ Image' : '🎥 Video';
+                    const typeLabel = b.type === 'image' ? '🖼️ Image' : '🎥 Video (Max 15MB)';
                     const hasFileLabel = b.fileName ? `<div style="font-size:0.75rem; color:var(--primary); margin-bottom:6px;">✔ ${escapeHtml(b.fileName)}</div>` : '';
                     return `
                         <div class="welcome-block-item">
@@ -1228,6 +1419,37 @@
                             ${hasFileLabel}
                             <input type="file" id="wb_file_${b.id}" accept="${acceptType}" onchange="handleWelcomeBlockFile(event, '${b.id}')" style="margin-bottom:8px;">
                             <input type="text" placeholder="Custom caption (optional)..." value="${escapeHtml(b.caption || '')}" oninput="updateWelcomeBlockCaption('${b.id}', this.value)" style="margin-bottom:0;">
+                        </div>
+                    `;
+                }
+            }).join('');
+
+            renderWelcomeLiveStream();
+        }
+
+        function renderWelcomeLiveStream() {
+            const stream = document.getElementById('welcomeLiveStreamPreview');
+            const valid = welcomeBlocks.filter(b => (b.type === 'text' && (b.content || '').trim()) || ((b.type === 'image' || b.type === 'video') && (b.file || b.existingFilePath || b.fileName)));
+            if (valid.length === 0) {
+                stream.innerHTML = '<div style="text-align:center; color:var(--text-muted); font-size:0.8rem; padding: 12px;">Welcome preview will appear here...</div>';
+                return;
+            }
+            stream.innerHTML = valid.map(b => {
+                const nowTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                if (b.type === 'text') {
+                    return `
+                        <div class="wa-chat-bubble">
+                            ${escapeHtml(b.content || '')}
+                            <div class="wa-bubble-meta">${nowTime} <span style="color: #53bdeb; font-weight: bold;">✓✓</span></div>
+                        </div>
+                    `;
+                } else {
+                    const icon = b.type === 'image' ? '🖼️ Photo' : '🎥 Video';
+                    return `
+                        <div class="wa-chat-bubble">
+                            <div style="font-weight: 600; font-size: 0.8rem; margin-bottom: 2px;">${icon}: ${escapeHtml(b.fileName || 'Media')}</div>
+                            ${b.caption ? `<div style="margin-top: 4px;">${escapeHtml(b.caption)}</div>` : ''}
+                            <div class="wa-bubble-meta">${nowTime} <span style="color: #53bdeb; font-weight: bold;">✓✓</span></div>
                         </div>
                     `;
                 }
@@ -1351,7 +1573,6 @@
                     document.getElementById('badgeServerStatus').style.color = "var(--primary)";
                     document.getElementById('txtServerOfflineNotice').style.display = "none";
 
-                    // Force restore preserved groups & active data on handshake
                     await restoreGroupsFromServer(true);
                     await hydrateCampaignStateFromServer();
                     await loadWelcomeRulesFromServer();
@@ -1786,7 +2007,6 @@
             `).join('');
         }
 
-        // --- Scheduled Campaigns & Detail Preview Modal ---
         async function loadScheduledCampaignsList() {
             const container = document.getElementById('scheduledCampaignsContainer');
             if (!SESSION_ID || SESSION_ID === 'unpaired_user') {
@@ -1862,7 +2082,6 @@
             } catch(e) { alert('Error: ' + e.message); }
         }
 
-        // --- Detailed Failed / Pending Recipients in History ---
         function showFilteredContacts(campId, filterType) {
             const camp = globalCampaigns.find(c => c.id === campId);
             if (!camp) return;
@@ -2019,13 +2238,15 @@
             renderGroups();
         }
 
+        // --- FULLSCREEN GROUP MEMBERS OVERLAY & LIVE SEARCH ---
         function openMembersManagerFor(id) {
             activeGroupId = id;
             const g = groups.find(x => x.id === id);
             if (!g) return;
             document.getElementById('editGroupNameInput').value = g.name;
+            document.getElementById('groupMembersSearch').value = '';
             renderMembers();
-            openModal('membersModal');
+            document.getElementById('membersOverlay').style.display = 'flex';
         }
 
         function renameActiveGroup() {
@@ -2040,31 +2261,52 @@
             }
         }
 
+        function filterGroupMembers() {
+            renderMembers();
+        }
+
         function renderMembers() {
             const g = groups.find(x => x.id === activeGroupId);
             const container = document.getElementById('membersListContainer');
-            if (!g || g.contacts.length === 0) {
-                container.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 16px;">No contacts in this group.</div>';
+            const counter = document.getElementById('groupMemberCountBadge');
+            if (!g) return;
+
+            const q = (document.getElementById('groupMembersSearch')?.value || '').toLowerCase().trim();
+            let displayList = g.contacts || [];
+            if (q) {
+                displayList = displayList.filter(c => 
+                    (c.name || '').toLowerCase().includes(q) || (c.phone || '').includes(q)
+                );
+            }
+
+            if (counter) counter.innerText = `${displayList.length} / ${g.contacts.length} Members`;
+
+            if (displayList.length === 0) {
+                container.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 30px;">No contacts found.</div>';
                 return;
             }
-            container.innerHTML = g.contacts.map((c, idx) => `
-                <div class="contact-picker-row">
-                    <div class="contact-avatar">${escapeHtml((c.name || 'U').charAt(0).toUpperCase())}</div>
-                    <div class="contact-details">
-                        <div class="contact-name-txt">${escapeHtml(c.name || 'Unsaved')}</div>
-                        <div class="contact-phone-txt">${escapeHtml(c.phone)}</div>
+
+            container.innerHTML = displayList.map(c => {
+                const actualIndex = g.contacts.findIndex(x => x.phone === c.phone);
+                return `
+                    <div class="contact-picker-row">
+                        <div class="contact-avatar">${escapeHtml((c.name || 'U').charAt(0).toUpperCase())}</div>
+                        <div class="contact-details">
+                            <div class="contact-name-txt">${escapeHtml(c.name || 'Unsaved')}</div>
+                            <div class="contact-phone-txt">${escapeHtml(c.phone)}</div>
+                        </div>
+                        <div style="display: flex; gap: 8px;">
+                            <button class="icon-btn" style="color: var(--primary); font-size: 1.1rem;" onclick="openEditMemberModal(${actualIndex})">✏️</button>
+                            <button class="icon-btn" style="color: var(--danger); font-size: 1.1rem;" onclick="confirmAndDeleteMember(${actualIndex})">🗑️</button>
+                        </div>
                     </div>
-                    <div style="display: flex; gap: 8px;">
-                        <button class="icon-btn" style="color: var(--primary); font-size: 1rem;" onclick="openEditMemberModal(${idx})">✏️</button>
-                        <button class="icon-btn" style="color: var(--danger); font-size: 1rem;" onclick="confirmAndDeleteMember(${idx})">🗑️</button>
-                    </div>
-                </div>
-            `).join('');
+                `;
+            }).join('');
         }
 
         function confirmAndDeleteMember(idx) {
             const g = groups.find(x => x.id === activeGroupId);
-            if (!g) return;
+            if (!g || idx < 0 || idx >= g.contacts.length) return;
             const target = g.contacts[idx];
             const displayName = target.name || target.phone;
             if (confirm(`Are you sure you want to delete "${displayName}" from this group?`)) {
@@ -2075,6 +2317,7 @@
         function openEditMemberModal(idx) {
             editingMemberIndex = idx;
             const g = groups.find(x => x.id === activeGroupId);
+            if (!g || idx < 0 || idx >= g.contacts.length) return;
             const target = g.contacts[idx];
             document.getElementById('editTargetName').value = target.name || '';
             document.getElementById('editTargetPhone').value = target.phone || '';
@@ -2118,7 +2361,7 @@
 
         function deleteMember(idx) {
             const g = groups.find(x => x.id === activeGroupId);
-            if (g) {
+            if (g && idx >= 0 && idx < g.contacts.length) {
                 g.contacts.splice(idx, 1);
                 localStorage.setItem('app_groups', JSON.stringify(groups));
                 syncGroupsToServer(true);
@@ -2127,10 +2370,27 @@
             }
         }
 
+        // --- FULLSCREEN PHONEBOOK SELECTOR WITH AUTO PRE-SELECTED TICKS ---
         async function openPhonebookSelector(mode) {
             pbTargetMode = mode;
             selectedPbContacts.clear();
             document.getElementById('phonebookSearch').value = '';
+
+            // Pre-tick existing group contacts automatically
+            if (mode === 'edit') {
+                const g = groups.find(x => x.id === activeGroupId);
+                if (g && Array.isArray(g.contacts)) {
+                    g.contacts.forEach(c => {
+                        const norm = normalizeNumber(c.phone);
+                        if (norm) selectedPbContacts.add(norm);
+                    });
+                }
+            } else if (mode === 'create') {
+                stagedContacts.forEach(c => {
+                    const norm = normalizeNumber(c.phone);
+                    if (norm) selectedPbContacts.add(norm);
+                });
+            }
 
             const ContactsPlugin = window.Capacitor?.Plugins?.Contacts;
             if (ContactsPlugin) {
@@ -2208,10 +2468,10 @@
         }
 
         function togglePbSelect(phone) {
-            if (selectedPbContacts.has(phone)) selectedPbContacts.delete(phone);
-            else {
-                let currentTotal = (pbTargetMode === 'create') ? stagedContacts.length : (groups.find(x => x.id === activeGroupId)?.contacts.length || 0);
-                if (currentTotal + selectedPbContacts.size + 1 > MAX_GROUP_CONTACTS) {
+            if (selectedPbContacts.has(phone)) {
+                selectedPbContacts.delete(phone);
+            } else {
+                if (selectedPbContacts.size + 1 > MAX_GROUP_CONTACTS) {
                     return alert(`Group limit capped at ${MAX_GROUP_CONTACTS} contacts.`);
                 }
                 selectedPbContacts.add(phone);
@@ -2222,11 +2482,11 @@
 
         function toggleSelectAllFilteredContacts() {
             const allSelected = currentlyFilteredContacts.every(c => selectedPbContacts.has(c.phone));
-            if (allSelected) currentlyFilteredContacts.forEach(c => selectedPbContacts.delete(c.phone));
-            else {
-                let currentTotal = (pbTargetMode === 'create') ? stagedContacts.length : (groups.find(x => x.id === activeGroupId)?.contacts.length || 0);
+            if (allSelected) {
+                currentlyFilteredContacts.forEach(c => selectedPbContacts.delete(c.phone));
+            } else {
                 for (const c of currentlyFilteredContacts) {
-                    if (currentTotal + selectedPbContacts.size >= MAX_GROUP_CONTACTS) break;
+                    if (selectedPbContacts.size >= MAX_GROUP_CONTACTS) break;
                     selectedPbContacts.add(c.phone);
                 }
             }
@@ -2243,9 +2503,20 @@
         }
 
         function confirmPhonebookSelection() {
-            if (selectedPbContacts.size === 0) return alert('Select at least one contact.');
             const selected = cachedDeviceContacts.filter(c => selectedPbContacts.has(c.phone));
-            applyImportedContacts(pbTargetMode, selected);
+            if (pbTargetMode === 'create') {
+                stagedContacts = selected;
+                document.getElementById('createStagedCount').innerText = `${stagedContacts.length} / ${MAX_GROUP_CONTACTS} Contacts Staged`;
+            } else {
+                const g = groups.find(x => x.id === activeGroupId);
+                if (g) {
+                    g.contacts = selected;
+                    localStorage.setItem('app_groups', JSON.stringify(groups));
+                    syncGroupsToServer();
+                    renderMembers();
+                    renderGroups();
+                }
+            }
             closePhonebookOverlay();
         }
 
