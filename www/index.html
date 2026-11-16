@@ -6,2131 +6,396 @@
     <title>WA Campaign</title>
     <style>
         :root {
-            --bg: #0b141a;
-            --surface: #111b21;
-            --surface-card: #202c33;
-            --border: #2a3942;
-            --text: #e9edef;
-            --text-muted: #8696a0;
-            --primary: #00a884;
-            --danger: #ef4444;
-            --warning: #f59e0b;
-            --wa-bubble: #005c4b;
+            --bg: #0b141a; --surface: #111b21; --surface-card: #202c33; --border: #2a3942;
+            --text: #e9edef; --text-muted: #8696a0; --primary: #00a884; --danger: #ef4444; --warning: #f59e0b; --wa-bubble: #005c4b;
         }
-
         body.light-theme {
-            --bg: #eae6df;
-            --surface: #ffffff;
-            --surface-card: #f0f2f5;
-            --border: #d1d7db;
-            --text: #111b21;
-            --text-muted: #667781;
-            --primary: #008069;
-            --danger: #dc2626;
-            --warning: #d97706;
-            --wa-bubble: #d9fdd3;
+            --bg: #eae6df; --surface: #ffffff; --surface-card: #f0f2f5; --border: #d1d7db;
+            --text: #111b21; --text-muted: #667781; --primary: #008069; --danger: #dc2626; --warning: #d97706; --wa-bubble: #d9fdd3;
         }
-
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
         body { background: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; overflow-x: hidden; }
-
         header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 14px 18px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; }
         .header-title { font-size: 1.2rem; font-weight: 700; color: var(--text); }
         .icon-btn { background: none; border: none; font-size: 1.3rem; color: var(--text); cursor: pointer; }
-
-        #pullToRefreshSpinner { text-align: center; font-size: 0.8rem; color: var(--primary); padding: 8px; display: none; font-weight: bold; }
-
         .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; height: 62px; background: var(--surface); border-top: 1px solid var(--border); display: flex; justify-content: space-around; align-items: center; z-index: 100; }
-        .nav-tab { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: var(--text-muted); cursor: pointer; text-decoration: none; font-size: 0.75rem; font-weight: 600; gap: 4px; position: relative; }
+        .nav-tab { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: var(--text-muted); cursor: pointer; text-decoration: none; font-size: 0.75rem; font-weight: 600; gap: 4px; }
         .nav-tab.active { color: var(--primary); }
         .nav-tab span.icon { font-size: 1.3rem; }
-
         .page-content { flex: 1; padding: 16px; padding-bottom: 85px; max-width: 600px; margin: 0 auto; width: 100%; display: none; }
         .page-content.active { display: block; }
-
         .card { background: var(--surface-card); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; margin-bottom: 14px; }
         .group-card { background: var(--surface-card); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; margin-bottom: 10px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
         .group-card.selected { border-color: var(--primary); background: rgba(0, 168, 132, 0.08); }
-        .group-card-title { font-size: 1.05rem; font-weight: 600; }
-        .group-card-badge { background: rgba(0, 168, 132, 0.15); color: var(--primary); font-size: 0.75rem; font-weight: bold; padding: 3px 8px; border-radius: 12px; }
-
         label { display: block; font-size: 0.82rem; color: var(--text-muted); margin-bottom: 6px; font-weight: 600; }
         input, select { width: 100%; padding: 11px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface-card); color: var(--text); font-size: 0.92rem; margin-bottom: 12px; outline: none; }
-        
-        .textarea-container { position: relative; margin-bottom: 12px; }
-        textarea.safe-textarea {
-            width: 100%; min-height: 95px; max-height: 180px; padding: 12px; padding-right: 55px; border-radius: 8px; border: 1px solid var(--border);
-            background: var(--surface); color: var(--text); font-size: 0.94rem; resize: none !important; outline: none; overflow-y: auto; line-height: 1.4; margin-bottom: 0;
-        }
-        .clear-btn {
-            position: absolute; top: 8px; right: 8px; background: rgba(239, 68, 68, 0.15); color: var(--danger); border: 1px solid var(--danger);
-            border-radius: 6px; padding: 3px 8px; font-size: 0.72rem; font-weight: 700; cursor: pointer;
-        }
-        .clear-btn:active { transform: scale(0.95); }
-
         .btn { width: 100%; padding: 12px; border-radius: 8px; font-weight: 600; cursor: pointer; border: none; font-size: 0.95rem; }
         .btn-primary { background: var(--primary); color: #fff; }
         .btn-danger { background: var(--danger); color: #fff; }
         .btn-secondary { background: var(--border); color: var(--text); margin-top: 8px; }
         .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
-        .btn-warning { background: var(--warning); color: #000; }
-
         .fab { position: fixed; bottom: 80px; right: 24px; width: 56px; height: 56px; border-radius: 28px; background: var(--primary); color: #fff; border: none; font-size: 1.8rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0,0,0,0.5); cursor: pointer; z-index: 90; }
-
-        .segmented-tabs {
-            display: flex;
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: 10px;
-            padding: 4px;
-            margin-bottom: 14px;
-            gap: 4px;
-        }
-        .seg-tab-btn {
-            flex: 1;
-            padding: 10px 8px;
-            border: none;
-            border-radius: 7px;
-            background: transparent;
-            color: var(--text-muted);
-            font-size: 0.86rem;
-            font-weight: 700;
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-        .seg-tab-btn.active {
-            background: var(--primary);
-            color: #ffffff;
-            box-shadow: 0 2px 6px rgba(0, 168, 132, 0.3);
-        }
-
-        .schedule-presets-row {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 6px;
-            margin-bottom: 10px;
-        }
-        .preset-chip {
-            background: var(--surface-card);
-            border: 1px solid var(--border);
-            color: var(--text);
-            border-radius: 7px;
-            padding: 7px 4px;
-            font-size: 0.75rem;
-            font-weight: 600;
-            cursor: pointer;
-            text-align: center;
-        }
-        .preset-chip.active {
-            border-color: var(--primary);
-            background: rgba(0, 168, 132, 0.15);
-            color: var(--primary);
-        }
-
-        .preview-wrapper { background-color: #0b141a; border: 1px solid var(--border); border-radius: 12px; padding: 14px; margin-bottom: 14px; display: none; }
-        body.light-theme .preview-wrapper { background-color: #efeae2; }
-        .wa-bubble-realistic { background: var(--wa-bubble); color: #fff; border-radius: 8px 8px 2px 8px; max-width: 85%; margin-left: auto; box-shadow: 0 1px 2px rgba(0,0,0,0.3); overflow: hidden; position: relative; }
-        body.light-theme .wa-bubble-realistic { color: #111b21; }
-        .wa-preview-img-container { width: 100%; max-height: 220px; background: #000; display: none; overflow: hidden; }
-        .wa-preview-img-container img, .wa-preview-img-container video { width: 100%; height: 100%; max-height: 220px; object-fit: cover; display: block; }
-        .wa-bubble-caption { padding: 8px 10px 4px 10px; font-size: 0.92rem; line-height: 1.35; white-space: pre-wrap; word-break: break-word; }
-        .wa-bubble-meta { display: flex; align-items: center; justify-content: flex-end; gap: 4px; padding: 0 8px 4px 8px; font-size: 0.68rem; color: rgba(255,255,255,0.65); }
-
+        .segmented-tabs { display: flex; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 4px; margin-bottom: 14px; gap: 4px; }
+        .seg-tab-btn { flex: 1; padding: 10px 8px; border: none; border-radius: 7px; background: transparent; color: var(--text-muted); font-size: 0.86rem; font-weight: 700; cursor: pointer; }
+        .seg-tab-btn.active { background: var(--primary); color: #ffffff; }
         .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 200; align-items: center; justify-content: center; padding: 16px; }
         .modal-high { z-index: 300; }
         .modal-content { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; width: 100%; max-width: 500px; padding: 20px; max-height: 90vh; display: flex; flex-direction: column; overflow-y: auto; }
         .modal-title { font-size: 1.15rem; font-weight: 700; margin-bottom: 14px; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
-
+        
+        /* Full Screen Overlay for Group Members */
         .fullscreen-overlay { display: none; position: fixed; inset: 0; width: 100vw; height: 100vh; background: var(--bg); z-index: 500; flex-direction: column; }
         .fs-header { background: var(--surface); padding: 12px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 14px; }
-        .back-arrow-btn {
-            background: var(--primary);
-            color: #ffffff;
-            border: none;
-            padding: 8px 14px;
-            height: 40px;
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 6px;
-            cursor: pointer;
-            font-weight: 800;
-            font-size: 0.92rem;
-            box-shadow: 0 2px 6px rgba(0, 168, 132, 0.35);
-            flex-shrink: 0;
-        }
-        .back-arrow-btn:active { transform: scale(0.96); }
+        .back-arrow-btn { background: var(--primary); color: #ffffff; border: none; padding: 8px 14px; height: 40px; border-radius: 10px; display: flex; align-items: center; gap: 6px; cursor: pointer; font-weight: 800; font-size: 0.92rem; }
         .fs-search-container { padding: 10px 16px; background: var(--surface); border-bottom: 1px solid var(--border); }
-        .fs-sub-bar { display: flex; justify-content: space-between; align-items: center; padding: 8px 16px; background: rgba(0, 168, 132, 0.08); border-bottom: 1px solid var(--border); }
         .fs-list-scroll { flex: 1; overflow-y: auto; padding: 4px 0; }
-        .fs-bottom-bar { padding: 12px 16px; background: var(--surface); border-top: 1px solid var(--border); }
-
         .contact-picker-row { display: flex; align-items: center; padding: 12px 16px; border-bottom: 1px solid var(--border); gap: 12px; cursor: pointer; }
-        .contact-picker-row:active { background: rgba(0, 168, 132, 0.15); }
         .contact-picker-row.selected { background: rgba(0, 168, 132, 0.12); }
-        .contact-avatar { width: 40px; height: 40px; border-radius: 20px; background: #202c33; color: var(--primary); font-weight: bold; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; flex-shrink: 0; border: 1px solid var(--border); }
+        .contact-avatar { width: 40px; height: 40px; border-radius: 20px; background: #202c33; color: var(--primary); font-weight: bold; display: flex; align-items: center; justify-content: center; flex-shrink: 0; border: 1px solid var(--border); }
         .contact-details { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
         .contact-name-txt { font-size: 0.95rem; font-weight: 600; color: var(--text); }
         .contact-phone-txt { font-size: 0.8rem; color: var(--text-muted); }
-
-        .contact-chk-box { width: 24px; height: 24px; border-radius: 6px; border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; flex-shrink: 0; background: transparent; font-size: 0.85rem; color: transparent; font-weight: 900; }
+        .contact-chk-box { width: 24px; height: 24px; border-radius: 6px; border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 0.85rem; color: transparent; font-weight: 900; }
         .contact-picker-row.selected .contact-chk-box { background: var(--primary); border-color: var(--primary); color: #ffffff; }
 
-        .dh-pill { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 8px 4px; cursor: pointer; text-align: center; }
-        .dh-val { font-size: 1.1rem; font-weight: bold; }
-        .dh-lbl { font-size: 0.68rem; color: var(--text-muted); text-transform: uppercase; }
-
-        .group-select-card { display: flex; align-items: center; justify-content: space-between; background: var(--surface-card); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; margin-bottom: 8px; cursor: pointer; }
-        .group-select-card.selected { border-color: var(--primary); background: rgba(0, 168, 132, 0.08); }
-        .group-checkbox-custom { width: 22px; height: 22px; border-radius: 6px; border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; color: #fff; }
-        .group-select-card.selected .group-checkbox-custom { background: var(--primary); border-color: var(--primary); }
-
-        .version-card { background: rgba(0, 168, 132, 0.05); border: 1px solid var(--border); border-radius: 10px; padding: 12px; margin-top: 8px; }
-        .version-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; font-size: 0.86rem; }
-        .version-highlight-banner { display: none; background: rgba(0, 168, 132, 0.18); border: 1px solid var(--primary); border-radius: 8px; padding: 10px; margin-top: 8px; margin-bottom: 8px; text-align: center; }
-
-        .campaign-ctrl-panel { background: var(--surface-card); border: 1px solid var(--primary); border-radius: 12px; padding: 14px; margin-bottom: 14px; display: none; }
-        .campaign-ctrl-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-        .ctrl-btn-group { display: flex; gap: 8px; margin-top: 10px; }
-        .ctrl-btn { flex: 1; padding: 10px; border-radius: 8px; font-weight: 700; font-size: 0.88rem; cursor: pointer; border: none; }
-
-        .welcome-block-item { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px; margin-bottom: 10px; }
+        /* Seamless Chat Stream Preview */
+        .chat-stream-preview { background: #0b141a; border: 1px solid var(--border); border-radius: 12px; padding: 12px; margin-top: 14px; max-height: 250px; overflow-y: auto; }
+        body.light-theme .chat-stream-preview { background: #efeae2; }
+        .wa-chat-bubble { background: var(--wa-bubble); color: #fff; border-radius: 8px; padding: 8px 10px; margin-bottom: 8px; max-width: 85%; margin-left: auto; font-size: 0.88rem; word-break: break-word; }
+        body.light-theme .wa-chat-bubble { color: #111b21; }
         .welcome-add-bar { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; }
         .welcome-add-btn { background: rgba(0, 168, 132, 0.12); border: 1px solid var(--primary); color: var(--primary); border-radius: 8px; padding: 10px 4px; font-size: 0.78rem; font-weight: 700; cursor: pointer; text-align: center; }
-        .welcome-add-btn:active { transform: scale(0.97); }
+        .welcome-block-item { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px; margin-bottom: 10px; }
     </style>
 </head>
 <body>
 
-    <div class="modal modal-high" id="disclaimerModal" style="display: none; z-index: 9999; background: rgba(0,0,0,0.92);">
-        <div class="modal-content" style="max-height: 85vh;">
-            <div class="modal-title" style="color: var(--warning); display: flex; align-items: center; gap: 8px;">
-                ⚠️ <span>Usage Terms & Anti-Spam Policy</span>
-            </div>
-            <div style="font-size: 0.85rem; line-height: 1.5; color: var(--text-muted); overflow-y: auto; margin-bottom: 14px; padding-right: 4px;">
-                <p style="margin-bottom: 8px; color: var(--text);">
-                    <b>WA Campaign</b> is designed exclusively for opt-in customer communications, order updates, and legitimate business outreach.
-                </p>
-                <p style="margin-bottom: 8px;">
-                    1. <b>Strict Anti-Spam Rule:</b> Sending unsolicited bulk messages to unknown individuals violates WhatsApp Terms of Service and telecommunication regulations.
-                </p>
-                <p style="margin-bottom: 8px;">
-                    2. <b>Account Safety Disclaimer:</b> The software developer holds <b>NO responsibility or liability</b> for temporary or permanent account restrictions/bans enforced by WhatsApp.
-                </p>
-                <p style="margin-bottom: 8px;">
-                    3. <b>Safe Cadence Advice:</b> Always maintain customer consent, respect the 250 contact group limit, and follow recommended delays.
-                </p>
-            </div>
-            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; margin-bottom: 14px; font-size: 0.82rem; color: var(--text);">
-                <input type="checkbox" id="chkAcceptTerms" style="width: 20px; height: 20px; margin-bottom: 0;">
-                <span>I have read and agree to follow these anti-spam rules responsibly.</span>
-            </label>
-            <button class="btn btn-primary" id="btnAcceptDisclaimer" onclick="confirmDisclaimerConsent()" disabled style="opacity: 0.5;">Accept & Proceed</button>
-        </div>
-    </div>
-
     <header>
         <div class="header-title" id="txtHeaderTitle">WA Campaign</div>
-        <button class="icon-btn" onclick="executeNativeAppShare()">📤</button>
     </header>
-
-    <div id="pullToRefreshSpinner">↻ Refreshing...</div>
 
     <!-- 1. GROUPS -->
     <div class="page-content active" id="viewGroups">
-        <div style="display: flex; gap: 8px; margin-bottom: 12px; align-items: center;">
-            <select id="groupSortSelect" onchange="sortGroups(this.value)" style="margin-bottom: 0; flex: 1;">
-                <option value="newest" id="optSortNewest">Sort: Newest First</option>
-                <option value="alpha" id="optSortAlpha">Sort: Alphabetical (A-Z)</option>
-                <option value="count" id="optSortCount">Sort: Most Contacts</option>
-            </select>
-            <button class="btn btn-outline" style="width: auto; padding: 10px 14px;" id="btnToggleGroupSelect" onclick="toggleGroupSelectMode()">Select</button>
-        </div>
-
-        <div id="groupBatchActionBar" style="display: none; margin-bottom: 12px; gap: 8px;">
-            <button class="btn btn-danger" style="margin-top: 0;" onclick="deleteSelectedGroups()">🗑️ Delete Selected Groups (<span id="selectedGroupCount">0</span>)</button>
-        </div>
-
         <div id="groupsListContainer"></div>
     </div>
 
     <!-- 2. CAMPAIGN -->
     <div class="page-content" id="viewCampaign">
         <div class="segmented-tabs">
-            <button type="button" class="seg-tab-btn active" id="btnSubTabBlast" onclick="switchCampaignSubTab('blast')">📢 Bulk Campaign</button>
-            <button type="button" class="seg-tab-btn" id="btnSubTabWelcome" onclick="switchCampaignSubTab('welcome')">🤖 Auto Welcome</button>
+            <button type="button" class="seg-tab-btn active" onclick="switchCampaignSubTab('blast')">📢 Bulk Campaign</button>
+            <button type="button" class="seg-tab-btn" onclick="switchCampaignSubTab('welcome')">🤖 Auto Welcome</button>
         </div>
 
-        <!-- SUB-PANEL A: BULK CAMPAIGN (Multi-block system with 4 Text, 4 Image, 2 Video) -->
+        <!-- BULK CAMPAIGN -->
         <div id="subPanelBlast">
             <div class="card">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                    <span style="font-size: 0.88rem; font-weight: 700;">Campaign Sequence Blocks</span>
-                    <span style="font-size: 0.75rem; color: var(--primary); font-weight: bold;" id="lblBulkTotalBlocks">0/10 Blocks</span>
-                </div>
-
+                <div style="font-size: 0.88rem; font-weight: 700; margin-bottom: 8px;">Campaign Sequence Blocks (4+4+2)</div>
                 <div class="welcome-add-bar">
-                    <button type="button" class="welcome-add-btn" id="btnAddBulkText" onclick="addBulkBlock('text')">+ Text (0/4)</button>
-                    <button type="button" class="welcome-add-btn" id="btnAddBulkImage" onclick="addBulkBlock('image')">+ Image (0/4)</button>
-                    <button type="button" class="welcome-add-btn" id="btnAddBulkVideo" onclick="addBulkBlock('video')">+ Video (0/2)</button>
+                    <button type="button" class="welcome-add-btn" onclick="addBulkBlock('text')">+ Text</button>
+                    <button type="button" class="welcome-add-btn" onclick="addBulkBlock('image')">+ Image</button>
+                    <button type="button" class="welcome-add-btn" onclick="addBulkBlock('video')">+ Video</button>
+                </div>
+                <div id="bulkSequenceContainer"></div>
+
+                <!-- Live Stream Preview -->
+                <div style="font-size: 0.8rem; font-weight: bold; color: var(--primary); margin-top: 10px;">📱 Live WhatsApp Preview</div>
+                <div class="chat-stream-preview" id="bulkLiveStreamPreview">
+                    <div style="text-align:center; color:var(--text-muted); font-size:0.8rem;">Preview stream will appear here...</div>
                 </div>
 
-                <div id="bulkSequenceContainer" style="margin-bottom: 12px;"></div>
-
-                <!-- Smart Campaign Scheduler (Max 3 Guarded) -->
-                <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px; margin-bottom: 12px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <div>
-                            <div style="font-size: 0.88rem; font-weight: 700; color: var(--text);" id="lblScheduleTitle">⏰ Schedule Campaign</div>
-                            <div style="font-size: 0.74rem; color: var(--text-muted);" id="lblScheduleSub">Auto-send later (Max 3 Allowed)</div>
-                        </div>
-                        <input type="checkbox" id="chkEnableSchedule" style="width: 22px; height: 22px; margin-bottom: 0; cursor: pointer;" onchange="toggleScheduleInput(this)">
-                    </div>
-
-                    <div id="scheduleInputWrapper" style="display: none; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border);">
-                        <div class="schedule-presets-row">
-                            <button type="button" class="preset-chip active" id="chipPreset1h" onclick="applySchedulePreset('1h', this)">+1 Hour</button>
-                            <button type="button" class="preset-chip" id="chipPresetTom9" onclick="applySchedulePreset('tom9', this)">Tomorrow 9 AM</button>
-                            <button type="button" class="preset-chip" id="chipPresetTom18" onclick="applySchedulePreset('tom18', this)">Tomorrow 6 PM</button>
-                        </div>
-                        <input type="datetime-local" id="campScheduleTime" style="margin-bottom: 4px; background: var(--surface-card);" onchange="clearPresetHighlight()">
-                        <div style="font-size: 0.74rem; color: var(--primary); font-weight: 600;" id="lblScheduleFormattedPreview"></div>
-                    </div>
-                </div>
-
-                <div id="lblDisclaimerFooter" style="font-size: 0.74rem; color: var(--text-muted); text-align: center; margin-bottom: 12px; line-height: 1.3;">
-                    ⚠️ Use responsibly. Sending unsolicited bulk messages violates WhatsApp policies.
-                </div>
-
-                <button class="btn btn-primary" id="btnLaunch" onclick="openMultiGroupDispatchModal()">Select Target Groups & Send</button>
+                <button class="btn btn-primary" style="margin-top: 14px;" onclick="openMultiGroupDispatchModal()">Select Target Groups & Send</button>
             </div>
         </div>
 
-        <!-- SUB-PANEL B: AUTO WELCOME RESPONDER -->
+        <!-- AUTO WELCOME -->
         <div id="subPanelWelcome" style="display: none;">
             <div class="card">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--border);">
-                    <span style="font-size: 0.92rem; font-weight: 700; color: var(--text);" id="lblEnableWelcome">Enable Welcome Message</span>
-                    <input type="checkbox" id="chkEnableWelcome" style="width: 24px; height: 24px; margin-bottom: 0; cursor: pointer;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <span style="font-size: 0.92rem; font-weight: 700;">Enable Welcome Message</span>
+                    <input type="checkbox" id="chkEnableWelcome" style="width: 24px; height: 24px;">
                 </div>
-
                 <div class="welcome-add-bar">
-                    <button type="button" class="welcome-add-btn" id="btnAddWelcomeText" onclick="addWelcomeBlock('text')">+ Text (0/4)</button>
-                    <button type="button" class="welcome-add-btn" id="btnAddWelcomeImage" onclick="addWelcomeBlock('image')">+ Image (0/4)</button>
-                    <button type="button" class="welcome-add-btn" id="btnAddWelcomeVideo" onclick="addWelcomeBlock('video')">+ Video (0/2)</button>
+                    <button type="button" class="welcome-add-btn" onclick="addWelcomeBlock('text')">+ Text</button>
+                    <button type="button" class="welcome-add-btn" onclick="addWelcomeBlock('image')">+ Image</button>
+                    <button type="button" class="welcome-add-btn" onclick="addWelcomeBlock('video')">+ Video</button>
                 </div>
-
                 <div id="welcomeSequenceContainer"></div>
-
-                <button class="btn btn-primary" id="btnSaveWelcome" onclick="saveWelcomeRules()">💾 Save Welcome Sequence</button>
+                <div class="chat-stream-preview" id="welcomeLiveStreamPreview"></div>
+                <button class="btn btn-primary" style="margin-top: 14px;" onclick="saveWelcomeRules()">💾 Save Welcome Sequence</button>
             </div>
         </div>
     </div>
 
     <!-- 3. DASHBOARD -->
     <div class="page-content" id="viewDashboard">
-        <div class="campaign-ctrl-panel" id="campaignCtrlPanel">
-            <div class="campaign-ctrl-header">
-                <div>
-                    <span style="font-size: 0.75rem; text-transform: uppercase; font-weight: bold; color: var(--text-muted);" id="lblActiveState">Status:</span>
-                    <b id="txtLiveCampaignState" style="color: var(--primary); font-size: 0.95rem; margin-left: 4px;">RUNNING</b>
-                </div>
-                <div style="font-size: 0.8rem; color: var(--text-muted);" id="txtLiveCampaignProgress">0 / 0 Sent</div>
-            </div>
-
-            <div class="ctrl-btn-group">
-                <button class="ctrl-btn btn-warning" id="btnPauseCampaign" onclick="pauseCurrentCampaign()">⏸️ Pause</button>
-                <button class="ctrl-btn btn-primary" id="btnResumeCampaign" style="display: none;" onclick="resumeCurrentCampaign()">▶️ Resume</button>
-                <button class="ctrl-btn btn-danger" id="btnStopCampaign" onclick="stopCurrentCampaign()">⏹️ Stop</button>
-            </div>
-        </div>
-
-        <div class="card" style="margin-bottom: 16px;">
-            <div style="display: grid; grid-template-columns: repeat(2, 1fr); text-align: center;">
-                <div><div id="dashTotal" style="font-size: 1.4rem; font-weight: bold;">0</div><div style="font-size: 0.75rem; color: var(--text-muted);" id="lblTotalContacts">Total Contacts</div></div>
-                <div><div id="dashGroups" style="font-size: 1.4rem; font-weight: bold;">0</div><div style="font-size: 0.75rem; color: var(--text-muted);" id="lblTotalGroups">Total Groups</div></div>
-            </div>
-        </div>
-
-        <h4 style="margin-bottom: 10px; color: var(--text);" id="lblRecentHistory">Recent Campaigns History (Last 3)</h4>
-        <div id="dashboardHistoryContainer"></div>
-
-        <h4 style="margin-bottom: 10px; margin-top: 20px; color: var(--text);">Scheduled Campaigns (Max: 3)</h4>
-        <div id="scheduledCampaignsContainer"></div>
+        <div class="card"><div id="dashTotal" style="font-size: 1.4rem; font-weight: bold;">0</div><div style="font-size: 0.75rem; color: var(--text-muted);">Total Contacts</div></div>
     </div>
 
     <!-- 4. SETTINGS -->
     <div class="page-content" id="viewSettings">
         <div class="card">
-            <label id="lblConnection">WhatsApp Account Status</label>
-            
-            <div id="statusConnectedBox" style="display: none;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                    <span id="badgeServerStatus" style="font-size: 0.75rem; padding: 4px 8px; border-radius: 12px; background: rgba(0, 168, 132, 0.2); color: var(--primary); font-weight: bold;">● CONNECTED</span>
-                    <b id="lblConnectedPhone" style="font-size: 1rem;"></b>
-                </div>
-                <div id="txtServerOfflineNotice" style="font-size: 0.78rem; color: var(--warning); display: none; margin-bottom: 8px;">
-                    Server offline. Background execution will resume when online.
-                </div>
-                <button class="btn btn-danger" id="btnUnlink" onclick="unlinkAccount()">Unlink WhatsApp</button>
-            </div>
-
-            <div id="statusPairingBox">
-                <input type="tel" id="txtPairPhone" placeholder="Enter WhatsApp Number (e.g. 9876543210)">
-                <button class="btn btn-primary" id="btnPair" onclick="requestPairCode()">Pair WhatsApp & Sync Backup</button>
-                
-                <div id="pairCodeDisplay" style="font-size: 1.5rem; letter-spacing: 4px; font-weight: bold; color: var(--primary); text-align: center; margin-top: 10px; display: none;"></div>
-            </div>
+            <input type="tel" id="txtPairPhone" placeholder="Enter WhatsApp Number">
+            <button class="btn btn-primary" onclick="requestPairCode()">Pair WhatsApp</button>
+            <div id="pairCodeDisplay" style="font-size: 1.3rem; font-weight: bold; color: var(--primary); text-align: center; margin-top: 10px;"></div>
         </div>
-
-        <label id="lblLanguage">Language</label>
-        <select id="selLanguage" onchange="switchLanguage(this.value)">
-            <option value="en">English</option>
-            <option value="ta">தமிழ்</option>
-            <option value="hi">हिंदी</option>
-        </select>
-
-        <label id="lblTheme">Theme</label>
-        <select id="selTheme" onchange="switchTheme(this.value)">
-            <option value="dark">Dark Theme</option>
-            <option value="light">Light Theme</option>
-        </select>
-
-        <div class="card" style="margin-top: 20px;">
-            <label id="lblUpdates">App Version & Updates</label>
-            <div class="version-card">
-                <div class="version-row">
-                    <span style="color: var(--text-muted);">Current Version:</span>
-                    <b id="lblCurrentVer">v3.6.52</b>
-                </div>
-                <div class="version-row">
-                    <span style="color: var(--text-muted);">Cloud Status:</span>
-                    <span id="lblCloudSyncStatus" style="color: var(--primary); font-weight: 600;">Up to date</span>
-                </div>
-
-                <div class="version-highlight-banner" id="updateBanner">
-                    <div style="font-size: 0.9rem; font-weight: bold; color: var(--primary); margin-bottom: 4px;" id="lblNewVerAvailable">New Update Available!</div>
-                    <div style="font-size: 0.8rem; color: var(--text); margin-bottom: 8px;" id="lblNewVerNumber">WA Campaign v3.6.X</div>
-                    <button class="btn btn-primary" style="padding: 10px;" id="btnUpdateNow" onclick="downloadDirectUpdate()">⚡ Update Now (Zero Data Loss)</button>
-                </div>
-
-                <button class="btn btn-outline" style="margin-top: 6px; padding: 8px; font-size: 0.82rem;" id="btnManualCheck" onclick="checkForAppUpdatesBackground(true)">Check for Updates</button>
-            </div>
-        </div>
-
-        <button class="btn btn-outline" style="margin-top: 10px;" id="btnShareApp" onclick="executeNativeAppShare()">Share WA Campaign App</button>
     </div>
 
     <!-- Bottom Navigation -->
     <div class="bottom-nav">
-        <div class="nav-tab active" onclick="navigateTab('viewGroups', this)"><span class="icon">💬</span><span id="tabGroups">Groups</span></div>
-        <div class="nav-tab" onclick="navigateTab('viewCampaign', this)"><span class="icon">📢</span><span id="tabCampaign">Campaign</span></div>
-        <div class="nav-tab" onclick="navigateTab('viewDashboard', this)"><span class="icon">📊</span><span id="tabDashboard">Dashboard</span></div>
-        <div class="nav-tab" onclick="navigateTab('viewSettings', this)"><span class="icon">⚙️</span><span id="tabSettings">Settings</span></div>
+        <div class="nav-tab active" onclick="navigateTab('viewGroups', this)"><span class="icon">💬</span><span>Groups</span></div>
+        <div class="nav-tab" onclick="navigateTab('viewCampaign', this)"><span class="icon">📢</span><span>Campaign</span></div>
+        <div class="nav-tab" onclick="navigateTab('viewDashboard', this)"><span class="icon">📊</span><span>Dashboard</span></div>
+        <div class="nav-tab" onclick="navigateTab('viewSettings', this)"><span class="icon">⚙️</span><span>Settings</span></div>
     </div>
 
-    <button class="fab" id="fabAddGroup" onclick="openCreateGroupModal()">+</button>
+    <button class="fab" onclick="openCreateGroupModal()">+</button>
 
     <!-- Modals -->
     <div class="modal" id="createGroupModal">
         <div class="modal-content">
-            <div class="modal-title" id="lblCreateGroup">Create Group (Max 250 Contacts)</div>
-            <label id="lblGroupName">Group Name</label>
-            <input type="text" id="newGroupName" placeholder="e.g. VIP Customers">
-
-            <label id="lblAddContacts">Add Contacts</label>
-            <div style="display: flex; gap: 8px; margin-bottom: 12px;">
-                <button type="button" class="btn btn-outline" onclick="openPhonebookSelector('create')">📱 Pick</button>
-                <button type="button" class="btn btn-outline" onclick="document.getElementById('csvFileInputCreate').click()">📁 File</button>
-                <input type="file" id="csvFileInputCreate" accept=".csv,.txt,.vcf" style="display: none;" onchange="handleFileImport(event, 'create')">
-            </div>
-
-            <div id="createStagedCount" style="font-size: 0.8rem; color: var(--primary); font-weight: bold; margin-bottom: 8px;">0 / 250 Contacts Staged</div>
-
-            <button class="btn btn-primary" id="btnSaveGroup" onclick="saveGroup()">Save Group</button>
+            <div class="modal-title">Create Group (Max 250)</div>
+            <input type="text" id="newGroupName" placeholder="Group Name">
+            <button class="btn btn-outline" onclick="openPhonebookSelector('create')">📱 Pick Contacts</button>
+            <div id="createStagedCount" style="font-size: 0.8rem; color: var(--primary); font-weight: bold; margin: 8px 0;">0 Contacts Staged</div>
+            <button class="btn btn-primary" onclick="saveGroup()">Save Group</button>
             <button class="btn btn-secondary" onclick="closeTopModal()">Cancel</button>
         </div>
     </div>
 
-    <div class="modal" id="membersModal">
-        <div class="modal-content">
-            <div class="modal-title" id="lblManageGroup">Group Members</div>
-
-            <label id="lblRenameGroup">Group Name</label>
-            <div style="display: flex; gap: 8px; margin-bottom: 12px;">
-                <input type="text" id="editGroupNameInput" style="margin-bottom:0;">
-                <button class="btn btn-primary" style="width: auto; padding: 0 14px;" onclick="renameActiveGroup()">Save</button>
-            </div>
-
-            <label>Add Contacts (Limit: 250)</label>
-            <div style="display: flex; gap: 8px; margin-bottom: 12px;">
-                <button type="button" class="btn btn-outline" onclick="openPhonebookSelector('edit')">📱 Pick Contacts</button>
-                <button type="button" class="btn btn-outline" onclick="document.getElementById('csvFileInputEdit').click()">📁 Import File</button>
-                <input type="file" id="csvFileInputEdit" accept=".csv,.txt,.vcf" style="display: none;" onchange="handleFileImport(event, 'edit')">
-            </div>
-
-            <label>Add Single Contact (Auto +91)</label>
-            <div style="display: flex; gap: 6px; margin-bottom: 12px;">
-                <input type="text" id="quickAddName" placeholder="Name" style="flex: 1; margin-bottom: 0;">
-                <input type="tel" id="quickAddPhone" placeholder="10 Digits or +91" style="flex: 1.4; margin-bottom: 0;">
-                <button class="btn btn-primary" style="width: auto; padding: 0 14px;" onclick="addSingleContact()">Add</button>
-            </div>
-
-            <div id="membersListContainer" style="max-height: 250px; overflow-y: auto;"></div>
-            <button class="btn btn-secondary" style="margin-top: 14px;" onclick="closeTopModal()">Done</button>
-        </div>
-    </div>
-
-    <div class="modal modal-high" id="editMemberModal">
-        <div class="modal-content">
-            <div class="modal-title">Edit Contact Details</div>
-            <label>Contact Name</label>
-            <input type="text" id="editTargetName" placeholder="Name">
-            <label>Phone Number</label>
-            <input type="tel" id="editTargetPhone" placeholder="Phone Number">
-            <button class="btn btn-primary" onclick="saveEditedMember()">Save Changes</button>
-            <button class="btn btn-secondary" onclick="closeTopModal()">Cancel</button>
-        </div>
-    </div>
-
-    <div class="modal" id="multiGroupDispatchModal">
-        <div class="modal-content">
-            <div class="modal-title" id="lblTargetGroups">Select Target Groups</div>
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                <span style="font-size: 0.8rem; color: var(--text-muted);" id="lblDeduplicateNote">Duplicates merged automatically.</span>
-                <button class="icon-btn" style="font-size: 0.85rem; color: var(--primary); font-weight: bold;" onclick="toggleSelectAllTargetGroups()">Select All</button>
-            </div>
-            <div id="targetGroupsCardsContainer" style="max-height: 280px; overflow-y: auto; margin-bottom: 14px;"></div>
-            <button class="btn btn-primary" id="btnStartSend" onclick="confirmDispatchMultiGroup()">Launch Campaign</button>
-            <button class="btn btn-secondary" onclick="closeTopModal()">Cancel</button>
-        </div>
-    </div>
-
-    <div class="fullscreen-overlay" id="phonebookOverlay">
+    <!-- Full Screen Overlay for Group Members Management with Search & Pre-selected Ticks -->
+    <div class="fullscreen-overlay" id="groupMembersOverlay">
         <div class="fs-header">
-            <button class="back-arrow-btn" onclick="closePhonebookOverlay()">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M19 12H5"></path>
-                    <path d="M12 19l-7-7 7-7"></path>
-                </svg>
-                <span>Back</span>
-            </button>
-            <div style="font-size: 1.1rem; font-weight: bold;" id="lblDeviceContacts">Device Contacts</div>
+            <button class="back-arrow-btn" onclick="closeGroupMembersOverlay()">← Back</button>
+            <div style="font-size: 1.1rem; font-weight: bold;" id="lblMembersOverlayTitle">Group Members</div>
         </div>
         <div class="fs-search-container">
-            <input type="text" id="phonebookSearch" placeholder="🔍 Search by name or phone..." oninput="filterPhonebook()" style="margin-bottom: 0;">
+            <input type="text" id="groupMemberSearch" placeholder="🔍 Search members by name or phone..." oninput="filterGroupMembers()" style="margin-bottom:0;">
         </div>
-        <div class="fs-sub-bar">
-            <span id="pbSelectionCounter" style="font-size: 0.85rem; color: var(--primary); font-weight: bold;">0 Selected</span>
-            <button type="button" class="btn btn-outline" style="width: auto; padding: 4px 12px; font-size: 0.75rem;" onclick="toggleSelectAllFilteredContacts()">Select / Deselect All</button>
+        <div style="padding: 10px 16px; display: flex; gap: 8px; background: var(--surface); border-bottom: 1px solid var(--border);">
+            <button class="btn btn-outline" onclick="openPhonebookSelector('edit')">📱 Add More Contacts</button>
+        </div>
+        <div class="fs-list-scroll" id="groupMembersListContainer"></div>
+    </div>
+
+    <!-- Phonebook Selector Overlay (Pre-ticks existing contacts automatically) -->
+    <div class="fullscreen-overlay" id="phonebookOverlay">
+        <div class="fs-header">
+            <button class="back-arrow-btn" onclick="closePhonebookOverlay()">← Back</button>
+            <div style="font-size: 1.1rem; font-weight: bold;">Device Contacts</div>
+        </div>
+        <div class="fs-search-container">
+            <input type="text" id="phonebookSearch" placeholder="🔍 Search device contacts..." oninput="filterPhonebook()" style="margin-bottom:0;">
         </div>
         <div class="fs-list-scroll" id="phonebookListContainer"></div>
-        <div class="fs-bottom-bar">
-            <button class="btn btn-primary" id="btnAddSelectedPbContacts" onclick="confirmPhonebookSelection()">Add Selected (0)</button>
+        <div style="padding: 12px; background: var(--surface); border-top: 1px solid var(--border);">
+            <button class="btn btn-primary" onclick="confirmPhonebookSelection()">Save Selected Contacts</button>
         </div>
     </div>
 
-    <div class="modal modal-high" id="contactFilterModal">
+    <!-- Multi-group Dispatch Modal -->
+    <div class="modal" id="multiGroupDispatchModal">
         <div class="modal-content">
-            <div class="modal-title" id="filterModalTitle">Contacts List</div>
-            <div id="filterModalContainer" style="max-height: 360px; overflow-y: auto;"></div>
-            <button class="btn btn-secondary" style="margin-top: 12px;" onclick="closeTopModal()">Close</button>
-        </div>
-    </div>
-
-    <!-- Modal: Scheduled Campaign Content Preview -->
-    <div class="modal modal-high" id="scheduledDetailsModal">
-        <div class="modal-content">
-            <div class="modal-title" id="lblSchedModalTitle">⏰ Scheduled Campaign</div>
-            <div id="schedModalBody" style="max-height: 340px; overflow-y: auto; margin-bottom: 14px; font-size: 0.9rem;"></div>
-            <button class="btn btn-danger" id="btnModalCancelSched" style="margin-bottom: 8px;">Cancel & Purge Schedule</button>
-            <button class="btn btn-secondary" onclick="closeTopModal()">Close</button>
+            <div class="modal-title">Select Target Groups</div>
+            <div id="targetGroupsCardsContainer" style="max-height: 250px; overflow-y: auto; margin-bottom: 14px;"></div>
+            <button class="btn btn-primary" onclick="confirmDispatchMultiGroup()">Launch Campaign</button>
+            <button class="btn btn-secondary" onclick="closeTopModal()">Cancel</button>
         </div>
     </div>
 
     <script>
         const FIXED_BACKEND_URL = "https://rinse-chest-dish.ngrok-free.dev";
         const DEFAULT_TOKEN = "marketing_engine_secret_2026";
-        
         let SESSION_ID = localStorage.getItem('connected_phone_permanent') || 'unpaired_user';
         let API_BEARER_TOKEN = localStorage.getItem('tenant_token') || DEFAULT_TOKEN;
 
-        const MAX_GROUP_CONTACTS = 250;
-
-        const CI_INJECTED_BUILD = parseInt("__CLIENT_BUILD_NUMBER__");
-        let CURRENT_BUILD_NUMBER = !isNaN(CI_INJECTED_BUILD) ? CI_INJECTED_BUILD : (parseInt(localStorage.getItem('acknowledged_release_build')) || 52);
-
-        let currentActiveCampaignId = null;
-        let pollTimer = null;
-        let pairingPollTimer = null;
-        let latestDetectedRemoteBuild = CURRENT_BUILD_NUMBER;
-        let activeObjectURLs = [];
-
-        let welcomeBlocks = [];
-        let bulkBlocks = [{ id: 'bb_init', type: 'text', content: '', file: null, fileName: '', caption: '' }];
-        let cachedScheduledJobs = [];
-
-        function escapeHtml(str) {
-            return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
-        }
-
-        function clearTextField(elementId) {
-            const el = document.getElementById(elementId);
-            if (el) {
-                el.value = '';
-                el.dispatchEvent(new Event('input'));
-            }
-        }
-
-        function normalizeNumber(num) {
-            let clean = String(num || '').replace(/[^0-9]/g, '');
-            if (clean.length === 11 && clean.startsWith('0')) clean = clean.substring(1);
-            if (clean.length === 10) clean = '91' + clean;
-            if (clean.length < 10 || clean.length > 15) return null;
-            return clean;
-        }
-
-        const i18n = {
-            en: {
-                title: "WA Campaign",
-                groups: "Groups",
-                campaign: "Campaign",
-                dashboard: "Dashboard",
-                settings: "Settings",
-                sortNewest: "Sort: Newest First",
-                sortAlpha: "Sort: Alphabetical (A-Z)",
-                sortCount: "Sort: Most Contacts",
-                subTabBlast: "📢 Bulk Campaign",
-                subTabWelcome: "🤖 Auto Welcome",
-                message: "Message",
-                msgPlaceholder: "Type message here...",
-                attachments: "Attachments (Image, Video, PDF)",
-                preview: "Live Preview",
-                scheduleTitle: "⏰ Schedule Campaign",
-                scheduleSub: "Auto-send later (Max 3 Allowed)",
-                preset1h: "+1 Hour",
-                presetTom9: "Tomorrow 9 AM",
-                presetTom18: "Tomorrow 6 PM",
-                disclaimerFooter: "⚠️ Use responsibly. Sending unsolicited bulk messages violates WhatsApp policies.",
-                launch: "Select Target Groups & Send",
-                enableWelcome: "Enable Welcome Message",
-                addTextBtn: "+ Text",
-                addImageBtn: "+ Image",
-                addVideoBtn: "+ Video",
-                saveWelcome: "💾 Save Welcome Sequence",
-                totalContacts: "Total Contacts",
-                totalGroups: "Total Groups",
-                recentHistory: "Recent Campaigns History (Last 3)",
-                connection: "WhatsApp Account Status",
-                unlink: "Unlink WhatsApp",
-                pair: "Pair WhatsApp",
-                language: "Language",
-                theme: "Theme",
-                updates: "App Version & Updates",
-                updateCheck: "⚡ Update Now (Zero Data Loss)",
-                shareApp: "Share WA Campaign App",
-                createGroup: "Create Group (Max 250 Contacts)",
-                groupName: "Group Name",
-                addContacts: "Add Contacts",
-                saveGroup: "Save Group",
-                manageGroup: "Group Members",
-                renameGroup: "Group Name",
-                targetGroups: "Select Target Groups",
-                deduplicateNote: "Duplicates merged automatically.",
-                deviceContacts: "Device Contacts"
-            },
-            ta: {
-                title: "வாட்ஸ்அப் விளம்பரம்",
-                groups: "குழுக்கள்",
-                campaign: "பிரச்சாரம்",
-                dashboard: "முகப்பு",
-                settings: "அமைப்புகள்",
-                sortNewest: "வரிசை: புதியவை முதலில்",
-                sortAlpha: "வரிசை: அகரவரிசை (A-Z)",
-                sortCount: "வரிசை: அதிக தொடர்புகள்",
-                subTabBlast: "📢 குழு பிரச்சாரம்",
-                subTabWelcome: "🤖 தானியங்கி வரவேற்பு",
-                message: "அனுப்ப வேண்டிய செய்தி",
-                msgPlaceholder: "செய்தியை இங்கே உள்ளிடவும்...",
-                attachments: "கோப்புகள் (புகைப்படம், வீடியோ, PDF)",
-                preview: "நேரடி முன்னோட்டம்",
-                scheduleTitle: "⏰ நேரத்தை திட்டமிடு (Schedule)",
-                scheduleSub: "பின்னர் தானாக அனுப்ப (அதிகபட்சம் 3)",
-                preset1h: "+1 மணி நேரம்",
-                presetTom9: "நாளை காலை 9",
-                presetTom18: "நாளை மாலை 6",
-                disclaimerFooter: "⚠️ பொறுப்புடன் பயன்படுத்தவும். அனுமதியின்றி அதிக செய்திகள் அனுப்புவது வாட்ஸ்அப் விதிகளுக்கு எதிரானது.",
-                launch: "குழுக்களை தேர்வு செய்து அனுப்பு",
-                enableWelcome: "வரவேற்பு செய்தியை இயக்கு",
-                addTextBtn: "+ செய்தி",
-                addImageBtn: "+ படம்",
-                addVideoBtn: "+ வீடியோ",
-                saveWelcome: "💾 வரவேற்பு செய்தியை சேமி",
-                totalContacts: "மொத்த தொடர்புகள்",
-                totalGroups: "மொத்த குழுக்கள்",
-                recentHistory: "முந்தைய 3 பிரச்சாரங்கள்",
-                connection: "வாட்ஸ்அப் இணைப்பு நிலை",
-                unlink: "வாட்ஸ்அப் துண்டி",
-                pair: "வாட்ஸ்அப் இணை",
-                language: "மொழி",
-                theme: "வண்ண தீம்",
-                updates: "செயலி பதிப்பு & புதுப்பிப்புகள்",
-                updateCheck: "⚡ புதிய பதிப்பை நிறுவவும் (தரவு அழியாது)",
-                shareApp: "செயலியை பகிரவும்",
-                createGroup: "புதிய குழு (அதிகபட்சம் 250 நபர்கள்)",
-                groupName: "குழுவின் பெயர்",
-                addContacts: "தொடர்புகளை சேர்க்கவும்",
-                saveGroup: "குழுவை சேமி",
-                manageGroup: "குழு உறுப்பினர்கள்",
-                renameGroup: "குழு பெயர் திருத்து",
-                targetGroups: "இலக்கு குழுக்கள்",
-                deduplicateNote: "இரட்டை எண்கள் தானாக நீக்கப்படும்.",
-                deviceContacts: "மொபைல் தொடர்புகள்"
-            },
-            hi: {
-                title: "व्हाट्सएप अभियान",
-                groups: "समूह",
-                campaign: "अभियान",
-                dashboard: "डैशबोर्ड",
-                settings: "सेTINGS",
-                sortNewest: "क्रम: नवीनतम पहले",
-                sortAlpha: "क्रम: वर्णमाला (A-Z)",
-                sortCount: "क्रम: सर्वाधिक संपर्क",
-                subTabBlast: "📢 बल्क अभियान",
-                subTabWelcome: "🤖 ऑटो वेलकम",
-                message: "संदेश",
-                msgPlaceholder: "यहाँ संदेश टाइप करें...",
-                attachments: "फ़ाइलें (फोटो, वीडियो, पीडीएफ)",
-                preview: "लाइव पूर्वावलोकन",
-                scheduleTitle: "⏰ अभियान शेड्यूल करें",
-                scheduleSub: "बाद में स्वतः भेजें (अधिकतम 3)",
-                preset1h: "+1 घंटा",
-                presetTom9: "कल सुबह 9 बजे",
-                presetTom18: "कल शाम 6 बजे",
-                disclaimerFooter: "⚠️ जिम्मेदारी से उपयोग करें। अनचाहे बल्क संदेश भेजना व्हाट्सएप नीतियों के विरुद्ध है।",
-                launch: "समूह चुनें और भेजें",
-                enableWelcome: "वेलकम मैसेज चालू करें",
-                addTextBtn: "+ टेक्स्ट",
-                addImageBtn: "+ फोटो",
-                addVideoBtn: "+ वीडियो",
-                saveWelcome: "💾 वेलकम सीक्वेंस सहेजें",
-                totalContacts: "कुल संपर्क",
-                totalGroups: "कुल समूह",
-                recentHistory: "हाल के 3 अभियान",
-                connection: "व्हाट्सएप कनेक्शन स्थिति",
-                unlink: "व्हाट्सएप हटाएं",
-                pair: "व्हाट्सएप जोड़ें",
-                language: "भाषा",
-                theme: "थीम",
-                updates: "ऐप संस्करण और अपडेट",
-                updateCheck: "⚡ नया संस्करण स्थापित करें",
-                shareApp: "ऐप साझा करें",
-                createGroup: "समूह बनाएं (अधिकतम 250 संपर्क)",
-                groupName: "समूह का नाम",
-                addContacts: "संपर्क जोड़ें",
-                saveGroup: "समूह सहेजें",
-                manageGroup: "समूह के सदस्य",
-                renameGroup: "समूह का नाम बदलें",
-                targetGroups: "लक्षित समूह चुनें",
-                deduplicateNote: "डुप्लिकेट संपर्क स्वतः हटा दिए जाएंगे।",
-                deviceContacts: "फ़ोन संपर्क"
-            }
-        };
-
-        let groups = [];
-        if (SESSION_ID && SESSION_ID !== 'unpaired_user') {
-            try { groups = JSON.parse(localStorage.getItem('app_groups') || '[]'); } catch(e) { groups = []; }
-        }
-
-        let globalCampaigns = [];
-        try { globalCampaigns = JSON.parse(localStorage.getItem('app_campaigns') || '[]'); } catch(e) { globalCampaigns = []; }
-
+        let groups = JSON.parse(localStorage.getItem('app_groups') || '[]');
         let activeGroupId = null;
         let stagedContacts = [];
         let cachedDeviceContacts = [];
         let currentlyFilteredContacts = [];
         let selectedPbContacts = new Set();
         let selectedTargetGroupIds = new Set();
-        let selectedGroupsForDelete = new Set();
-        let isGroupSelectMode = false;
-        let editingMemberIndex = null;
         let pbTargetMode = 'create';
-        const modalStack = [];
 
-        function openModal(id) {
-            const el = document.getElementById(id);
-            if (el) { el.style.display = 'flex'; modalStack.push(id); }
-        }
+        let bulkBlocks = [{ id: 'bb_1', type: 'text', content: '', file: null, fileName: '', caption: '' }];
+        let welcomeBlocks = [];
 
-        function closeTopModal() {
-            if (modalStack.length > 0) {
-                const top = modalStack.pop();
-                const el = document.getElementById(top);
-                if (el) el.style.display = 'none';
-            }
-        }
+        function openModal(id) { document.getElementById(id).style.display = 'flex'; }
+        function closeTopModal() { document.querySelectorAll('.modal').forEach(m => m.style.display = 'none'); }
+        function closeGroupMembersOverlay() { document.getElementById('groupMembersOverlay').style.display = 'none'; }
+        function closePhonebookOverlay() { document.getElementById('phonebookOverlay').style.display = 'none'; }
 
-        function checkDisclaimerAcceptance() {
-            const accepted = localStorage.getItem('terms_accepted_permanent');
-            if (!accepted) {
-                document.getElementById('disclaimerModal').style.display = 'flex';
-                document.getElementById('chkAcceptTerms').addEventListener('change', function() {
-                    const btn = document.getElementById('btnAcceptDisclaimer');
-                    btn.disabled = !this.checked;
-                    btn.style.opacity = this.checked ? '1' : '0.5';
-                });
-            }
-        }
-
-        function confirmDisclaimerConsent() {
-            if (!document.getElementById('chkAcceptTerms').checked) return;
-            localStorage.setItem('terms_accepted_permanent', 'true');
-            document.getElementById('disclaimerModal').style.display = 'none';
-        }
-
-        function setupBackNavigation() {
-            const AppPlugin = window.Capacitor?.Plugins?.App;
-            if (AppPlugin) {
-                AppPlugin.addListener('backButton', () => {
-                    const overlay = document.getElementById('phonebookOverlay');
-                    if (overlay && overlay.style.display === 'flex') {
-                        closePhonebookOverlay();
-                    } else if (modalStack.length > 0) {
-                        closeTopModal();
-                    } else if (document.querySelectorAll('.page-content.active')[0].id !== 'viewGroups') {
-                        navigateTab('viewGroups', document.querySelectorAll('.nav-tab')[0]);
-                    } else if (confirm('Are you sure you want to exit?')) {
-                        AppPlugin.exitApp();
-                    }
-                });
-            }
-        }
-
-        function setupPullToRefresh() {
-            let startY = 0;
-            const spinner = document.getElementById('pullToRefreshSpinner');
-
-            window.addEventListener('touchstart', e => {
-                if (window.scrollY === 0) startY = e.touches[0].clientY;
-            }, { passive: true });
-
-            window.addEventListener('touchmove', e => {
-                const y = e.touches[0].clientY;
-                if (window.scrollY === 0 && y - startY > 90) {
-                    spinner.style.display = 'block';
-                }
-            }, { passive: true });
-
-            window.addEventListener('touchend', async () => {
-                if (spinner.style.display === 'block') {
-                    await syncWhatsAppAccountStatus();
-                    renderGroups();
-                    renderDashboard();
-                    checkForAppUpdatesBackground();
-                    setTimeout(() => spinner.style.display = 'none', 600);
-                }
-            });
-        }
-
-        async function navigateTab(tabId, el) {
+        function navigateTab(tabId, el) {
             document.querySelectorAll('.page-content').forEach(p => p.classList.remove('active'));
             document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
             document.getElementById(tabId).classList.add('active');
             el.classList.add('active');
-
-            document.getElementById('fabAddGroup').style.display = (tabId === 'viewGroups') ? 'flex' : 'none';
-            if (tabId === 'viewDashboard') {
-                await hydrateCampaignStateFromServer();
-                renderDashboard();
-                loadScheduledCampaignsList();
-            }
-            if (tabId === 'viewSettings') {
-                await syncWhatsAppAccountStatus();
-            }
+            if (tabId === 'viewGroups') renderGroups();
         }
 
         function switchCampaignSubTab(mode) {
-            const btnBlast = document.getElementById('btnSubTabBlast');
-            const btnWelcome = document.getElementById('btnSubTabWelcome');
-            const panelBlast = document.getElementById('subPanelBlast');
-            const panelWelcome = document.getElementById('subPanelWelcome');
-
-            if (mode === 'welcome') {
-                btnBlast.classList.remove('active');
-                btnWelcome.classList.add('active');
-                panelBlast.style.display = 'none';
-                panelWelcome.style.display = 'block';
-            } else {
-                btnWelcome.classList.remove('active');
-                btnBlast.classList.add('active');
-                panelWelcome.style.display = 'none';
-                panelBlast.style.display = 'block';
-            }
+            document.getElementById('subPanelBlast').style.display = mode === 'blast' ? 'block' : 'none';
+            document.getElementById('subPanelWelcome').style.display = mode === 'welcome' ? 'block' : 'none';
         }
 
-        function switchTheme(theme) {
-            localStorage.setItem('app_theme', theme);
-            if (theme === 'light') document.body.classList.add('light-theme');
-            else document.body.classList.remove('light-theme');
-            document.getElementById('selTheme').value = theme;
+        // --- 1. Client-Side Image Auto-Compression ---
+        function compressImage(file, callback) {
+            if (!file.type.startsWith('image/')) { callback(file); return; }
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = function(e) {
+                const img = new Image();
+                img.src = e.target.result;
+                img.onload = function() {
+                    const canvas = document.createElement('canvas');
+                    const MAX_WIDTH = 1080;
+                    const MAX_HEIGHT = 1080;
+                    let width = img.width, height = img.height;
+                    if (width > height) {
+                        if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; }
+                    } else {
+                        if (height > MAX_HEIGHT) { width *= MAX_HEIGHT / height; height = MAX_HEIGHT; }
+                    }
+                    canvas.width = width; canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+                    canvas.toBlob(blob => {
+                        const compressedFile = new File([blob], file.name, { type: 'image/jpeg', lastModified: Date.now() });
+                        callback(compressedFile);
+                    }, 'image/jpeg', 0.7);
+                };
+            };
         }
 
-        function switchLanguage(lang) {
-            localStorage.setItem('app_lang', lang);
-            const d = i18n[lang] || i18n.en;
-            document.getElementById('txtHeaderTitle').innerText = d.title;
-            document.getElementById('tabGroups').innerText = d.groups;
-            document.getElementById('tabCampaign').innerText = d.campaign;
-            document.getElementById('tabDashboard').innerText = d.dashboard;
-            document.getElementById('tabSettings').innerText = d.settings;
-
-            document.getElementById('optSortNewest').innerText = d.sortNewest;
-            document.getElementById('optSortAlpha').innerText = d.sortAlpha;
-            document.getElementById('optSortCount').innerText = d.sortCount;
-
-            document.getElementById('btnSubTabBlast').innerText = d.subTabBlast;
-            document.getElementById('btnSubTabWelcome').innerText = d.subTabWelcome;
-
-            document.getElementById('lblScheduleTitle').innerText = d.scheduleTitle;
-            document.getElementById('lblScheduleSub').innerText = d.scheduleSub;
-            document.getElementById('chipPreset1h').innerText = d.preset1h;
-            document.getElementById('chipPresetTom9').innerText = d.presetTom9;
-            document.getElementById('chipPresetTom18').innerText = d.presetTom18;
-            document.getElementById('lblDisclaimerFooter').innerText = d.disclaimerFooter;
-            document.getElementById('btnLaunch').innerText = d.launch;
-
-            document.getElementById('lblEnableWelcome').innerText = d.enableWelcome;
-            document.getElementById('btnSaveWelcome').innerText = d.saveWelcome;
-
-            document.getElementById('lblTotalContacts').innerText = d.totalContacts;
-            document.getElementById('lblTotalGroups').innerText = d.totalGroups;
-            document.getElementById('lblRecentHistory').innerText = d.recentHistory;
-            document.getElementById('lblConnection').innerText = d.connection;
-            document.getElementById('btnUnlink').innerText = d.unlink;
-            document.getElementById('btnPair').innerText = d.pair;
-            document.getElementById('lblLanguage').innerText = d.language;
-            document.getElementById('lblTheme').innerText = d.theme;
-            document.getElementById('lblUpdates').innerText = d.updates;
-            document.getElementById('btnUpdateNow').innerText = d.updateCheck;
-            document.getElementById('btnShareApp').innerText = d.shareApp;
-            document.getElementById('lblCreateGroup').innerText = d.createGroup;
-            document.getElementById('lblGroupName').innerText = d.groupName;
-            document.getElementById('lblAddContacts').innerText = d.addContacts;
-            document.getElementById('btnSaveGroup').innerText = d.saveGroup;
-            document.getElementById('lblManageGroup').innerText = d.manageGroup;
-            document.getElementById('lblRenameGroup').innerText = d.renameGroup;
-            document.getElementById('lblTargetGroups').innerText = d.targetGroups;
-            document.getElementById('lblDeduplicateNote').innerText = d.deduplicateNote;
-            document.getElementById('lblDeviceContacts').innerText = d.deviceContacts;
-            document.getElementById('selLanguage').value = lang;
-
-            renderWelcomeSequence();
-            renderBulkSequence();
-        }
-
-        // --- Bulk Multi-Block Campaign Handler (4 Text, 4 Image, 2 Video) ---
+        // --- Bulk & Welcome Blocks Management ---
         function addBulkBlock(type) {
-            const textCount = bulkBlocks.filter(b => b.type === 'text').length;
-            const imgCount = bulkBlocks.filter(b => b.type === 'image').length;
-            const vidCount = bulkBlocks.filter(b => b.type === 'video').length;
+            if (type === 'text' && bulkBlocks.filter(b => b.type === 'text').length >= 4) return alert('Max 4 Text blocks allowed.');
+            if (type === 'image' && bulkBlocks.filter(b => b.type === 'image').length >= 4) return alert('Max 4 Image blocks allowed.');
+            if (type === 'video' && bulkBlocks.filter(b => b.type === 'video').length >= 2) return alert('Max 2 Video blocks allowed.');
 
-            if (type === 'text' && textCount >= 4) return alert('Maximum 4 Text messages allowed per campaign.');
-            if (type === 'image' && imgCount >= 4) return alert('Maximum 4 Images allowed per campaign.');
-            if (type === 'video' && vidCount >= 2) return alert('Maximum 2 Videos allowed per campaign.');
-
-            bulkBlocks.push({
-                id: 'bb_' + Date.now() + '_' + Math.floor(Math.random() * 1000),
-                type,
-                content: '',
-                file: null,
-                fileName: '',
-                caption: ''
-            });
+            bulkBlocks.push({ id: 'bb_' + Date.now(), type, content: '', file: null, fileName: '', caption: '' });
             renderBulkSequence();
         }
 
-        function removeBulkBlock(id) {
-            bulkBlocks = bulkBlocks.filter(b => b.id !== id);
-            renderBulkSequence();
-        }
+        function removeBulkBlock(id) { bulkBlocks = bulkBlocks.filter(b => b.id !== id); renderBulkSequence(); }
 
-        function clearBulkBlockFile(id) {
-            const b = bulkBlocks.find(x => x.id === id);
-            if (b) {
-                b.file = null;
-                b.fileName = '';
-                const fileInput = document.getElementById(`bb_file_${id}`);
-                if (fileInput) fileInput.value = '';
-                renderBulkSequence();
-            }
-        }
-
-        function handleBulkBlockFile(e, id) {
+        function handleBulkFile(e, id) {
             const file = e.target.files[0];
-            const b = bulkBlocks.find(x => x.id === id);
-            if (b && file) {
-                b.file = file;
-                b.fileName = file.name;
-                renderBulkSequence();
+            if (!file) return;
+            if (file.type.startsWith('video/') && file.size > 15 * 1024 * 1024) {
+                alert('Video size must be under 15MB for future-proof delivery.');
+                e.target.value = ''; return;
             }
-        }
-
-        function updateBulkBlockText(id, val) {
-            const b = bulkBlocks.find(x => x.id === id);
-            if (b) b.content = val;
-        }
-
-        function updateBulkBlockCaption(id, val) {
-            const b = bulkBlocks.find(x => x.id === id);
-            if (b) b.caption = val;
-        }
-
-        function clearBulkBlockTextInUI(id) {
             const b = bulkBlocks.find(x => x.id === id);
             if (b) {
-                b.content = '';
-                renderBulkSequence();
+                if (file.type.startsWith('image/')) {
+                    compressImage(file, compressed => {
+                        b.file = compressed; b.fileName = compressed.name; renderBulkSequence();
+                    });
+                } else {
+                    b.file = file; b.fileName = file.name; renderBulkSequence();
+                }
             }
         }
 
         function renderBulkSequence() {
-            const lang = localStorage.getItem('app_lang') || 'en';
-            const d = i18n[lang] || i18n.en;
-
-            const textCount = bulkBlocks.filter(b => b.type === 'text').length;
-            const imgCount = bulkBlocks.filter(b => b.type === 'image').length;
-            const vidCount = bulkBlocks.filter(b => b.type === 'video').length;
-
-            const btnTxt = document.getElementById('btnAddBulkText');
-            const btnImg = document.getElementById('btnAddBulkImage');
-            const btnVid = document.getElementById('btnAddBulkVideo');
-            if (btnTxt) btnTxt.innerText = `${d.addTextBtn} (${textCount}/4)`;
-            if (btnImg) btnImg.innerText = `${d.addImageBtn} (${imgCount}/4)`;
-            if (btnVid) btnVid.innerText = `${d.addVideoBtn} (${vidCount}/2)`;
-
-            document.getElementById('lblBulkTotalBlocks').innerText = `${bulkBlocks.length}/10 Blocks`;
-
             const container = document.getElementById('bulkSequenceContainer');
-            if (bulkBlocks.length === 0) {
-                container.innerHTML = '<div style="text-align:center; color:var(--text-muted); padding:16px; font-size:0.85rem;">No campaign blocks added. Tap + Text, + Image, or + Video above.</div>';
-                return;
-            }
-
-            container.innerHTML = bulkBlocks.map((b, idx) => {
-                if (b.type === 'text') {
-                    return `
-                        <div class="welcome-block-item">
-                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-                                <span style="font-size:0.8rem; font-weight:bold; color:var(--primary);">#${idx + 1} • Text Message</span>
-                                ${bulkBlocks.length > 1 ? `<button type="button" class="btn btn-danger" style="width:auto; padding:2px 8px; font-size:0.72rem;" onclick="removeBulkBlock('${b.id}')">✖</button>` : ''}
-                            </div>
-                            <div class="textarea-container" style="margin-bottom:0;">
-                                <textarea class="safe-textarea" style="min-height:70px; margin-bottom:0;" placeholder="${d.msgPlaceholder}" oninput="updateBulkBlockText('${b.id}', this.value)">${escapeHtml(b.content || '')}</textarea>
-                                <button type="button" class="clear-btn" onclick="clearBulkBlockTextInUI('${b.id}')">✖ Clear</button>
-                            </div>
-                        </div>
-                    `;
-                } else {
-                    const acceptType = b.type === 'image' ? 'image/*' : 'video/*';
-                    const typeLabel = b.type === 'image' ? '🖼️ Image Block' : '🎥 Video Block';
-                    const hasFileLabel = b.fileName ? `<div style="font-size:0.75rem; color:var(--primary); margin-bottom:6px;">✔ ${escapeHtml(b.fileName)}</div>` : '';
-                    return `
-                        <div class="welcome-block-item">
-                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-                                <span style="font-size:0.8rem; font-weight:bold; color:var(--primary);">#${idx + 1} • ${typeLabel}</span>
-                                <div style="display:flex; gap:6px;">
-                                    <button type="button" class="btn btn-outline" style="width:auto; padding:2px 8px; font-size:0.72rem; color:var(--warning); border-color:var(--warning);" onclick="clearBulkBlockFile('${b.id}')">Clear</button>
-                                    <button type="button" class="btn btn-danger" style="width:auto; padding:2px 8px; font-size:0.72rem;" onclick="removeBulkBlock('${b.id}')">✖</button>
-                                </div>
-                            </div>
-                            ${hasFileLabel}
-                            <input type="file" id="bb_file_${b.id}" accept="${acceptType}" onchange="handleBulkBlockFile(event, '${b.id}')" style="margin-bottom:8px;">
-                            <input type="text" placeholder="Custom caption for this media (optional)..." value="${escapeHtml(b.caption || '')}" oninput="updateBulkBlockCaption('${b.id}', this.value)" style="margin-bottom:0;">
-                        </div>
-                    `;
-                }
-            }).join('');
+            const stream = document.getElementById('bulkLiveStreamPreview');
+            container.innerHTML = bulkBlocks.map((b, idx) => `
+                <div class="welcome-block-item">
+                    <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+                        <span style="font-size:0.8rem; color:var(--primary); font-weight:bold;">#${idx+1} (${b.type.toUpperCase()})</span>
+                        <button class="btn btn-danger" style="width:auto; padding:2px 6px; font-size:0.7rem;" onclick="removeBulkBlock('${b.id}')">✖</button>
+                    </div>
+                    ${b.type === 'text' ? `
+                        <textarea style="width:100%; min-height:60px; background:var(--surface-card); color:var(--text); padding:8px; border-radius:6px; border:1px solid var(--border);" placeholder="Type text..." oninput="bulkBlocks.find(x=>x.id=='${b.id}').content=this.value; renderBulkStream();">${escapeHtml(b.content)}</textarea>
+                    ` : `
+                        <input type="file" accept="${b.type === 'image' ? 'image/*' : 'video/*'}" onchange="handleBulkFile(event, '${b.id}')" style="margin-bottom:6px;">
+                        ${b.fileName ? `<div style="font-size:0.75rem; color:var(--primary);">✔ ${escapeHtml(b.fileName)}</div>` : ''}
+                        <input type="text" placeholder="Caption (optional)..." value="${escapeHtml(b.caption)}" oninput="bulkBlocks.find(x=>x.id=='${b.id}').caption=this.value; renderBulkStream();" style="margin-bottom:0;">
+                    `}
+                </div>
+            `).join('');
+            renderBulkStream();
         }
 
-        // --- Scheduler Presets ---
-        function toLocalDateTimeInputString(dateObj) {
-            const pad = n => String(n).padStart(2, '0');
-            return `${dateObj.getFullYear()}-${pad(dateObj.getMonth() + 1)}-${pad(dateObj.getDate())}T${pad(dateObj.getHours())}:${pad(dateObj.getMinutes())}`;
+        function renderBulkStream() {
+            const stream = document.getElementById('bulkLiveStreamPreview');
+            stream.innerHTML = bulkBlocks.map(b => {
+                if (b.type === 'text' && b.content) return `<div class="wa-chat-bubble">${escapeHtml(b.content)}</div>`;
+                if ((b.type === 'image' || b.type === 'video') && b.fileName) return `<div class="wa-chat-bubble">📎 [${b.type.toUpperCase()}: ${escapeHtml(b.fileName)}]${b.caption ? '<br>'+escapeHtml(b.caption) : ''}</div>`;
+                return '';
+            }).join('') || '<div style="text-align:center; color:var(--text-muted); font-size:0.8rem;">Empty sequence</div>';
         }
 
-        function updateScheduleMinMaxGuards() {
-            const input = document.getElementById('campScheduleTime');
-            const now = new Date(Date.now() + 5 * 60 * 1000);
-            const maxDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-            input.min = toLocalDateTimeInputString(now);
-            input.max = toLocalDateTimeInputString(maxDate);
-        }
-
-        function updateScheduleReadableLabel() {
-            const val = document.getElementById('campScheduleTime').value;
-            const lbl = document.getElementById('lblScheduleFormattedPreview');
-            if (!val) {
-                lbl.innerText = '';
-                return;
-            }
-            const dt = new Date(val);
-            if (!isNaN(dt.getTime())) {
-                lbl.innerText = `📅 Scheduled for: ${dt.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}`;
-            }
-        }
-
-        function toggleScheduleInput(checkbox) {
-            const wrapper = document.getElementById('scheduleInputWrapper');
-            if (checkbox.checked) {
-                wrapper.style.display = 'block';
-                updateScheduleMinMaxGuards();
-                const input = document.getElementById('campScheduleTime');
-                if (!input.value) {
-                    applySchedulePreset('1h', document.getElementById('chipPreset1h'));
-                } else {
-                    updateScheduleReadableLabel();
-                }
-            } else {
-                wrapper.style.display = 'none';
-            }
-        }
-
-        function applySchedulePreset(presetType, btnEl) {
-            document.querySelectorAll('.preset-chip').forEach(c => c.classList.remove('active'));
-            if (btnEl) btnEl.classList.add('active');
-
-            updateScheduleMinMaxGuards();
-            const target = new Date();
-            if (presetType === '1h') target.setHours(target.getHours() + 1);
-            else if (presetType === 'tom9') { target.setDate(target.getDate() + 1); target.setHours(9, 0, 0, 0); }
-            else if (presetType === 'tom18') { target.setDate(target.getDate() + 1); target.setHours(18, 0, 0, 0); }
-
-            const input = document.getElementById('campScheduleTime');
-            input.value = toLocalDateTimeInputString(target);
-            updateScheduleReadableLabel();
-        }
-
-        function clearPresetHighlight() {
-            document.querySelectorAll('.preset-chip').forEach(c => c.classList.remove('active'));
-            updateScheduleReadableLabel();
-        }
-
-        // --- Auto Welcome Setup ---
+        // Welcome Blocks Management
         function addWelcomeBlock(type) {
-            const textCount = welcomeBlocks.filter(b => b.type === 'text').length;
-            const imgCount = welcomeBlocks.filter(b => b.type === 'image').length;
-            const vidCount = welcomeBlocks.filter(b => b.type === 'video').length;
-
-            if (type === 'text' && textCount >= 4) return alert('Maximum 4 Text messages allowed in Welcome Sequence.');
-            if (type === 'image' && imgCount >= 4) return alert('Maximum 4 Images allowed in Welcome Sequence.');
-            if (type === 'video' && vidCount >= 2) return alert('Maximum 2 Videos allowed in Welcome Sequence.');
-
-            welcomeBlocks.push({
-                id: 'wb_' + Date.now() + '_' + Math.floor(Math.random() * 1000),
-                type,
-                content: '',
-                file: null,
-                fileName: '',
-                existingFilePath: '',
-                mimetype: '',
-                caption: ''
-            });
+            welcomeBlocks.push({ id: 'wb_' + Date.now(), type, content: '', file: null, fileName: '', caption: '' });
             renderWelcomeSequence();
         }
-
-        function removeWelcomeBlock(id) {
-            welcomeBlocks = welcomeBlocks.filter(b => b.id !== id);
-            renderWelcomeSequence();
-        }
-
-        function clearWelcomeBlockFile(id) {
-            const b = welcomeBlocks.find(x => x.id === id);
-            if (b) {
-                b.file = null;
-                b.fileName = '';
-                b.existingFilePath = '';
-                const fileInput = document.getElementById(`wb_file_${id}`);
-                if (fileInput) fileInput.value = '';
-                renderWelcomeSequence();
-            }
-        }
-
-        function handleWelcomeBlockFile(e, id) {
-            const file = e.target.files[0];
-            const b = welcomeBlocks.find(x => x.id === id);
-            if (b && file) {
-                b.file = file;
-                b.fileName = file.name;
-                b.mimetype = file.type;
-                renderWelcomeSequence();
-            }
-        }
-
-        function updateWelcomeBlockText(id, val) {
-            const b = welcomeBlocks.find(x => x.id === id);
-            if (b) b.content = val;
-        }
-
-        function updateWelcomeBlockCaption(id, val) {
-            const b = welcomeBlocks.find(x => x.id === id);
-            if (b) b.caption = val;
-        }
-
         function renderWelcomeSequence() {
-            const lang = localStorage.getItem('app_lang') || 'en';
-            const d = i18n[lang] || i18n.en;
-
-            const textCount = welcomeBlocks.filter(b => b.type === 'text').length;
-            const imgCount = welcomeBlocks.filter(b => b.type === 'image').length;
-            const vidCount = welcomeBlocks.filter(b => b.type === 'video').length;
-
-            const btnTxt = document.getElementById('btnAddWelcomeText');
-            const btnImg = document.getElementById('btnAddWelcomeImage');
-            const btnVid = document.getElementById('btnAddWelcomeVideo');
-            if (btnTxt) btnTxt.innerText = `${d.addTextBtn} (${textCount}/4)`;
-            if (btnImg) btnImg.innerText = `${d.addImageBtn} (${imgCount}/4)`;
-            if (btnVid) btnVid.innerText = `${d.addVideoBtn} (${vidCount}/2)`;
-
             const container = document.getElementById('welcomeSequenceContainer');
-            if (welcomeBlocks.length === 0) {
-                container.innerHTML = '';
-                return;
-            }
-
-            container.innerHTML = welcomeBlocks.map((b, idx) => {
-                if (b.type === 'text') {
-                    return `
-                        <div class="welcome-block-item">
-                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-                                <span style="font-size:0.8rem; font-weight:bold; color:var(--primary);">#${idx + 1} • Text</span>
-                                <button type="button" class="btn btn-danger" style="width:auto; padding:2px 8px; font-size:0.72rem;" onclick="removeWelcomeBlock('${b.id}')">✖</button>
-                            </div>
-                            <div class="textarea-container" style="margin-bottom:0;">
-                                <textarea class="safe-textarea" style="min-height:65px; margin-bottom:0;" placeholder="Enter welcome text..." oninput="updateWelcomeBlockText('${b.id}', this.value)">${escapeHtml(b.content || '')}</textarea>
-                                <button type="button" class="clear-btn" onclick="clearWelcomeBlockTextInUI('${b.id}')">✖ Clear</button>
-                            </div>
-                        </div>
-                    `;
-                } else {
-                    const acceptType = b.type === 'image' ? 'image/*' : 'video/*';
-                    const typeLabel = b.type === 'image' ? '🖼️ Image' : '🎥 Video';
-                    const hasFileLabel = b.fileName ? `<div style="font-size:0.75rem; color:var(--primary); margin-bottom:6px;">✔ ${escapeHtml(b.fileName)}</div>` : '';
-                    return `
-                        <div class="welcome-block-item">
-                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-                                <span style="font-size:0.8rem; font-weight:bold; color:var(--primary);">#${idx + 1} • ${typeLabel}</span>
-                                <div style="display:flex; gap:6px;">
-                                    <button type="button" class="btn btn-outline" style="width:auto; padding:2px 8px; font-size:0.72rem; color:var(--warning); border-color:var(--warning);" onclick="clearWelcomeBlockFile('${b.id}')">Clear</button>
-                                    <button type="button" class="btn btn-danger" style="width:auto; padding:2px 8px; font-size:0.72rem;" onclick="removeWelcomeBlock('${b.id}')">✖</button>
-                                </div>
-                            </div>
-                            ${hasFileLabel}
-                            <input type="file" id="wb_file_${b.id}" accept="${acceptType}" onchange="handleWelcomeBlockFile(event, '${b.id}')" style="margin-bottom:8px;">
-                            <input type="text" placeholder="Custom caption (optional)..." value="${escapeHtml(b.caption || '')}" oninput="updateWelcomeBlockCaption('${b.id}', this.value)" style="margin-bottom:0;">
-                        </div>
-                    `;
-                }
-            }).join('');
-        }
-
-        function clearWelcomeBlockTextInUI(id) {
-            const b = welcomeBlocks.find(x => x.id === id);
-            if (b) {
-                b.content = '';
-                renderWelcomeSequence();
-            }
-        }
-
-        async function loadWelcomeRulesFromServer() {
-            if (SESSION_ID === 'unpaired_user') return;
-            try {
-                const res = await fetch(`${FIXED_BACKEND_URL}/api/welcome/rules?sessionId=${SESSION_ID}`, {
-                    headers: { 'Authorization': `Bearer ${API_BEARER_TOKEN}`, 'ngrok-skip-browser-warning': 'true' }
-                });
-                const d = await res.json();
-                if (d.success && d.config) {
-                    document.getElementById('chkEnableWelcome').checked = !!d.config.enabled;
-                    if (Array.isArray(d.config.sequence) && d.config.sequence.length > 0) {
-                        welcomeBlocks = d.config.sequence.map((s, idx) => ({
-                            id: s.id || ('wb_restored_' + idx),
-                            type: s.type === 'media' ? ((s.mimetype || '').startsWith('video/') ? 'video' : 'image') : s.type,
-                            content: s.content || '',
-                            file: null,
-                            fileName: s.fileName || (s.filePath ? s.filePath.split(/[\\/]/).pop() : ''),
-                            existingFilePath: s.filePath || '',
-                            mimetype: s.mimetype || '',
-                            caption: s.caption || ''
-                        }));
-                    }
-                }
-            } catch (e) {}
-            renderWelcomeSequence();
-        }
-
-        async function saveWelcomeRules() {
-            if (SESSION_ID === 'unpaired_user') return alert('Please pair WhatsApp first before saving rules.');
-            const enabled = document.getElementById('chkEnableWelcome').checked;
-
-            const validBlocks = welcomeBlocks.filter(b => {
-                if (b.type === 'text') return (b.content || '').trim().length > 0;
-                if (b.type === 'image' || b.type === 'video') return (b.file !== null) || ((b.existingFilePath || '').trim().length > 0);
-                return false;
-            });
-
-            if (enabled && validBlocks.length === 0) return alert('Please add welcome text or media before saving.');
-
-            const fd = new FormData();
-            fd.append('sessionId', SESSION_ID);
-            fd.append('enabled', enabled);
-
-            const blocksMeta = validBlocks.map(b => ({
-                id: b.id,
-                type: b.type,
-                content: (b.content || '').trim(),
-                caption: (b.caption || '').trim(),
-                existingFilePath: b.existingFilePath || '',
-                fileName: b.fileName || '',
-                mimetype: b.mimetype || ''
-            }));
-
-            fd.append('blocksMeta', JSON.stringify(blocksMeta));
-
-            validBlocks.forEach(b => {
-                if (b.file) fd.append(`file_${b.id}`, b.file);
-            });
-
-            try {
-                const res = await fetch(`${FIXED_BACKEND_URL}/api/welcome/setup`, {
-                    method: 'POST',
-                    headers: { 'Authorization': `Bearer ${API_BEARER_TOKEN}`, 'ngrok-skip-browser-warning': 'true' },
-                    body: fd
-                });
-                const d = await res.json();
-                if (d.success) {
-                    await loadWelcomeRulesFromServer();
-                    alert(enabled ? 'Welcome message enabled and saved!' : 'Welcome message turned OFF.');
-                } else alert(d.error || 'Failed to save');
-            } catch(e) { alert('Connection error: ' + e.message); }
-        }
-
-        // --- Core Status & WhatsApp Handshake ---
-        async function syncWhatsAppAccountStatus() {
-            let targetPhone = localStorage.getItem('connected_phone_permanent');
-            if (!targetPhone || targetPhone === 'unpaired_user') {
-                const inputVal = document.getElementById('txtPairPhone')?.value?.trim();
-                if (inputVal) targetPhone = normalizeNumber(inputVal);
-            }
-            if (!targetPhone || targetPhone === 'unpaired_user') {
-                document.getElementById('statusConnectedBox').style.display = 'none';
-                document.getElementById('statusPairingBox').style.display = 'block';
-                return;
-            }
-
-            try {
-                const res = await fetch(`${FIXED_BACKEND_URL}/api/status/${targetPhone}`, {
-                    headers: { 'Authorization': `Bearer ${DEFAULT_TOKEN}`, 'ngrok-skip-browser-warning': 'true' }
-                });
-                const d = await res.json();
-                
-                if (d.status === 'CONNECTED' && d.phone) {
-                    SESSION_ID = d.phone;
-                    localStorage.setItem('connected_phone_permanent', d.phone);
-                    localStorage.setItem('tenant_session_id', d.phone);
-                    if (d.tenantToken) {
-                        API_BEARER_TOKEN = d.tenantToken;
-                        localStorage.setItem('tenant_token', API_BEARER_TOKEN);
-                    } else {
-                        API_BEARER_TOKEN = DEFAULT_TOKEN;
-                    }
-
-                    document.getElementById('statusConnectedBox').style.display = 'block';
-                    document.getElementById('statusPairingBox').style.display = 'none';
-                    document.getElementById('lblConnectedPhone').innerText = `+${d.phone}`;
-                    document.getElementById('badgeServerStatus').innerText = "● CONNECTED";
-                    document.getElementById('badgeServerStatus').style.color = "var(--primary)";
-                    document.getElementById('txtServerOfflineNotice').style.display = "none";
-
-                    // Force restore preserved groups & active data on handshake
-                    await restoreGroupsFromServer(true);
-                    await hydrateCampaignStateFromServer();
-                    await loadWelcomeRulesFromServer();
-                } else {
-                    document.getElementById('statusConnectedBox').style.display = 'none';
-                    document.getElementById('statusPairingBox').style.display = 'block';
-                }
-            } catch(e) {
-                const savedPhone = localStorage.getItem('connected_phone_permanent');
-                if (savedPhone) {
-                    document.getElementById('statusConnectedBox').style.display = 'block';
-                    document.getElementById('statusPairingBox').style.display = 'none';
-                    document.getElementById('lblConnectedPhone').innerText = `+${savedPhone}`;
-                    document.getElementById('badgeServerStatus').innerText = "● SERVER OFFLINE";
-                    document.getElementById('badgeServerStatus').style.color = "var(--warning)";
-                    document.getElementById('txtServerOfflineNotice').style.display = "block";
-                }
-            }
-        }
-
-        async function syncGroupsToServer(allowEmptyOverwrite = false) {
-            if (!SESSION_ID || SESSION_ID === 'unpaired_user') return;
-            try {
-                await fetch(`${FIXED_BACKEND_URL}/api/groups/sync`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${API_BEARER_TOKEN}`, 'ngrok-skip-browser-warning': 'true' },
-                    body: JSON.stringify({ sessionId: SESSION_ID, groups, allowEmptyOverwrite })
-                });
-            } catch(e) {}
-        }
-
-        async function restoreGroupsFromServer(forcePull = false) {
-            if (!SESSION_ID || SESSION_ID === 'unpaired_user') return false;
-            try {
-                const res = await fetch(`${FIXED_BACKEND_URL}/api/groups/restore?sessionId=${SESSION_ID}`, {
-                    headers: { 'Authorization': `Bearer ${API_BEARER_TOKEN}`, 'ngrok-skip-browser-warning': 'true' }
-                });
-                const d = await res.json();
-                if (d.groups && Array.isArray(d.groups)) {
-                    if (groups.length === 0 || forcePull) {
-                        groups = d.groups;
-                        localStorage.setItem('app_groups', JSON.stringify(groups));
-                        renderGroups();
-                        renderDashboard();
-                        return true;
-                    }
-                }
-            } catch(e) {}
-            return false;
-        }
-
-        async function hydrateCampaignStateFromServer() {
-            if (!SESSION_ID || SESSION_ID === 'unpaired_user') return;
-            try {
-                const res = await fetch(`${FIXED_BACKEND_URL}/api/campaign/state?sessionId=${SESSION_ID}`, {
-                    headers: { 'Authorization': `Bearer ${API_BEARER_TOKEN}`, 'ngrok-skip-browser-warning': 'true' }
-                });
-                const d = await res.json();
-
-                if (Array.isArray(d.history) && d.history.length > 0) {
-                    globalCampaigns = d.history;
-                    localStorage.setItem('app_campaigns', JSON.stringify(globalCampaigns));
-                }
-
-                const panel = document.getElementById('campaignCtrlPanel');
-                if (d.hasState && d.queue && d.queue.state !== 'STOPPED') {
-                    const q = d.queue;
-                    currentActiveCampaignId = q.campaignId;
-                    panel.style.display = 'block';
-                    document.getElementById('txtLiveCampaignProgress').innerText = `${q.sent || 0} / ${q.total} Sent`;
-
-                    if (q.state === 'PAUSED') {
-                        document.getElementById('txtLiveCampaignState').innerText = 'PAUSED';
-                        document.getElementById('txtLiveCampaignState').style.color = 'var(--warning)';
-                        document.getElementById('btnPauseCampaign').style.display = 'none';
-                        document.getElementById('btnResumeCampaign').style.display = 'block';
-                    } else if (q.isRunning || q.state === 'RUNNING') {
-                        document.getElementById('txtLiveCampaignState').innerText = 'RUNNING';
-                        document.getElementById('txtLiveCampaignState').style.color = 'var(--primary)';
-                        document.getElementById('btnPauseCampaign').style.display = 'block';
-                        document.getElementById('btnResumeCampaign').style.display = 'none';
-                        pollCampaignLive(q.campaignId);
-                    }
-                } else {
-                    panel.style.display = 'none';
-                }
-                renderDashboard();
-            } catch(e) {}
-        }
-
-        async function requestPairCode() {
-            const phone = document.getElementById('txtPairPhone').value.trim();
-            if (!phone) return alert('Enter WhatsApp phone number');
-            const cleanPhone = normalizeNumber(phone);
-            if (!cleanPhone || cleanPhone.length < 10) return alert('Enter a valid 10-digit phone number');
-
-            const disp = document.getElementById('pairCodeDisplay');
-            disp.style.display = 'block';
-            disp.innerText = 'Requesting code...';
-            const btnPair = document.getElementById('btnPair');
-            btnPair.disabled = true;
-
-            try {
-                const res = await fetch(`${FIXED_BACKEND_URL}/api/pair`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${DEFAULT_TOKEN}`, 'ngrok-skip-browser-warning': 'true' },
-                    body: JSON.stringify({ phoneNumber: cleanPhone })
-                });
-                const d = await res.json();
-                if (d.pairingCode) {
-                    disp.innerText = d.pairingCode;
-                    if (pairingPollTimer) clearInterval(pairingPollTimer);
-                    pairingPollTimer = setInterval(async () => {
-                        const statusRes = await fetch(`${FIXED_BACKEND_URL}/api/status/${cleanPhone}`, {
-                            headers: { 'Authorization': `Bearer ${DEFAULT_TOKEN}`, 'ngrok-skip-browser-warning': 'true' }
-                        });
-                        const sd = await statusRes.json();
-                        if (sd.status === 'CONNECTED') {
-                            clearInterval(pairingPollTimer);
-                            SESSION_ID = cleanPhone;
-                            if (sd.tenantToken) {
-                                API_BEARER_TOKEN = sd.tenantToken;
-                                localStorage.setItem('tenant_token', API_BEARER_TOKEN);
-                            }
-                            localStorage.setItem('connected_phone_permanent', cleanPhone);
-                            localStorage.setItem('tenant_session_id', cleanPhone);
-                            await syncWhatsAppAccountStatus();
-                            alert(`WhatsApp connected successfully for +${cleanPhone}!`);
-                        }
-                    }, 2500);
-                } else disp.innerText = d.error || 'Pairing error';
-            } catch(e) { disp.innerText = 'Connection Error: Server Offline'; }
-            finally { btnPair.disabled = false; }
-        }
-
-        async function unlinkAccount() {
-            if (!confirm('Unlink and disconnect this WhatsApp account? Customer groups are preserved on server.')) return;
-            try {
-                await fetch(`${FIXED_BACKEND_URL}/api/logout`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${API_BEARER_TOKEN}`, 'ngrok-skip-browser-warning': 'true' },
-                    body: JSON.stringify({ sessionId: SESSION_ID })
-                });
-            } catch(e) {}
-            localStorage.clear();
-            sessionStorage.clear();
-            alert('WhatsApp account unlinked. Login again anytime to restore groups.');
-            window.location.reload();
-        }
-
-        function toggleGroupSelectMode() {
-            isGroupSelectMode = !isGroupSelectMode;
-            selectedGroupsForDelete.clear();
-            document.getElementById('btnToggleGroupSelect').innerText = isGroupSelectMode ? 'Cancel' : 'Select';
-            document.getElementById('groupBatchActionBar').style.display = isGroupSelectMode ? 'flex' : 'none';
-            document.getElementById('selectedGroupCount').innerText = '0';
-            renderGroups();
-        }
-
-        function toggleGroupSelectionForDelete(id, e) {
-            e.stopPropagation();
-            if (selectedGroupsForDelete.has(id)) selectedGroupsForDelete.delete(id);
-            else selectedGroupsForDelete.add(id);
-            document.getElementById('selectedGroupCount').innerText = selectedGroupsForDelete.size;
-            renderGroups();
-        }
-
-        function deleteSelectedGroups() {
-            if (selectedGroupsForDelete.size === 0) return alert('Select groups to delete');
-            if (!confirm(`Delete ${selectedGroupsForDelete.size} selected group(s)?`)) return;
-            groups = groups.filter(g => !selectedGroupsForDelete.has(g.id));
-            localStorage.setItem('app_groups', JSON.stringify(groups));
-            syncGroupsToServer(true);
-            toggleGroupSelectMode();
-        }
-
-        function openMultiGroupDispatchModal() {
-            const hasValidBlocks = bulkBlocks.some(b => {
-                if (b.type === 'text') return (b.content || '').trim().length > 0;
-                return b.file !== null;
-            });
-            if (!hasValidBlocks) return alert('Please enter text or select an image/video for your campaign.');
-            if (groups.length === 0) return alert('No groups available.');
-
-            selectedTargetGroupIds.clear();
-            renderTargetGroupCards();
-            openModal('multiGroupDispatchModal');
-        }
-
-        function renderTargetGroupCards() {
-            const container = document.getElementById('targetGroupsCardsContainer');
-            container.innerHTML = groups.map(g => {
-                const isSelected = selectedTargetGroupIds.has(g.id);
-                return `
-                    <div class="group-select-card ${isSelected ? 'selected' : ''}" onclick="toggleTargetGroupSelect('${g.id}')">
-                        <div>
-                            <div style="font-weight: 600;">${escapeHtml(g.name)}</div>
-                            <div style="font-size: 0.78rem; color: var(--text-muted);">${g.contacts.length} / 250 contacts</div>
-                        </div>
-                        <div class="group-checkbox-custom">${isSelected ? '✓' : ''}</div>
-                    </div>
-                `;
-            }).join('');
-        }
-
-        function toggleTargetGroupSelect(id) {
-            if (selectedTargetGroupIds.has(id)) selectedTargetGroupIds.delete(id);
-            else selectedTargetGroupIds.add(id);
-            renderTargetGroupCards();
-        }
-
-        function toggleSelectAllTargetGroups() {
-            if (selectedTargetGroupIds.size === groups.length) selectedTargetGroupIds.clear();
-            else groups.forEach(g => selectedTargetGroupIds.add(g.id));
-            renderTargetGroupCards();
-        }
-
-        async function confirmDispatchMultiGroup() {
-            if (selectedTargetGroupIds.size === 0) return alert('Select at least one group.');
-
-            const combinedMap = new Map();
-            selectedTargetGroupIds.forEach(id => {
-                const g = groups.find(x => x.id === id);
-                if (g) g.contacts.forEach(c => {
-                    const norm = normalizeNumber(c.phone);
-                    if (norm) combinedMap.set(norm, { name: c.name, phone: norm });
-                });
-            });
-
-            const uniqueRecipients = Array.from(combinedMap.values());
-            if (uniqueRecipients.length === 0) return alert('Selected groups contain no valid contacts.');
-
-            const isScheduleEnabled = document.getElementById('chkEnableSchedule').checked;
-            const scheduleTime = document.getElementById('campScheduleTime').value;
-
-            if (isScheduleEnabled && cachedScheduledJobs.length >= 3) {
-                return alert('Maximum 3 scheduled campaigns allowed! Please cancel an upcoming schedule before adding another.');
-            }
-
-            let scheduleEpoch = 0;
-            if (isScheduleEnabled) {
-                if (!scheduleTime) return alert('Please select a schedule date and time.');
-                scheduleEpoch = new Date(scheduleTime).getTime();
-                const now = Date.now();
-                if (scheduleEpoch <= now) return alert('Schedule time must be in the future.');
-                if (scheduleEpoch > now + (7 * 24 * 60 * 60 * 1000)) return alert('Schedule cannot exceed 7 days.');
-            }
-
-            const validBlocks = bulkBlocks.filter(b => {
-                if (b.type === 'text') return (b.content || '').trim().length > 0;
-                return b.file !== null;
-            });
-
-            const formData = new FormData();
-            formData.append('sessionId', SESSION_ID);
-            formData.append('recipients', JSON.stringify(uniqueRecipients));
-            formData.append('isScheduled', isScheduleEnabled);
-            if (isScheduleEnabled && scheduleEpoch > 0) formData.append('scheduleEpoch', scheduleEpoch);
-
-            const blocksMeta = validBlocks.map(b => ({
-                id: b.id,
-                type: b.type,
-                content: (b.content || '').trim(),
-                caption: (b.caption || '').trim(),
-                fileName: b.fileName || ''
-            }));
-            formData.append('blocksMeta', JSON.stringify(blocksMeta));
-
-            validBlocks.forEach(b => {
-                if (b.file) formData.append(`file_${b.id}`, b.file);
-            });
-
-            closeTopModal();
-            const btnLaunch = document.getElementById('btnStartSend');
-            btnLaunch.disabled = true;
-
-            try {
-                const res = await fetch(`${FIXED_BACKEND_URL}/api/message/send-bulk`, {
-                    method: 'POST',
-                    headers: { 'Authorization': `Bearer ${API_BEARER_TOKEN}`, 'ngrok-skip-browser-warning': 'true' },
-                    body: formData
-                });
-                const d = await res.json();
-                if (d.status === 'SCHEDULED') {
-                    alert(`Campaign successfully scheduled for ${d.scheduledForDate || new Date(scheduleEpoch).toLocaleString()}`);
-                    loadScheduledCampaignsList();
-                } else if (d.status === 'QUEUED') {
-                    currentActiveCampaignId = d.campaignId;
-                    await hydrateCampaignStateFromServer();
-                    alert(`Campaign launched to ${uniqueRecipients.length} contacts!`);
-                    bulkBlocks = [{ id: 'bb_' + Date.now(), type: 'text', content: '', file: null, fileName: '', caption: '' }];
-                    renderBulkSequence();
-                    navigateTab('viewDashboard', document.querySelectorAll('.nav-tab')[2]);
-                    pollCampaignLive(d.campaignId);
-                } else alert(d.error || 'Failed to dispatch');
-            } catch(e) { alert('Connection Error: ' + e.message); }
-            finally { btnLaunch.disabled = false; }
-        }
-
-        async function pauseCurrentCampaign() {
-            try {
-                const res = await fetch(`${FIXED_BACKEND_URL}/api/campaign/pause`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${API_BEARER_TOKEN}`, 'ngrok-skip-browser-warning': 'true' },
-                    body: JSON.stringify({ sessionId: SESSION_ID, campaignId: currentActiveCampaignId })
-                });
-                const d = await res.json();
-                if (d.status === 'PAUSED') {
-                    document.getElementById('txtLiveCampaignState').innerText = 'PAUSED';
-                    document.getElementById('txtLiveCampaignState').style.color = 'var(--warning)';
-                    document.getElementById('btnPauseCampaign').style.display = 'none';
-                    document.getElementById('btnResumeCampaign').style.display = 'block';
-                    await hydrateCampaignStateFromServer();
-                }
-            } catch(e) { alert('Failed to pause: ' + e.message); }
-        }
-
-        async function resumeCurrentCampaign() {
-            try {
-                const res = await fetch(`${FIXED_BACKEND_URL}/api/campaign/resume`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${API_BEARER_TOKEN}`, 'ngrok-skip-browser-warning': 'true' },
-                    body: JSON.stringify({ sessionId: SESSION_ID, campaignId: currentActiveCampaignId })
-                });
-                const d = await res.json();
-                if (d.status === 'RUNNING') {
-                    document.getElementById('txtLiveCampaignState').innerText = 'RUNNING';
-                    document.getElementById('txtLiveCampaignState').style.color = 'var(--primary)';
-                    document.getElementById('btnPauseCampaign').style.display = 'block';
-                    document.getElementById('btnResumeCampaign').style.display = 'none';
-                    pollCampaignLive(currentActiveCampaignId);
-                }
-            } catch(e) { alert('Failed to resume: ' + e.message); }
-        }
-
-        async function stopCurrentCampaign() {
-            if (!confirm('Are you sure you want to stop this campaign permanently? Media will be purged.')) return;
-            try {
-                const res = await fetch(`${FIXED_BACKEND_URL}/api/campaign/stop`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${API_BEARER_TOKEN}`, 'ngrok-skip-browser-warning': 'true' },
-                    body: JSON.stringify({ sessionId: SESSION_ID, campaignId: currentActiveCampaignId })
-                });
-                const d = await res.json();
-                if (d.status === 'STOPPED') {
-                    document.getElementById('campaignCtrlPanel').style.display = 'none';
-                    if (pollTimer) clearInterval(pollTimer);
-                    await hydrateCampaignStateFromServer();
-                    alert('Campaign stopped and storage cleaned.');
-                }
-            } catch(e) { alert('Failed to stop: ' + e.message); }
-        }
-
-        function pollCampaignLive(campId) {
-            if (pollTimer) clearInterval(pollTimer);
-
-            pollTimer = setInterval(async () => {
-                try {
-                    const res = await fetch(`${FIXED_BACKEND_URL}/api/queue-status/${SESSION_ID}`, {
-                        headers: { 'Authorization': `Bearer ${API_BEARER_TOKEN}`, 'ngrok-skip-browser-warning': 'true' }
-                    });
-                    const q = await res.json();
-
-                    if (Array.isArray(q.history) && q.history.length > 0) {
-                        globalCampaigns = q.history;
-                        localStorage.setItem('app_campaigns', JSON.stringify(globalCampaigns));
-                    }
-
-                    if (q && q.total > 0) {
-                        document.getElementById('txtLiveCampaignProgress').innerText = `${q.sent || 0} / ${q.total} Sent`;
-                    }
-
-                    if (q.state === 'PAUSED') {
-                        document.getElementById('txtLiveCampaignState').innerText = 'PAUSED';
-                        document.getElementById('txtLiveCampaignState').style.color = 'var(--warning)';
-                        document.getElementById('btnPauseCampaign').style.display = 'none';
-                        document.getElementById('btnResumeCampaign').style.display = 'block';
-                    } else if (q.isRunning) {
-                        document.getElementById('txtLiveCampaignState').innerText = 'RUNNING';
-                        document.getElementById('txtLiveCampaignState').style.color = 'var(--primary)';
-                        document.getElementById('btnPauseCampaign').style.display = 'block';
-                        document.getElementById('btnResumeCampaign').style.display = 'none';
-                    }
-
-                    renderDashboard();
-
-                    if (!q.isRunning && q.state !== 'PAUSED') {
-                        clearInterval(pollTimer);
-                        document.getElementById('campaignCtrlPanel').style.display = 'none';
-                    }
-                } catch(e) {}
-            }, 1500);
-        }
-
-        function renderDashboard() {
-            let total = 0;
-            groups.forEach(g => total += g.contacts.length);
-            document.getElementById('dashTotal').innerText = total;
-            document.getElementById('dashGroups').innerText = groups.length;
-
-            const container = document.getElementById('dashboardHistoryContainer');
-            if (globalCampaigns.length === 0) {
-                container.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 20px;">No campaigns recorded yet.</div>';
-                return;
-            }
-
-            container.innerHTML = globalCampaigns.map((camp, idx) => `
-                <div class="card">
-                    <div style="display: flex; justify-content: space-between; font-weight: bold; margin-bottom: 8px;">
-                        <span>Campaign #${globalCampaigns.length - idx}</span>
-                        <span style="font-size: 0.75rem; color: var(--text-muted);">${escapeHtml(camp.timestamp)}</span>
-                    </div>
-                    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px;">
-                        <div class="dh-pill" onclick="showFilteredContacts('${camp.id}', 'ALL')">
-                            <div class="dh-val">${camp.total}</div>
-                            <div class="dh-lbl">Total</div>
-                        </div>
-                        <div class="dh-pill" onclick="showFilteredContacts('${camp.id}', 'SENT')">
-                            <div class="dh-val" style="color: var(--primary);">${camp.sent}</div>
-                            <div class="dh-lbl">Sent</div>
-                        </div>
-                        <div class="dh-pill" onclick="showFilteredContacts('${camp.id}', 'FAILED')">
-                            <div class="dh-val" style="color: var(--danger);">${camp.failed}</div>
-                            <div class="dh-lbl">Failed</div>
-                        </div>
-                        <div class="dh-pill" onclick="showFilteredContacts('${camp.id}', 'PENDING')">
-                            <div class="dh-val" style="color: var(--warning);">${camp.pending}</div>
-                            <div class="dh-lbl">Pending</div>
-                        </div>
-                    </div>
+            container.innerHTML = welcomeBlocks.map((b, idx) => `
+                <div class="welcome-block-item">
+                    <span style="font-size:0.8rem; color:var(--primary); font-weight:bold;">#${idx+1} (${b.type})</span>
+                    ${b.type === 'text' ? `<textarea style="width:100%; padding:6px;" oninput="welcomeBlocks.find(x=>x.id=='${b.id}').content=this.value">${escapeHtml(b.content)}</textarea>` : `<input type="file" onchange="welcomeBlocks.find(x=>x.id=='${b.id}').file=this.files[0]">`}
                 </div>
             `).join('');
         }
 
-        // --- Scheduled Campaigns & Detail Preview Modal ---
-        async function loadScheduledCampaignsList() {
-            const container = document.getElementById('scheduledCampaignsContainer');
-            if (!SESSION_ID || SESSION_ID === 'unpaired_user') {
-                container.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 12px;">Not connected.</div>';
-                return;
-            }
-            try {
-                const res = await fetch(`${FIXED_BACKEND_URL}/api/campaign/scheduled-jobs/${SESSION_ID}`, {
-                    headers: { 'Authorization': `Bearer ${API_BEARER_TOKEN}`, 'ngrok-skip-browser-warning': 'true' }
-                });
-                const d = await res.json();
-                if (d.success && Array.isArray(d.jobs)) {
-                    cachedScheduledJobs = d.jobs;
-                    if (d.jobs.length > 0) {
-                        container.innerHTML = d.jobs.map(j => `
-                            <div class="card" style="margin-bottom:8px; display:flex; justify-content:space-between; align-items:center; cursor:pointer;" onclick="openScheduledPreview('${j.id}')">
-                                <div>
-                                    <div style="font-weight:bold; font-size:0.9rem;">⏰ ${escapeHtml(j.scheduledForDate)}</div>
-                                    <div style="font-size:0.75rem; color:var(--text-muted);">${j.recipientCount} recipients • ${j.mediaCount} media items • Tap to view</div>
-                                </div>
-                                <button class="btn btn-danger" style="width:auto; padding:6px 12px; font-size:0.78rem;" onclick="event.stopPropagation(); cancelScheduledCampaign('${j.id}')">Cancel</button>
-                            </div>
-                        `).join('');
-                    } else {
-                        container.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 12px; font-size: 0.85rem;">No upcoming scheduled campaigns. (Max 3)</div>';
-                    }
-                }
-            } catch (e) { container.innerHTML = ''; }
-        }
-
-        function openScheduledPreview(jobId) {
-            const job = cachedScheduledJobs.find(x => x.id === jobId);
-            if (!job) return;
-
-            const bodyEl = document.getElementById('schedModalBody');
-            let contentHtml = `<div style="margin-bottom:8px;"><b>Date:</b> ${escapeHtml(job.scheduledForDate)}</div>
-                               <div style="margin-bottom:12px;"><b>Total Recipients:</b> ${job.recipientCount}</div>`;
-
-            if (job.sequenceSummary && job.sequenceSummary.length > 0) {
-                contentHtml += `<b>Sequence Blocks (${job.sequenceSummary.length}):</b><div style="margin-top:6px;">`;
-                job.sequenceSummary.forEach((s, idx) => {
-                    contentHtml += `<div style="background:var(--surface-card); padding:8px; border-radius:6px; margin-bottom:6px; border:1px solid var(--border);">
-                        <span style="color:var(--primary); font-weight:bold;">#${idx+1} [${s.type.toUpperCase()}]</span>: ${escapeHtml(s.content || s.fileName || '')}
-                        ${s.caption ? `<div style="font-size:0.78rem; color:var(--text-muted); margin-top:2px;">Caption: ${escapeHtml(s.caption)}</div>` : ''}
-                    </div>`;
-                });
-                contentHtml += `</div>`;
-            } else if (job.message) {
-                contentHtml += `<b>Message:</b><div style="background:var(--surface-card); padding:8px; border-radius:6px; margin-top:4px;">${escapeHtml(job.message)}</div>`;
-            }
-
-            bodyEl.innerHTML = contentHtml;
-            document.getElementById('btnModalCancelSched').onclick = () => {
-                closeTopModal();
-                cancelScheduledCampaign(jobId);
-            };
-            openModal('scheduledDetailsModal');
-        }
-
-        async function cancelScheduledCampaign(jobId) {
-            if (!confirm('Cancel this scheduled campaign and immediately purge attached media?')) return;
-            try {
-                const res = await fetch(`${FIXED_BACKEND_URL}/api/campaign/cancel-schedule`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${API_BEARER_TOKEN}`, 'ngrok-skip-browser-warning': 'true' },
-                    body: JSON.stringify({ sessionId: SESSION_ID, jobId })
-                });
-                const d = await res.json();
-                if (d.success) {
-                    alert('Scheduled campaign cancelled and storage cleared.');
-                    loadScheduledCampaignsList();
-                } else alert(d.error || 'Failed to cancel');
-            } catch(e) { alert('Error: ' + e.message); }
-        }
-
-        // --- Detailed Failed / Pending Recipients in History ---
-        function showFilteredContacts(campId, filterType) {
-            const camp = globalCampaigns.find(c => c.id === campId);
-            if (!camp) return;
-
-            let list = camp.recipients || [];
-            const container = document.getElementById('filterModalContainer');
-
-            if (filterType === 'SENT') {
-                document.getElementById('filterModalTitle').innerText = 'Delivered Summary';
-                container.innerHTML = `<div style="text-align: center; color: var(--text); padding: 24px;">
-                    <div style="font-size: 2rem; margin-bottom: 8px;">✅</div>
-                    <b>Delivered Successfully</b><br><br>
-                    <span style="color: var(--text-muted); font-size: 0.85rem;">All ${camp.sent} recipients received this campaign. Individual numbers are cleared for storage optimization.</span>
-                </div>`;
-                openModal('contactFilterModal');
-                return;
-            }
-
-            if (filterType === 'FAILED') list = list.filter(r => r.status === 'FAILED');
-            else if (filterType === 'PENDING') list = list.filter(r => r.status === 'PENDING');
-
-            document.getElementById('filterModalTitle').innerText = `${filterType} Contacts (${list.length})`;
-
-            if (list.length === 0) {
-                container.innerHTML = `<div style="text-align: center; color: var(--text-muted); padding: 24px;">No ${filterType.toLowerCase()} contacts found in this campaign.</div>`;
-            } else {
-                container.innerHTML = list.map(c => `
-                    <div class="contact-picker-row">
-                        <div class="contact-avatar">${escapeHtml((c.name || 'U').charAt(0).toUpperCase())}</div>
-                        <div class="contact-details">
-                            <div class="contact-name-txt">${escapeHtml(c.name || 'Unsaved')}</div>
-                            <div class="contact-phone-txt">${escapeHtml(c.phone)}</div>
-                        </div>
-                        <span style="font-size: 0.72rem; padding: 2px 6px; border-radius: 4px; font-weight: bold; background: ${c.status === 'FAILED' ? 'rgba(239,68,68,0.2)' : 'rgba(245,158,11,0.2)'}; color: ${c.status === 'FAILED' ? 'var(--danger)' : 'var(--warning)'};">${escapeHtml(c.status)}</span>
-                    </div>
-                `).join('');
-            }
-            openModal('contactFilterModal');
-        }
-
-        function extractRunNumber(str) {
-            const match = String(str || '').match(/(\d+)$/);
-            return match ? parseInt(match[1], 10) : 0;
-        }
-
-        async function checkForAppUpdatesBackground(isManual = false) {
-            const ackBuild = parseInt(localStorage.getItem('acknowledged_release_build')) || 0;
-            if (ackBuild > CURRENT_BUILD_NUMBER) CURRENT_BUILD_NUMBER = ackBuild;
-            document.getElementById('lblCurrentVer').innerText = `v3.6.${CURRENT_BUILD_NUMBER}`;
-
-            try {
-                const res = await fetch("https://api.github.com/repos/itsdarkgaming007/version-3-/releases/latest", {
-                    headers: { 'Accept': 'application/vnd.github.v3+json' }
-                });
-                const rel = await res.json();
-                
-                if (rel && rel.name) {
-                    const latestBuild = extractRunNumber(rel.name);
-                    latestDetectedRemoteBuild = latestBuild;
-
-                    if (latestBuild > CURRENT_BUILD_NUMBER) {
-                        document.getElementById('lblCloudSyncStatus').innerText = "Update available";
-                        document.getElementById('lblCloudSyncStatus').style.color = "var(--warning)";
-                        document.getElementById('updateBanner').style.display = 'block';
-                        document.getElementById('lblNewVerNumber').innerText = `Release: ${rel.name}`;
-                    } else {
-                        document.getElementById('lblCloudSyncStatus').innerText = "Up to date";
-                        document.getElementById('lblCloudSyncStatus').style.color = "var(--primary)";
-                        document.getElementById('updateBanner').style.display = 'none';
-                        if (isManual) alert("Your app is already running the latest version.");
-                    }
-                }
-            } catch(e) {
-                document.getElementById('lblCloudSyncStatus').innerText = "Sync check failed";
-                document.getElementById('lblCloudSyncStatus').style.color = "var(--danger)";
-            }
-        }
-
-        function downloadDirectUpdate() {
-            window.open("https://github.com/itsdarkgaming007/version-3-/releases/download/latest/WA_Campaign_Latest.apk", '_system');
-        }
-
-        async function executeNativeAppShare() {
-            const shareData = {
-                title: 'WA Campaign',
-                text: 'Download WA Campaign App for bulk marketing:',
-                url: 'https://github.com/itsdarkgaming007/version-3-/releases/download/latest/WA_Campaign_Latest.apk'
-            };
-
-            const SharePlugin = window.Capacitor?.Plugins?.Share;
-            if (SharePlugin) {
-                try {
-                    await SharePlugin.share(shareData);
-                    return;
-                } catch(e) {}
-            }
-            if (navigator.share) {
-                try {
-                    await navigator.share(shareData);
-                    return;
-                } catch(e) {}
-            }
-            navigator.clipboard.writeText(shareData.url);
-            alert('App download link copied to clipboard!');
-        }
-
-        function sortGroups(criteria) {
-            if (criteria === 'alpha') groups.sort((a,b) => a.name.localeCompare(b.name));
-            else if (criteria === 'count') groups.sort((a,b) => b.contacts.length - a.contacts.length);
-            else groups.sort((a,b) => (b.createdAt || 0) - (a.createdAt || 0));
-            renderGroups();
-        }
-
-        function renderGroups() {
-            const container = document.getElementById('groupsListContainer');
-            if (groups.length === 0) {
-                container.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 40px;">No groups yet. Tap "+" below to create one.</div>';
-                return;
-            }
-            container.innerHTML = groups.map(g => {
-                const isSelected = selectedGroupsForDelete.has(g.id);
-                return `
-                    <div class="group-card ${isSelected ? 'selected' : ''}" onclick="${isGroupSelectMode ? `toggleGroupSelectionForDelete('${g.id}', event)` : `openMembersManagerFor('${g.id}')`}">
-                        <div style="display: flex; align-items: center; gap: 10px;">
-                            ${isGroupSelectMode ? `<div class="group-checkbox-custom" style="${isSelected ? 'background: var(--danger); border-color: var(--danger);' : ''}">${isSelected ? '✓' : ''}</div>` : ''}
-                            <div>
-                                <div class="group-card-title">${escapeHtml(g.name)}</div>
-                                <div style="font-size: 0.75rem; color: var(--text-muted);">Created: ${new Date(g.createdAt).toLocaleDateString()}</div>
-                            </div>
-                        </div>
-                        <span class="group-card-badge">${g.contacts.length} / 250</span>
-                    </div>
-                `;
-            }).join('');
-        }
-
-        function openCreateGroupModal() {
-            document.getElementById('newGroupName').value = '';
-            stagedContacts = [];
-            document.getElementById('createStagedCount').innerText = `0 / ${MAX_GROUP_CONTACTS} Contacts Staged`;
-            openModal('createGroupModal');
-        }
-
-        function saveGroup() {
-            const name = document.getElementById('newGroupName').value.trim();
-            if (!name) return alert('Enter group name');
-            if (stagedContacts.length > MAX_GROUP_CONTACTS) {
-                return alert(`Group limit exceeded! Maximum allowed is ${MAX_GROUP_CONTACTS} contacts.`);
-            }
-            groups.push({ id: 'grp_' + Date.now(), name, contacts: stagedContacts, createdAt: Date.now() });
-            localStorage.setItem('app_groups', JSON.stringify(groups));
-            syncGroupsToServer();
-            closeTopModal();
-            renderGroups();
-        }
-
+        // --- 2. Full Screen Overlay & Search for Group Members ---
+        let currentEditingGroup = null;
         function openMembersManagerFor(id) {
-            activeGroupId = id;
-            const g = groups.find(x => x.id === id);
-            if (!g) return;
-            document.getElementById('editGroupNameInput').value = g.name;
-            renderMembers();
-            openModal('membersModal');
+            currentEditingGroup = groups.find(x => x.id === id);
+            if (!currentEditingGroup) return;
+            document.getElementById('lblMembersOverlayTitle').innerText = currentEditingGroup.name;
+            document.getElementById('groupMemberSearch').value = '';
+            renderGroupMembersList(currentEditingGroup.contacts);
+            document.getElementById('groupMembersOverlay').style.display = 'flex';
         }
 
-        function renameActiveGroup() {
-            const g = groups.find(x => x.id === activeGroupId);
-            const val = document.getElementById('editGroupNameInput').value.trim();
-            if (g && val) {
-                g.name = val;
-                localStorage.setItem('app_groups', JSON.stringify(groups));
-                syncGroupsToServer();
-                renderGroups();
-                alert('Group name updated.');
-            }
-        }
-
-        function renderMembers() {
-            const g = groups.find(x => x.id === activeGroupId);
-            const container = document.getElementById('membersListContainer');
-            if (!g || g.contacts.length === 0) {
-                container.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 16px;">No contacts in this group.</div>';
+        function renderGroupMembersList(list) {
+            const container = document.getElementById('groupMembersListContainer');
+            if (list.length === 0) {
+                container.innerHTML = '<div style="text-align:center; color:var(--text-muted); padding:30px;">No members found.</div>';
                 return;
             }
-            container.innerHTML = g.contacts.map((c, idx) => `
+            container.innerHTML = list.map((c, idx) => `
                 <div class="contact-picker-row">
                     <div class="contact-avatar">${escapeHtml((c.name || 'U').charAt(0).toUpperCase())}</div>
                     <div class="contact-details">
                         <div class="contact-name-txt">${escapeHtml(c.name || 'Unsaved')}</div>
                         <div class="contact-phone-txt">${escapeHtml(c.phone)}</div>
                     </div>
-                    <div style="display: flex; gap: 8px;">
-                        <button class="icon-btn" style="color: var(--primary); font-size: 1rem;" onclick="openEditMemberModal(${idx})">✏️</button>
-                        <button class="icon-btn" style="color: var(--danger); font-size: 1rem;" onclick="confirmAndDeleteMember(${idx})">🗑️</button>
-                    </div>
+                    <button class="btn btn-danger" style="width:auto; padding:4px 10px; font-size:0.75rem;" onclick="deleteGroupMember('${c.phone}')">Delete</button>
                 </div>
             `).join('');
         }
 
-        function confirmAndDeleteMember(idx) {
-            const g = groups.find(x => x.id === activeGroupId);
-            if (!g) return;
-            const target = g.contacts[idx];
-            const displayName = target.name || target.phone;
-            if (confirm(`Are you sure you want to delete "${displayName}" from this group?`)) {
-                deleteMember(idx);
-            }
+        function filterGroupMembers() {
+            if (!currentEditingGroup) return;
+            const q = document.getElementById('groupMemberSearch').value.toLowerCase();
+            const filtered = currentEditingGroup.contacts.filter(c => (c.name || '').toLowerCase().includes(q) || c.phone.includes(q));
+            renderGroupMembersList(filtered);
         }
 
-        function openEditMemberModal(idx) {
-            editingMemberIndex = idx;
-            const g = groups.find(x => x.id === activeGroupId);
-            const target = g.contacts[idx];
-            document.getElementById('editTargetName').value = target.name || '';
-            document.getElementById('editTargetPhone').value = target.phone || '';
-            openModal('editMemberModal');
-        }
-
-        function saveEditedMember() {
-            const g = groups.find(x => x.id === activeGroupId);
-            if (!g || editingMemberIndex === null) return;
-            const name = document.getElementById('editTargetName').value.trim();
-            const phone = normalizeNumber(document.getElementById('editTargetPhone').value.trim());
-            if (!phone || phone.length < 10) return alert('Enter a valid phone number');
-
-            g.contacts[editingMemberIndex] = { name, phone };
+        function deleteGroupMember(phone) {
+            if (!currentEditingGroup) return;
+            currentEditingGroup.contacts = currentEditingGroup.contacts.filter(c => c.phone !== phone);
             localStorage.setItem('app_groups', JSON.stringify(groups));
-            syncGroupsToServer();
-            closeTopModal();
-            renderMembers();
+            renderGroupMembersList(currentEditingGroup.contacts);
             renderGroups();
         }
 
-        function addSingleContact() {
-            const g = groups.find(x => x.id === activeGroupId);
-            if (!g) return;
-            if (g.contacts.length >= MAX_GROUP_CONTACTS) return alert(`Maximum safe limit of ${MAX_GROUP_CONTACTS} reached.`);
-
-            const name = document.getElementById('quickAddName').value.trim();
-            const phone = normalizeNumber(document.getElementById('quickAddPhone').value.trim());
-            if (!phone || phone.length < 10) return alert('Enter valid phone number');
-
-            if (g.contacts.some(c => c.phone === phone)) return alert('Phone number already exists in this group.');
-
-            g.contacts.push({ name, phone });
-            localStorage.setItem('app_groups', JSON.stringify(groups));
-            syncGroupsToServer();
-            document.getElementById('quickAddName').value = '';
-            document.getElementById('quickAddPhone').value = '';
-            renderMembers();
-            renderGroups();
-        }
-
-        function deleteMember(idx) {
-            const g = groups.find(x => x.id === activeGroupId);
-            if (g) {
-                g.contacts.splice(idx, 1);
-                localStorage.setItem('app_groups', JSON.stringify(groups));
-                syncGroupsToServer(true);
-                renderMembers();
-                renderGroups();
-            }
-        }
-
+        // --- 3. Pick Contacts with Auto-Preselected Ticks ---
         async function openPhonebookSelector(mode) {
             pbTargetMode = mode;
             selectedPbContacts.clear();
-            document.getElementById('phonebookSearch').value = '';
+
+            // Auto-tick existing group contacts if in edit mode
+            if (mode === 'edit' && currentEditingGroup) {
+                currentEditingGroup.contacts.forEach(c => selectedPbContacts.add(c.phone));
+            }
 
             const ContactsPlugin = window.Capacitor?.Plugins?.Contacts;
             if (ContactsPlugin) {
@@ -2142,61 +407,27 @@
                         (res.contacts || []).forEach(c => {
                             const name = c.name?.display || c.name?.given || '';
                             (c.phones || []).forEach(p => {
-                                const clean = normalizeNumber(p.number);
-                                if (clean && clean.length >= 10) cachedDeviceContacts.push({ name, phone: clean });
+                                const clean = String(p.number || '').replace(/[^0-9]/g, '');
+                                if (clean.length >= 10) cachedDeviceContacts.push({ name, phone: clean.slice(-10) });
                             });
                         });
-                        const map = new Map();
-                        cachedDeviceContacts.forEach(item => map.set(item.phone, item));
-                        cachedDeviceContacts = Array.from(map.values());
                         currentlyFilteredContacts = [...cachedDeviceContacts];
                         renderPhonebook(currentlyFilteredContacts);
-                        updatePbSelectionCounter();
-                        showPhonebookOverlay();
+                        document.getElementById('phonebookOverlay').style.display = 'flex';
                         return;
                     }
                 } catch(e) {}
             }
-
-            if ('contacts' in navigator && 'select' in navigator.contacts) {
-                try {
-                    const selected = await navigator.contacts.select(['name', 'tel'], { multiple: true });
-                    const extracted = [];
-                    selected.forEach(s => {
-                        (s.tel || []).forEach(n => {
-                            const clean = normalizeNumber(n);
-                            if (clean && clean.length >= 10) extracted.push({ name: s.name?.[0] || '', phone: clean });
-                        });
-                    });
-                    applyImportedContacts(mode, extracted);
-                    return;
-                } catch(e) {}
-            }
-            alert('Contacts permission not granted.');
-        }
-
-        function showPhonebookOverlay() { document.getElementById('phonebookOverlay').style.display = 'flex'; }
-        function closePhonebookOverlay() { document.getElementById('phonebookOverlay').style.display = 'none'; }
-
-        function updatePbSelectionCounter() {
-            const count = selectedPbContacts.size;
-            document.getElementById('pbSelectionCounter').innerText = `${count} Selected`;
-            document.getElementById('btnAddSelectedPbContacts').innerText = `Add Selected (${count})`;
+            alert('Contacts permission required.');
         }
 
         function renderPhonebook(list) {
             const container = document.getElementById('phonebookListContainer');
-            if (list.length === 0) {
-                container.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 40px;">No contacts found.</div>';
-                return;
-            }
-
             container.innerHTML = list.map(c => {
                 const isSelected = selectedPbContacts.has(c.phone);
-                const initial = (c.name || 'U').charAt(0).toUpperCase();
                 return `
                     <div class="contact-picker-row ${isSelected ? 'selected' : ''}" onclick="togglePbSelect('${escapeHtml(c.phone)}')">
-                        <div class="contact-avatar">${escapeHtml(initial)}</div>
+                        <div class="contact-avatar">${escapeHtml((c.name || 'U').charAt(0).toUpperCase())}</div>
                         <div class="contact-details">
                             <div class="contact-name-txt">${escapeHtml(c.name || 'Unsaved')}</div>
                             <div class="contact-phone-txt">${escapeHtml(c.phone)}</div>
@@ -2209,117 +440,81 @@
 
         function togglePbSelect(phone) {
             if (selectedPbContacts.has(phone)) selectedPbContacts.delete(phone);
-            else {
-                let currentTotal = (pbTargetMode === 'create') ? stagedContacts.length : (groups.find(x => x.id === activeGroupId)?.contacts.length || 0);
-                if (currentTotal + selectedPbContacts.size + 1 > MAX_GROUP_CONTACTS) {
-                    return alert(`Group limit capped at ${MAX_GROUP_CONTACTS} contacts.`);
-                }
-                selectedPbContacts.add(phone);
-            }
+            else selectedPbContacts.add(phone);
             renderPhonebook(currentlyFilteredContacts);
-            updatePbSelectionCounter();
-        }
-
-        function toggleSelectAllFilteredContacts() {
-            const allSelected = currentlyFilteredContacts.every(c => selectedPbContacts.has(c.phone));
-            if (allSelected) currentlyFilteredContacts.forEach(c => selectedPbContacts.delete(c.phone));
-            else {
-                let currentTotal = (pbTargetMode === 'create') ? stagedContacts.length : (groups.find(x => x.id === activeGroupId)?.contacts.length || 0);
-                for (const c of currentlyFilteredContacts) {
-                    if (currentTotal + selectedPbContacts.size >= MAX_GROUP_CONTACTS) break;
-                    selectedPbContacts.add(c.phone);
-                }
-            }
-            renderPhonebook(currentlyFilteredContacts);
-            updatePbSelectionCounter();
         }
 
         function filterPhonebook() {
-            const q = document.getElementById('phonebookSearch').value.toLowerCase().trim();
-            currentlyFilteredContacts = cachedDeviceContacts.filter(c => 
-                (c.name || '').toLowerCase().includes(q) || c.phone.includes(q)
-            );
+            const q = document.getElementById('phonebookSearch').value.toLowerCase();
+            currentlyFilteredContacts = cachedDeviceContacts.filter(c => (c.name || '').toLowerCase().includes(q) || c.phone.includes(q));
             renderPhonebook(currentlyFilteredContacts);
         }
 
         function confirmPhonebookSelection() {
-            if (selectedPbContacts.size === 0) return alert('Select at least one contact.');
-            const selected = cachedDeviceContacts.filter(c => selectedPbContacts.has(c.phone));
-            applyImportedContacts(pbTargetMode, selected);
+            const selectedList = cachedDeviceContacts.filter(c => selectedPbContacts.has(c.phone));
+            if (pbTargetMode === 'create') {
+                stagedContacts = selectedList;
+                document.getElementById('createStagedCount').innerText = `${stagedContacts.length} Contacts Staged`;
+            } else if (pbTargetMode === 'edit' && currentEditingGroup) {
+                currentEditingGroup.contacts = selectedList;
+                localStorage.setItem('app_groups', JSON.stringify(groups));
+                renderGroupMembersList(currentEditingGroup.contacts);
+                renderGroups();
+            }
             closePhonebookOverlay();
         }
 
-        function handleFileImport(e, mode) {
-            const file = e.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = function(evt) {
-                const lines = evt.target.result.split(/[\r\n]+/);
-                const imported = [];
-                for (let i = 0; i < lines.length; i++) {
-                    if (imported.length >= MAX_GROUP_CONTACTS) break;
-                    const parts = lines[i].split(/[,;\t]+/);
-                    if (parts.length >= 2) {
-                        const name = parts[0].trim();
-                        const phone = normalizeNumber(parts[1]);
-                        if (phone && phone.length >= 10) imported.push({ name, phone });
-                    } else if (parts.length === 1) {
-                        const phone = normalizeNumber(parts[0]);
-                        if (phone && phone.length >= 10) imported.push({ name: '', phone });
-                    }
-                }
-                applyImportedContacts(mode, imported);
-                e.target.value = '';
-            };
-            reader.readAsText(file);
-        }
-
-        function applyImportedContacts(mode, list) {
-            if (mode === 'create') {
-                const spaceLeft = MAX_GROUP_CONTACTS - stagedContacts.length;
-                const toAdd = [];
-                for (const item of list) {
-                    if (toAdd.length >= spaceLeft) break;
-                    if (!stagedContacts.some(c => c.phone === item.phone) && !toAdd.some(c => c.phone === item.phone)) {
-                        toAdd.push(item);
-                    }
-                }
-                stagedContacts.push(...toAdd);
-                document.getElementById('createStagedCount').innerText = `${stagedContacts.length} / ${MAX_GROUP_CONTACTS} Contacts Staged`;
-                alert(`Added ${toAdd.length} unique contacts.`);
-            } else {
-                const g = groups.find(x => x.id === activeGroupId);
-                if (g) {
-                    const spaceLeft = MAX_GROUP_CONTACTS - g.contacts.length;
-                    const toAdd = [];
-                    for (const item of list) {
-                        if (toAdd.length >= spaceLeft) break;
-                        if (!g.contacts.some(c => c.phone === item.phone) && !toAdd.some(c => c.phone === item.phone)) {
-                            toAdd.push(item);
-                        }
-                    }
-                    g.contacts.push(...toAdd);
-                    localStorage.setItem('app_groups', JSON.stringify(groups));
-                    syncGroupsToServer();
-                    renderMembers();
-                    renderGroups();
-                    alert(`Added ${toAdd.length} unique contacts.`);
-                }
+        function renderGroups() {
+            const container = document.getElementById('groupsListContainer');
+            if (groups.length === 0) {
+                container.innerHTML = '<div style="text-align:center; color:var(--text-muted); padding:40px;">No groups yet. Tap "+" to create.</div>';
+                return;
             }
+            container.innerHTML = groups.map(g => `
+                <div class="group-card" onclick="openMembersManagerFor('${g.id}')">
+                    <div>
+                        <div style="font-weight:600;">${escapeHtml(g.name)}</div>
+                        <div style="font-size:0.75rem; color:var(--text-muted);">${g.contacts.length} / 250 contacts</div>
+                    </div>
+                    <span>Manage ➔</span>
+                </div>
+            `).join('');
         }
 
-        window.onload = async () => {
-            switchTheme(localStorage.getItem('app_theme') || 'dark');
-            switchLanguage(localStorage.getItem('app_lang') || 'en');
-            checkDisclaimerAcceptance();
+        function openCreateGroupModal() {
+            document.getElementById('newGroupName').value = '';
+            stagedContacts = [];
+            document.getElementById('createStagedCount').innerText = '0 Contacts Staged';
+            openModal('createGroupModal');
+        }
+
+        function saveGroup() {
+            const name = document.getElementById('newGroupName').value.trim();
+            if (!name) return alert('Enter group name');
+            groups.push({ id: 'grp_' + Date.now(), name, contacts: stagedContacts, createdAt: Date.now() });
+            localStorage.setItem('app_groups', JSON.stringify(groups));
+            closeTopModal();
             renderGroups();
-            renderDashboard();
-            setupBackNavigation();
-            setupPullToRefresh();
-            renderBulkSequence();
-            await syncWhatsAppAccountStatus();
-            checkForAppUpdatesBackground();
-        };
+        }
+
+        async function requestPairCode() {
+            const phone = document.getElementById('txtPairPhone').value.trim();
+            if (!phone) return alert('Enter phone number');
+            const res = await fetch(`${FIXED_BACKEND_URL}/api/pair`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${DEFAULT_TOKEN}`, 'ngrok-skip-browser-warning': 'true' },
+                body: JSON.stringify({ phoneNumber: phone })
+            });
+            const d = await res.json();
+            if (d.pairingCode) document.getElementById('pairCodeDisplay').innerText = d.pairingCode;
+            else alert(d.error || 'Pair error');
+        }
+
+        function escapeHtml(str) {
+            return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+        }
+
+        window.onload = () => { renderGroups(); renderBulkSequence(); };
     </script>
 </body>
 </html>
