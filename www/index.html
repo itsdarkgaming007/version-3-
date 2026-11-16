@@ -165,6 +165,12 @@
 
         .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 200; align-items: center; justify-content: center; padding: 16px; }
         .modal-high { z-index: 300; }
+        
+        /* Fix: Ensures Edit Member Modal is always stacked above Fullscreen Overlays (500) */
+        #editMemberModal {
+            z-index: 600 !important;
+        }
+
         .modal-content { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; width: 100%; max-width: 500px; padding: 20px; max-height: 90vh; display: flex; flex-direction: column; overflow-y: auto; }
         .modal-title { font-size: 1.15rem; font-weight: 700; margin-bottom: 14px; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
 
@@ -226,6 +232,18 @@
         .welcome-add-bar { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; }
         .welcome-add-btn { background: rgba(0, 168, 132, 0.12); border: 1px solid var(--primary); color: var(--primary); border-radius: 8px; padding: 10px 4px; font-size: 0.78rem; font-weight: 700; cursor: pointer; text-align: center; }
         .welcome-add-btn:active { transform: scale(0.97); }
+
+        /* Clean File Selected Display Card */
+        .file-selected-badge {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(0, 168, 132, 0.12);
+            border: 1px solid var(--primary);
+            border-radius: 8px;
+            padding: 8px 12px;
+            margin-bottom: 8px;
+        }
     </style>
 </head>
 <body>
@@ -548,7 +566,8 @@
         </div>
     </div>
 
-    <div class="modal modal-high" id="editMemberModal">
+    <!-- Edit Member Modal with high z-index (600) so it displays over full-screen overlays -->
+    <div class="modal modal-high" id="editMemberModal" style="z-index: 600;">
         <div class="modal-content">
             <div class="modal-title">Edit Contact Details</div>
             <label>Contact Name</label>
@@ -903,9 +922,14 @@
             const AppPlugin = window.Capacitor?.Plugins?.App;
             if (AppPlugin) {
                 AppPlugin.addListener('backButton', () => {
+                    const editModal = document.getElementById('editMemberModal');
                     const pbOverlay = document.getElementById('phonebookOverlay');
                     const memOverlay = document.getElementById('membersOverlay');
-                    if (pbOverlay && pbOverlay.style.display === 'flex') {
+
+                    // If Edit Member Modal is open, close only it first
+                    if (editModal && editModal.style.display === 'flex') {
+                        closeTopModal();
+                    } else if (pbOverlay && pbOverlay.style.display === 'flex') {
                         closePhonebookOverlay();
                     } else if (memOverlay && memOverlay.style.display === 'flex') {
                         closeGroupMembersOverlay();
@@ -1170,18 +1194,36 @@
                 } else {
                     const acceptType = b.type === 'image' ? 'image/*' : 'video/*';
                     const typeLabel = b.type === 'image' ? '🖼️ Image Block' : '🎥 Video Block (Max 15MB)';
-                    const hasFileLabel = b.fileName ? `<div style="font-size:0.75rem; color:var(--primary); margin-bottom:6px;">✔ ${escapeHtml(b.fileName)}</div>` : '';
+                    
+                    // Fix: If file is selected, show neat File Badge Card instead of native confusing 'No file chosen'
+                    let fileControlHtml = '';
+                    if (b.fileName) {
+                        fileControlHtml = `
+                            <div class="file-selected-badge">
+                                <div>
+                                    <div style="font-size:0.82rem; font-weight:bold; color:var(--text); word-break:break-all;">✔ ${escapeHtml(b.fileName)}</div>
+                                    <div style="font-size:0.68rem; color:var(--primary); font-weight:600;">${b.type === 'image' ? 'Ready (Auto-Compressed)' : 'Ready for upload'}</div>
+                                </div>
+                                <button type="button" class="btn btn-outline" style="width:auto; padding:4px 8px; font-size:0.72rem;" onclick="document.getElementById('bb_file_${b.id}').click()">Change</button>
+                            </div>
+                            <input type="file" id="bb_file_${b.id}" accept="${acceptType}" onchange="handleBulkBlockFile(event, '${b.id}')" style="display:none;">
+                        `;
+                    } else {
+                        fileControlHtml = `
+                            <input type="file" id="bb_file_${b.id}" accept="${acceptType}" onchange="handleBulkBlockFile(event, '${b.id}')" style="margin-bottom:8px;">
+                        `;
+                    }
+
                     return `
                         <div class="welcome-block-item">
                             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
                                 <span style="font-size:0.8rem; font-weight:bold; color:var(--primary);">#${idx + 1} • ${typeLabel}</span>
                                 <div style="display:flex; gap:6px;">
-                                    <button type="button" class="btn btn-outline" style="width:auto; padding:2px 8px; font-size:0.72rem; color:var(--warning); border-color:var(--warning);" onclick="clearBulkBlockFile('${b.id}')">Clear</button>
+                                    ${b.fileName ? `<button type="button" class="btn btn-outline" style="width:auto; padding:2px 8px; font-size:0.72rem; color:var(--warning); border-color:var(--warning);" onclick="clearBulkBlockFile('${b.id}')">Clear</button>` : ''}
                                     <button type="button" class="btn btn-danger" style="width:auto; padding:2px 8px; font-size:0.72rem;" onclick="removeBulkBlock('${b.id}')">✖</button>
                                 </div>
                             </div>
-                            ${hasFileLabel}
-                            <input type="file" id="bb_file_${b.id}" accept="${acceptType}" onchange="handleBulkBlockFile(event, '${b.id}')" style="margin-bottom:8px;">
+                            ${fileControlHtml}
                             <input type="text" placeholder="Custom caption for this media (optional)..." value="${escapeHtml(b.caption || '')}" oninput="updateBulkBlockCaption('${b.id}', this.value)" style="margin-bottom:0;">
                         </div>
                     `;
@@ -1406,18 +1448,35 @@
                 } else {
                     const acceptType = b.type === 'image' ? 'image/*' : 'video/*';
                     const typeLabel = b.type === 'image' ? '🖼️ Image' : '🎥 Video (Max 15MB)';
-                    const hasFileLabel = b.fileName ? `<div style="font-size:0.75rem; color:var(--primary); margin-bottom:6px;">✔ ${escapeHtml(b.fileName)}</div>` : '';
+                    
+                    let fileControlHtml = '';
+                    if (b.fileName) {
+                        fileControlHtml = `
+                            <div class="file-selected-badge">
+                                <div>
+                                    <div style="font-size:0.82rem; font-weight:bold; color:var(--text); word-break:break-all;">✔ ${escapeHtml(b.fileName)}</div>
+                                    <div style="font-size:0.68rem; color:var(--primary); font-weight:600;">${b.type === 'image' ? 'Ready (Auto-Compressed)' : 'Ready for upload'}</div>
+                                </div>
+                                <button type="button" class="btn btn-outline" style="width:auto; padding:4px 8px; font-size:0.72rem;" onclick="document.getElementById('wb_file_${b.id}').click()">Change</button>
+                            </div>
+                            <input type="file" id="wb_file_${b.id}" accept="${acceptType}" onchange="handleWelcomeBlockFile(event, '${b.id}')" style="display:none;">
+                        `;
+                    } else {
+                        fileControlHtml = `
+                            <input type="file" id="wb_file_${b.id}" accept="${acceptType}" onchange="handleWelcomeBlockFile(event, '${b.id}')" style="margin-bottom:8px;">
+                        `;
+                    }
+
                     return `
                         <div class="welcome-block-item">
                             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
                                 <span style="font-size:0.8rem; font-weight:bold; color:var(--primary);">#${idx + 1} • ${typeLabel}</span>
                                 <div style="display:flex; gap:6px;">
-                                    <button type="button" class="btn btn-outline" style="width:auto; padding:2px 8px; font-size:0.72rem; color:var(--warning); border-color:var(--warning);" onclick="clearWelcomeBlockFile('${b.id}')">Clear</button>
+                                    ${b.fileName ? `<button type="button" class="btn btn-outline" style="width:auto; padding:2px 8px; font-size:0.72rem; color:var(--warning); border-color:var(--warning);" onclick="clearWelcomeBlockFile('${b.id}')">Clear</button>` : ''}
                                     <button type="button" class="btn btn-danger" style="width:auto; padding:2px 8px; font-size:0.72rem;" onclick="removeWelcomeBlock('${b.id}')">✖</button>
                                 </div>
                             </div>
-                            ${hasFileLabel}
-                            <input type="file" id="wb_file_${b.id}" accept="${acceptType}" onchange="handleWelcomeBlockFile(event, '${b.id}')" style="margin-bottom:8px;">
+                            ${fileControlHtml}
                             <input type="text" placeholder="Custom caption (optional)..." value="${escapeHtml(b.caption || '')}" oninput="updateWelcomeBlockCaption('${b.id}', this.value)" style="margin-bottom:0;">
                         </div>
                     `;
