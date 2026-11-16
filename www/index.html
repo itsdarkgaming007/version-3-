@@ -659,8 +659,10 @@
             return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
         }
 
+        // Fix: Robust Phone Number Normalizer (Handles 10 digits, +91, and international length properly)
         function normalizeNumber(num) {
             let clean = String(num || '').replace(/[^0-9]/g, '');
+            if (!clean) return null;
             if (clean.length === 11 && clean.startsWith('0')) clean = clean.substring(1);
             if (clean.length === 10) clean = '91' + clean;
             if (clean.length < 10 || clean.length > 15) return null;
@@ -1195,7 +1197,6 @@
                     const acceptType = b.type === 'image' ? 'image/*' : 'video/*';
                     const typeLabel = b.type === 'image' ? '🖼️ Image Block' : '🎥 Video Block (Max 15MB)';
                     
-                    // Fix: If file is selected, show neat File Badge Card instead of native confusing 'No file chosen'
                     let fileControlHtml = '';
                     if (b.fileName) {
                         fileControlHtml = `
@@ -1323,6 +1324,18 @@
         function clearPresetHighlight() {
             document.querySelectorAll('.preset-chip').forEach(c => c.classList.remove('active'));
             updateScheduleReadableLabel();
+        }
+
+        function resetScheduleFormInUI() {
+            const chk = document.getElementById('chkEnableSchedule');
+            if (chk) chk.checked = false;
+            const wrapper = document.getElementById('scheduleInputWrapper');
+            if (wrapper) wrapper.style.display = 'none';
+            const input = document.getElementById('campScheduleTime');
+            if (input) input.value = '';
+            const lbl = document.getElementById('lblScheduleFormattedPreview');
+            if (lbl) lbl.innerText = '';
+            document.querySelectorAll('.preset-chip').forEach(c => c.classList.remove('active'));
         }
 
         // --- Auto Welcome Setup ---
@@ -1917,6 +1930,7 @@
                 const d = await res.json();
                 if (d.status === 'SCHEDULED') {
                     alert(`Campaign successfully scheduled for ${d.scheduledForDate || new Date(scheduleEpoch).toLocaleString()}`);
+                    resetScheduleFormInUI();
                     loadScheduledCampaignsList();
                 } else if (d.status === 'QUEUED') {
                     currentActiveCampaignId = d.campaignId;
@@ -1924,6 +1938,7 @@
                     alert(`Campaign launched to ${uniqueRecipients.length} contacts!`);
                     bulkBlocks = [{ id: 'bb_' + Date.now(), type: 'text', content: '', file: null, fileName: '', caption: '' }];
                     renderBulkSequence();
+                    resetScheduleFormInUI();
                     navigateTab('viewDashboard', document.querySelectorAll('.nav-tab')[2]);
                     pollCampaignLive(d.campaignId);
                 } else alert(d.error || 'Failed to dispatch');
@@ -2346,7 +2361,6 @@
             }
 
             container.innerHTML = displayList.map(c => {
-                const actualIndex = g.contacts.findIndex(x => x.phone === c.phone);
                 return `
                     <div class="contact-picker-row">
                         <div class="contact-avatar">${escapeHtml((c.name || 'U').charAt(0).toUpperCase())}</div>
@@ -2355,29 +2369,38 @@
                             <div class="contact-phone-txt">${escapeHtml(c.phone)}</div>
                         </div>
                         <div style="display: flex; gap: 8px;">
-                            <button class="icon-btn" style="color: var(--primary); font-size: 1.1rem;" onclick="openEditMemberModal(${actualIndex})">✏️</button>
-                            <button class="icon-btn" style="color: var(--danger); font-size: 1.1rem;" onclick="confirmAndDeleteMember(${actualIndex})">🗑️</button>
+                            <button class="icon-btn" style="color: var(--primary); font-size: 1.1rem;" onclick="openEditMemberByPhone('${c.phone}')">✏️</button>
+                            <button class="icon-btn" style="color: var(--danger); font-size: 1.1rem;" onclick="confirmAndDeleteMemberByPhone('${c.phone}')">🗑️</button>
                         </div>
                     </div>
                 `;
             }).join('');
         }
 
-        function confirmAndDeleteMember(idx) {
+        // Fix: Reliable Member Delete by Phone (Prevents filtered search index mismatch)
+        function confirmAndDeleteMemberByPhone(phone) {
             const g = groups.find(x => x.id === activeGroupId);
-            if (!g || idx < 0 || idx >= g.contacts.length) return;
-            const target = g.contacts[idx];
+            if (!g) return;
+            const target = g.contacts.find(x => x.phone === phone);
+            if (!target) return;
             const displayName = target.name || target.phone;
             if (confirm(`Are you sure you want to delete "${displayName}" from this group?`)) {
-                deleteMember(idx);
+                g.contacts = g.contacts.filter(c => c.phone !== phone);
+                localStorage.setItem('app_groups', JSON.stringify(groups));
+                syncGroupsToServer(true);
+                renderMembers();
+                renderGroups();
             }
         }
 
-        function openEditMemberModal(idx) {
-            editingMemberIndex = idx;
+        // Fix: Reliable Member Edit by Phone (Prevents index offset)
+        function openEditMemberByPhone(phone) {
             const g = groups.find(x => x.id === activeGroupId);
-            if (!g || idx < 0 || idx >= g.contacts.length) return;
-            const target = g.contacts[idx];
+            if (!g) return;
+            const targetIdx = g.contacts.findIndex(x => x.phone === phone);
+            if (targetIdx === -1) return;
+            editingMemberIndex = targetIdx;
+            const target = g.contacts[targetIdx];
             document.getElementById('editTargetName').value = target.name || '';
             document.getElementById('editTargetPhone').value = target.phone || '';
             openModal('editMemberModal');
@@ -2416,17 +2439,6 @@
             document.getElementById('quickAddPhone').value = '';
             renderMembers();
             renderGroups();
-        }
-
-        function deleteMember(idx) {
-            const g = groups.find(x => x.id === activeGroupId);
-            if (g && idx >= 0 && idx < g.contacts.length) {
-                g.contacts.splice(idx, 1);
-                localStorage.setItem('app_groups', JSON.stringify(groups));
-                syncGroupsToServer(true);
-                renderMembers();
-                renderGroups();
-            }
         }
 
         // --- FULLSCREEN PHONEBOOK SELECTOR WITH AUTO PRE-SELECTED TICKS ---
