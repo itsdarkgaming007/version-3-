@@ -16,6 +16,7 @@
             --danger: #ef4444;
             --warning: #f59e0b;
             --wa-bubble: #005c4b;
+            --modal-backdrop: rgba(0, 0, 0, 0.85);
         }
 
         body.light-theme {
@@ -29,6 +30,7 @@
             --danger: #dc2626;
             --warning: #d97706;
             --wa-bubble: #d9fdd3;
+            --modal-backdrop: rgba(0, 0, 0, 0.55);
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
@@ -37,6 +39,54 @@
         header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 14px 18px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; }
         .header-title { font-size: 1.2rem; font-weight: 700; color: var(--text); }
         .icon-btn { background: none; border: none; font-size: 1.3rem; color: var(--text); cursor: pointer; }
+
+        /* Smooth Marquee News Ticker Broadcast Banner */
+        #globalNoticeBanner {
+            display: none;
+            background: rgba(0, 168, 132, 0.15);
+            border-bottom: 1px solid var(--primary);
+            color: var(--text);
+            padding: 8px 12px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            overflow: hidden;
+            position: relative;
+            align-items: center;
+            justify-content: space-between;
+        }
+        #globalNoticeBanner.expired-alert {
+            background: rgba(239, 68, 68, 0.18);
+            border-bottom: 1px solid var(--danger);
+            color: var(--danger);
+        }
+        .marquee-wrapper {
+            flex: 1;
+            overflow: hidden;
+            white-space: nowrap;
+            margin-right: 10px;
+        }
+        .marquee-content {
+            display: inline-block;
+            padding-left: 100%;
+            animation: marqueeTicker 24s linear infinite;
+        }
+        .marquee-content:hover {
+            animation-play-state: paused;
+        }
+        @keyframes marqueeTicker {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-100%); }
+        }
+        .notice-dismiss-btn {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-size: 1rem;
+            cursor: pointer;
+            padding: 0 4px;
+            line-height: 1;
+            flex-shrink: 0;
+        }
 
         #pullToRefreshSpinner { text-align: center; font-size: 0.8rem; color: var(--primary); padding: 8px; display: none; font-weight: bold; }
 
@@ -163,15 +213,48 @@
         }
         body.light-theme .wa-bubble-meta { color: rgba(0,0,0,0.45); }
 
-        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 200; align-items: center; justify-content: center; padding: 16px; }
+        .modal { display: none; position: fixed; inset: 0; background: var(--modal-backdrop); z-index: 200; align-items: center; justify-content: center; padding: 16px; backdrop-filter: blur(4px); }
         .modal-high { z-index: 300; }
         
-        #editMemberModal {
-            z-index: 600 !important;
-        }
+        #editMemberModal { z-index: 600 !important; }
 
-        .modal-content { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; width: 100%; max-width: 500px; padding: 20px; max-height: 90vh; display: flex; flex-direction: column; overflow-y: auto; }
+        .modal-content { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; width: 100%; max-width: 500px; padding: 20px; max-height: 90vh; display: flex; flex-direction: column; overflow-y: auto; box-shadow: 0 10px 30px rgba(0,0,0,0.6); }
         .modal-title { font-size: 1.15rem; font-weight: 700; margin-bottom: 14px; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
+
+        /* Polished Theme-Adaptive Custom Dialog */
+        #customDialogModal { z-index: 99999; }
+        .custom-dialog-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            width: 100%;
+            max-width: 380px;
+            padding: 24px 20px;
+            text-align: center;
+            box-shadow: 0 12px 35px rgba(0,0,0,0.65);
+            animation: modalSlideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        @keyframes modalSlideUp {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        .dialog-icon-badge {
+            width: 54px;
+            height: 54px;
+            border-radius: 27px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.6rem;
+            margin-bottom: 14px;
+        }
+        .dialog-icon-danger { background: rgba(239, 68, 68, 0.15); color: var(--danger); }
+        .dialog-icon-warning { background: rgba(245, 158, 11, 0.15); color: var(--warning); }
+        .dialog-icon-info { background: rgba(0, 168, 132, 0.15); color: var(--primary); }
+        .dialog-title-text { font-size: 1.15rem; font-weight: 700; color: var(--text); margin-bottom: 8px; }
+        .dialog-desc-text { font-size: 0.88rem; color: var(--text-muted); line-height: 1.45; margin-bottom: 20px; }
+        .dialog-btn-group { display: flex; gap: 8px; }
+        .dialog-btn-group button { flex: 1; margin: 0; }
 
         .fullscreen-overlay { display: none; position: fixed; inset: 0; width: 100vw; height: 100vh; background: var(--bg); z-index: 500; flex-direction: column; }
         .fs-header { background: var(--surface); padding: 12px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 14px; }
@@ -278,9 +361,12 @@
         <button class="icon-btn" onclick="executeNativeAppShare()">📤</button>
     </header>
 
-    <!-- Global Notice Broadcast Banner -->
-    <div id="globalNoticeBanner" style="display:none; background:rgba(0,168,132,0.18); border-bottom:1px solid var(--primary); padding:8px 16px; font-size:0.8rem; color:var(--text); text-align:center; font-weight:600;">
-        <span style="color:var(--primary); margin-right:4px;">📢</span> <span id="txtNoticeContent"></span>
+    <!-- Global Notice News Ticker Marquee Banner (Zero Space if Empty) -->
+    <div id="globalNoticeBanner">
+        <div class="marquee-wrapper">
+            <span class="marquee-content" id="txtNoticeContent"></span>
+        </div>
+        <button class="notice-dismiss-btn" id="btnDismissNotice" onclick="dismissNoticeBanner()" title="Close">✖</button>
     </div>
 
     <div id="pullToRefreshSpinner">↻ Refreshing...</div>
@@ -434,6 +520,9 @@
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
                     <span id="badgeServerStatus" style="font-size: 0.75rem; padding: 4px 8px; border-radius: 12px; background: rgba(0, 168, 132, 0.2); color: var(--primary); font-weight: bold;">● CONNECTED</span>
                     <b id="lblConnectedPhone" style="font-size: 1rem;"></b>
+                </div>
+                <div id="subscriptionInfoRow" style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 10px;">
+                    Plan: <b id="lblSubPlan" style="color: var(--text);">Monthly</b> • Status: <b id="lblSubDays" style="color: var(--primary);">30 Days Left</b>
                 </div>
                 <div id="txtServerOfflineNotice" style="font-size: 0.78rem; color: var(--warning); display: none; margin-bottom: 8px;">
                     Server offline. Background execution will resume when online.
@@ -637,6 +726,19 @@
         </div>
     </div>
 
+    <!-- Polished Theme-Adaptive Custom Dialog Modal -->
+    <div class="modal" id="customDialogModal">
+        <div class="custom-dialog-card">
+            <div class="dialog-icon-badge" id="dlgIconBadge">⚠️</div>
+            <div class="dialog-title-text" id="dlgTitle">Attention</div>
+            <div class="dialog-desc-text" id="dlgMessage">Message text goes here.</div>
+            <div class="dialog-btn-group" id="dlgBtnGroup">
+                <button class="btn btn-secondary" id="dlgBtnCancel">Cancel</button>
+                <button class="btn btn-primary" id="dlgBtnConfirm">Proceed</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         const FIXED_BACKEND_URL = "https://rinse-chest-dish.ngrok-free.dev";
         const DEFAULT_TOKEN = "marketing_engine_secret_2026";
@@ -654,6 +756,7 @@
         let pairingPollTimer = null;
         let latestDetectedRemoteBuild = CURRENT_BUILD_NUMBER;
 
+        let isSubscriptionExpiredGlobal = false;
         let welcomeBlocks = [];
         let bulkBlocks = [{ id: 'bb_init', type: 'text', content: '', file: null, fileName: '', caption: '' }];
         let cachedScheduledJobs = [];
@@ -669,6 +772,58 @@
             if (clean.length === 10) clean = '91' + clean;
             if (clean.length < 10 || clean.length > 15) return null;
             return clean;
+        }
+
+        // --- Theme-Adaptive Custom Dialog Helper (Replaces default alert/confirm) ---
+        function showCustomDialog({ title, message, type = 'info', confirmText = 'OK', cancelText = null, isHardLock = false }) {
+            return new Promise((resolve) => {
+                const modal = document.getElementById('customDialogModal');
+                const badge = document.getElementById('dlgIconBadge');
+                const titleEl = document.getElementById('dlgTitle');
+                const msgEl = document.getElementById('dlgMessage');
+                const btnGroup = document.getElementById('dlgBtnGroup');
+
+                badge.className = 'dialog-icon-badge';
+                if (type === 'danger') {
+                    badge.classList.add('dialog-icon-danger');
+                    badge.innerText = '🛑';
+                } else if (type === 'warning') {
+                    badge.classList.add('dialog-icon-warning');
+                    badge.innerText = '⚠️';
+                } else {
+                    badge.classList.add('dialog-icon-info');
+                    badge.innerText = 'ℹ️';
+                }
+
+                titleEl.innerText = title;
+                msgEl.innerText = message;
+
+                btnGroup.innerHTML = '';
+
+                if (cancelText && !isHardLock) {
+                    const btnCancel = document.createElement('button');
+                    btnCancel.className = 'btn btn-secondary';
+                    btnCancel.innerText = cancelText;
+                    btnCancel.onclick = () => {
+                        modal.style.display = 'none';
+                        resolve(false);
+                    };
+                    btnGroup.appendChild(btnCancel);
+                }
+
+                const btnConfirm = document.createElement('button');
+                btnConfirm.className = type === 'danger' ? 'btn btn-danger' : 'btn btn-primary';
+                btnConfirm.innerText = confirmText;
+                btnConfirm.onclick = () => {
+                    if (!isHardLock) {
+                        modal.style.display = 'none';
+                    }
+                    resolve(true);
+                };
+                btnGroup.appendChild(btnConfirm);
+
+                modal.style.display = 'flex';
+            });
         }
 
         function compressImageBeforeUpload(file, callback) {
@@ -771,7 +926,9 @@
                 warnStopCamp: "Permanently stop this active campaign? Remaining pending messages will NOT be sent.",
                 warnDeleteGroups: "Permanently delete selected group(s)? The contacts inside these groups will be removed.",
                 warnCancelSched: "Cancel this scheduled campaign? The queue will be removed and attached media purged.",
-                daysLeftNotice: "Days Left"
+                daysLeftNotice: "Days Left",
+                subExpiredMsg: "Your subscription has expired. Please recharge to continue using marketing features.",
+                subWarnMsg: "Your subscription expires in {DAYS} day(s). Please recharge to ensure uninterrupted service."
             },
             ta: {
                 title: "வாட்ஸ்அப் விளம்பரம்",
@@ -824,7 +981,9 @@
                 warnStopCamp: "இந்த பிரச்சாரத்தை முழுமையாக நிறுத்தவா? மீதமுள்ள நபர்களுக்கு செய்தி போகாது.",
                 warnDeleteGroups: "தேர்ந்தெடுத்த குழுக்களை நிரந்தரமாக நீக்கவா? உள்ளிருக்கும் தொடர்புகள் அகற்றப்படும்.",
                 warnCancelSched: "திட்டமிடப்பட்ட இந்த பிரச்சாரத்தை ரத்து செய்து கோப்புகளை அழிக்கவா?",
-                daysLeftNotice: "நாட்கள் மீதமுள்ளன"
+                daysLeftNotice: "நாட்கள் மீதமுள்ளன",
+                subExpiredMsg: "உங்கள் சந்தா முடிவடைந்துவிட்டது. சேவையைத் தொடர உடனடியாக ரீசார்ஜ் செய்யவும்.",
+                subWarnMsg: "உங்கள் சந்தா இன்னும் {DAYS} நாளில் முடிகிறது. தடையற்ற சேவைக்கு முன்கூட்டியே ரீசார்ஜ் செய்யவும்."
             },
             hi: {
                 title: "व्हाट्सएप अभियान",
@@ -877,7 +1036,9 @@
                 warnStopCamp: "क्या आप इस अभियान को पूरी तरह से रोकना चाहते हैं? शेष संदेश नहीं भेजे जाएंगे।",
                 warnDeleteGroups: "क्या आप चयनित समूहों को हटाना चाहते हैं?",
                 warnCancelSched: "क्या आप इस शेड्यूल अभियान को रद्द करना चाहते हैं?",
-                daysLeftNotice: "दिन शेष हैं"
+                daysLeftNotice: "दिन शेष हैं",
+                subExpiredMsg: "आपकी सदस्यता समाप्त हो गई है। कृपया सेवा जारी रखने के लिए रिचार्ज करें।",
+                subWarnMsg: "आपकी सदस्यता {DAYS} दिनों में समाप्त हो रही है। कृपया समय पर रिचार्ज करें।"
             }
         };
 
@@ -936,6 +1097,11 @@
             document.getElementById('disclaimerModal').style.display = 'none';
         }
 
+        function dismissNoticeBanner() {
+            sessionStorage.setItem('dismissed_broadcast_notice', 'true');
+            document.getElementById('globalNoticeBanner').style.display = 'none';
+        }
+
         function setupBackNavigation() {
             const AppPlugin = window.Capacitor?.Plugins?.App;
             if (AppPlugin) {
@@ -954,8 +1120,16 @@
                         closeTopModal();
                     } else if (document.querySelectorAll('.page-content.active')[0].id !== 'viewGroups') {
                         navigateTab('viewGroups', document.querySelectorAll('.nav-tab')[0]);
-                    } else if (confirm('Are you sure you want to exit?')) {
-                        AppPlugin.exitApp();
+                    } else {
+                        showCustomDialog({
+                            title: 'Exit App?',
+                            message: 'Are you sure you want to exit WA Campaign?',
+                            type: 'warning',
+                            confirmText: 'Exit',
+                            cancelText: 'Stay'
+                        }).then(confirmed => {
+                            if (confirmed) AppPlugin.exitApp();
+                        });
                     }
                 });
             }
@@ -1089,9 +1263,9 @@
             const imgCount = bulkBlocks.filter(b => b.type === 'image').length;
             const vidCount = bulkBlocks.filter(b => b.type === 'video').length;
 
-            if (type === 'text' && textCount >= 4) return alert('Maximum 4 Text messages allowed per campaign.');
-            if (type === 'image' && imgCount >= 4) return alert('Maximum 4 Images allowed per campaign.');
-            if (type === 'video' && vidCount >= 2) return alert('Maximum 2 Videos allowed per campaign.');
+            if (type === 'text' && textCount >= 4) return showCustomDialog({ title: 'Limit Exceeded', message: 'Maximum 4 Text messages allowed per campaign.', type: 'warning' });
+            if (type === 'image' && imgCount >= 4) return showCustomDialog({ title: 'Limit Exceeded', message: 'Maximum 4 Images allowed per campaign.', type: 'warning' });
+            if (type === 'video' && vidCount >= 2) return showCustomDialog({ title: 'Limit Exceeded', message: 'Maximum 2 Videos allowed per campaign.', type: 'warning' });
 
             bulkBlocks.push({
                 id: 'bb_' + Date.now() + '_' + Math.floor(Math.random() * 1000),
@@ -1126,7 +1300,7 @@
             if (!b || !rawFile) return;
 
             if (rawFile.type.startsWith('video/') && rawFile.size > 15 * 1024 * 1024) {
-                alert('Video size exceeds 15MB limit! Please select a compressed video under 15MB.');
+                showCustomDialog({ title: 'File Too Large', message: 'Video size exceeds 15MB limit! Please select a compressed video under 15MB.', type: 'danger' });
                 e.target.value = '';
                 return;
             }
@@ -1357,9 +1531,9 @@
             const imgCount = welcomeBlocks.filter(b => b.type === 'image').length;
             const vidCount = welcomeBlocks.filter(b => b.type === 'video').length;
 
-            if (type === 'text' && textCount >= 4) return alert('Maximum 4 Text messages allowed in Welcome Sequence.');
-            if (type === 'image' && imgCount >= 4) return alert('Maximum 4 Images allowed in Welcome Sequence.');
-            if (type === 'video' && vidCount >= 2) return alert('Maximum 2 Videos allowed in Welcome Sequence.');
+            if (type === 'text' && textCount >= 4) return showCustomDialog({ title: 'Limit Exceeded', message: 'Maximum 4 Text messages allowed in Welcome Sequence.', type: 'warning' });
+            if (type === 'image' && imgCount >= 4) return showCustomDialog({ title: 'Limit Exceeded', message: 'Maximum 4 Images allowed in Welcome Sequence.', type: 'warning' });
+            if (type === 'video' && vidCount >= 2) return showCustomDialog({ title: 'Limit Exceeded', message: 'Maximum 2 Videos allowed in Welcome Sequence.', type: 'warning' });
 
             welcomeBlocks.push({
                 id: 'wb_' + Date.now() + '_' + Math.floor(Math.random() * 1000),
@@ -1397,7 +1571,7 @@
             if (!b || !rawFile) return;
 
             if (rawFile.type.startsWith('video/') && rawFile.size > 15 * 1024 * 1024) {
-                alert('Video size exceeds 15MB limit! Please select a compressed video under 15MB.');
+                showCustomDialog({ title: 'File Too Large', message: 'Video size exceeds 15MB limit! Please select a compressed video under 15MB.', type: 'danger' });
                 e.target.value = '';
                 return;
             }
@@ -1574,7 +1748,10 @@
         }
 
         async function saveWelcomeRules() {
-            if (SESSION_ID === 'unpaired_user') return alert('Please pair WhatsApp first before saving rules.');
+            if (isSubscriptionExpiredGlobal) {
+                return showCustomDialog({ title: 'Access Denied', message: 'Subscription expired. Please recharge to save rules.', type: 'danger', isHardLock: true });
+            }
+            if (SESSION_ID === 'unpaired_user') return showCustomDialog({ title: 'Not Connected', message: 'Please pair WhatsApp first before saving rules.', type: 'warning' });
             const enabled = document.getElementById('chkEnableWelcome').checked;
 
             const validBlocks = welcomeBlocks.filter(b => {
@@ -1583,7 +1760,7 @@
                 return false;
             });
 
-            if (enabled && validBlocks.length === 0) return alert('Please add welcome text or media before saving.');
+            if (enabled && validBlocks.length === 0) return showCustomDialog({ title: 'Empty Content', message: 'Please add welcome text or media before saving.', type: 'warning' });
 
             const fd = new FormData();
             fd.append('sessionId', SESSION_ID);
@@ -1614,12 +1791,16 @@
                 const d = await res.json();
                 if (d.success) {
                     await loadWelcomeRulesFromServer();
-                    alert(enabled ? 'Welcome message enabled and saved!' : 'Welcome message turned OFF.');
-                } else alert(d.error || 'Failed to save');
-            } catch(e) { alert('Connection error: ' + e.message); }
+                    showCustomDialog({
+                        title: 'Success',
+                        message: enabled ? 'Welcome message enabled and saved!' : 'Welcome message turned OFF.',
+                        type: 'info'
+                    });
+                } else showCustomDialog({ title: 'Error', message: d.error || 'Failed to save', type: 'danger' });
+            } catch(e) { showCustomDialog({ title: 'Connection Error', message: e.message, type: 'danger' }); }
         }
 
-        // --- Core Status & WhatsApp Handshake ---
+        // --- Core Status, WhatsApp Handshake & Subscription Lifecycle ---
         async function syncWhatsAppAccountStatus() {
             let targetPhone = localStorage.getItem('connected_phone_permanent');
             if (!targetPhone || targetPhone === 'unpaired_user') {
@@ -1638,12 +1819,75 @@
                 });
                 const d = await res.json();
                 
-                // Show Global Notice Banner if present
-                if (d.globalNotice && d.globalNotice.trim() !== '') {
-                    document.getElementById('txtNoticeContent').innerText = d.globalNotice;
-                    document.getElementById('globalNoticeBanner').style.display = 'block';
+                const lang = localStorage.getItem('app_lang') || 'en';
+                const langDict = i18n[lang] || i18n.en;
+
+                const daysLeft = typeof d.daysLeft === 'number' ? d.daysLeft : 30;
+                isSubscriptionExpiredGlobal = !!d.isExpired || daysLeft <= 0;
+
+                const banner = document.getElementById('globalNoticeBanner');
+                const noticeTxt = document.getElementById('txtNoticeContent');
+                const isDismissedThisSession = sessionStorage.getItem('dismissed_broadcast_notice') === 'true';
+
+                // Subscription Warning & Hard Lock Check
+                if (isSubscriptionExpiredGlobal) {
+                    banner.classList.add('expired-alert');
+                    banner.style.display = 'flex';
+                    noticeTxt.innerText = "⚠️ " + langDict.subExpiredMsg;
+                    document.getElementById('btnDismissNotice').style.display = 'none';
+
+                    showCustomDialog({
+                        title: 'Subscription Expired',
+                        message: langDict.subExpiredMsg,
+                        type: 'danger',
+                        confirmText: 'Renew Subscription',
+                        isHardLock: true
+                    });
+                } else if (daysLeft <= 3 && daysLeft > 0) {
+                    const todayStr = new Date().toISOString().split('T')[0];
+                    const lastDismissedDate = localStorage.getItem('sub_warning_last_dismissed');
+
+                    if (lastDismissedDate !== todayStr) {
+                        const warnText = langDict.subWarnMsg.replace('{DAYS}', daysLeft);
+                        showCustomDialog({
+                            title: 'Subscription Expiring Soon',
+                            message: warnText,
+                            type: 'warning',
+                            confirmText: 'Acknowledge',
+                            cancelText: 'Remind Later'
+                        }).then(() => {
+                            localStorage.setItem('sub_warning_last_dismissed', todayStr);
+                        });
+                    }
+
+                    if (d.globalNotice && d.globalNotice.trim() !== '' && !isDismissedThisSession) {
+                        banner.classList.remove('expired-alert');
+                        banner.style.display = 'flex';
+                        noticeTxt.innerText = "📢 " + d.globalNotice;
+                        document.getElementById('btnDismissNotice').style.display = 'block';
+                    } else {
+                        banner.style.display = 'none';
+                    }
                 } else {
-                    document.getElementById('globalNoticeBanner').style.display = 'none';
+                    if (d.globalNotice && d.globalNotice.trim() !== '' && !isDismissedThisSession) {
+                        banner.classList.remove('expired-alert');
+                        banner.style.display = 'flex';
+                        noticeTxt.innerText = "📢 " + d.globalNotice;
+                        document.getElementById('btnDismissNotice').style.display = 'block';
+                    } else {
+                        banner.style.display = 'none';
+                    }
+                }
+
+                // Update Settings Info
+                document.getElementById('lblSubPlan').innerText = d.plan || 'Monthly';
+                const subDaysEl = document.getElementById('lblSubDays');
+                if (isSubscriptionExpiredGlobal) {
+                    subDaysEl.innerText = "Expired";
+                    subDaysEl.style.color = "var(--danger)";
+                } else {
+                    subDaysEl.innerText = `${daysLeft} ${langDict.daysLeftNotice}`;
+                    subDaysEl.style.color = daysLeft <= 3 ? "var(--warning)" : "var(--primary)";
                 }
 
                 if (d.status === 'CONNECTED' && d.phone) {
@@ -1756,9 +2000,9 @@
 
         async function requestPairCode() {
             const phone = document.getElementById('txtPairPhone').value.trim();
-            if (!phone) return alert('Enter WhatsApp phone number');
+            if (!phone) return showCustomDialog({ title: 'Input Required', message: 'Enter WhatsApp phone number', type: 'warning' });
             const cleanPhone = normalizeNumber(phone);
-            if (!cleanPhone || cleanPhone.length < 10) return alert('Enter a valid 10-digit phone number');
+            if (!cleanPhone || cleanPhone.length < 10) return showCustomDialog({ title: 'Invalid Number', message: 'Enter a valid 10-digit phone number', type: 'warning' });
 
             const disp = document.getElementById('pairCodeDisplay');
             disp.style.display = 'block';
@@ -1791,7 +2035,11 @@
                             localStorage.setItem('connected_phone_permanent', cleanPhone);
                             localStorage.setItem('tenant_session_id', cleanPhone);
                             await syncWhatsAppAccountStatus();
-                            alert(`WhatsApp connected successfully for +${cleanPhone}!`);
+                            showCustomDialog({
+                                title: 'Connected!',
+                                message: `WhatsApp connected successfully for +${cleanPhone}!`,
+                                type: 'info'
+                            });
                         }
                     }, 2500);
                 } else disp.innerText = d.error || 'Pairing error';
@@ -1802,7 +2050,16 @@
         async function unlinkAccount() {
             const lang = localStorage.getItem('app_lang') || 'en';
             const msg = (i18n[lang] || i18n.en).warnUnlink;
-            if (!confirm(msg)) return;
+            
+            const confirmed = await showCustomDialog({
+                title: 'Unlink Account?',
+                message: msg,
+                type: 'danger',
+                confirmText: 'Unlink',
+                cancelText: 'Cancel'
+            });
+            if (!confirmed) return;
+
             try {
                 await fetch(`${FIXED_BACKEND_URL}/api/logout`, {
                     method: 'POST',
@@ -1812,7 +2069,11 @@
             } catch(e) {}
             localStorage.clear();
             sessionStorage.clear();
-            alert('WhatsApp account unlinked. Login again anytime to restore groups.');
+            await showCustomDialog({
+                title: 'Logged Out',
+                message: 'WhatsApp account unlinked. Login again anytime to restore groups.',
+                type: 'info'
+            });
             window.location.reload();
         }
 
@@ -1833,11 +2094,20 @@
             renderGroups();
         }
 
-        function deleteSelectedGroups() {
-            if (selectedGroupsForDelete.size === 0) return alert('Select groups to delete');
+        async function deleteSelectedGroups() {
+            if (selectedGroupsForDelete.size === 0) return showCustomDialog({ title: 'Select Groups', message: 'Please select groups to delete.', type: 'warning' });
             const lang = localStorage.getItem('app_lang') || 'en';
             const msg = (i18n[lang] || i18n.en).warnDeleteGroups;
-            if (!confirm(msg)) return;
+
+            const confirmed = await showCustomDialog({
+                title: 'Delete Groups?',
+                message: msg,
+                type: 'danger',
+                confirmText: 'Delete',
+                cancelText: 'Cancel'
+            });
+            if (!confirmed) return;
+
             groups = groups.filter(g => !selectedGroupsForDelete.has(g.id));
             localStorage.setItem('app_groups', JSON.stringify(groups));
             syncGroupsToServer(true);
@@ -1845,12 +2115,15 @@
         }
 
         function openMultiGroupDispatchModal() {
+            if (isSubscriptionExpiredGlobal) {
+                return showCustomDialog({ title: 'Access Denied', message: 'Subscription expired. Please recharge to send campaigns.', type: 'danger', isHardLock: true });
+            }
             const hasValidBlocks = bulkBlocks.some(b => {
                 if (b.type === 'text') return (b.content || '').trim().length > 0;
                 return b.file !== null;
             });
-            if (!hasValidBlocks) return alert('Please enter text or select an image/video for your campaign.');
-            if (groups.length === 0) return alert('No groups available.');
+            if (!hasValidBlocks) return showCustomDialog({ title: 'Content Missing', message: 'Please enter text or select an image/video for your campaign.', type: 'warning' });
+            if (groups.length === 0) return showCustomDialog({ title: 'No Groups', message: 'No customer groups available.', type: 'warning' });
 
             selectedTargetGroupIds.clear();
             renderTargetGroupCards();
@@ -1886,7 +2159,7 @@
         }
 
         async function confirmDispatchMultiGroup() {
-            if (selectedTargetGroupIds.size === 0) return alert('Select at least one group.');
+            if (selectedTargetGroupIds.size === 0) return showCustomDialog({ title: 'Select Target', message: 'Please select at least one group.', type: 'warning' });
 
             const combinedMap = new Map();
             selectedTargetGroupIds.forEach(id => {
@@ -1898,22 +2171,22 @@
             });
 
             const uniqueRecipients = Array.from(combinedMap.values());
-            if (uniqueRecipients.length === 0) return alert('Selected groups contain no valid contacts.');
+            if (uniqueRecipients.length === 0) return showCustomDialog({ title: 'No Valid Contacts', message: 'Selected groups contain no valid contacts.', type: 'warning' });
 
             const isScheduleEnabled = document.getElementById('chkEnableSchedule').checked;
             const scheduleTime = document.getElementById('campScheduleTime').value;
 
             if (isScheduleEnabled && cachedScheduledJobs.length >= 3) {
-                return alert('Maximum 3 scheduled campaigns allowed! Please cancel an upcoming schedule before adding another.');
+                return showCustomDialog({ title: 'Queue Full', message: 'Maximum 3 scheduled campaigns allowed! Please cancel an upcoming schedule before adding another.', type: 'warning' });
             }
 
             let scheduleEpoch = 0;
             if (isScheduleEnabled) {
-                if (!scheduleTime) return alert('Please select a schedule date and time.');
+                if (!scheduleTime) return showCustomDialog({ title: 'Schedule Time Missing', message: 'Please select a schedule date and time.', type: 'warning' });
                 scheduleEpoch = new Date(scheduleTime).getTime();
                 const now = Date.now();
-                if (scheduleEpoch <= now) return alert('Schedule time must be in the future.');
-                if (scheduleEpoch > now + (7 * 24 * 60 * 60 * 1000)) return alert('Schedule cannot exceed 7 days.');
+                if (scheduleEpoch <= now) return showCustomDialog({ title: 'Invalid Time', message: 'Schedule time must be in the future.', type: 'warning' });
+                if (scheduleEpoch > now + (7 * 24 * 60 * 60 * 1000)) return showCustomDialog({ title: 'Out of Range', message: 'Schedule cannot exceed 7 days.', type: 'warning' });
             }
 
             const validBlocks = bulkBlocks.filter(b => {
@@ -1952,20 +2225,28 @@
                 });
                 const d = await res.json();
                 if (d.status === 'SCHEDULED') {
-                    alert(`Campaign successfully scheduled for ${d.scheduledForDate || new Date(scheduleEpoch).toLocaleString()}`);
+                    showCustomDialog({
+                        title: 'Campaign Scheduled',
+                        message: `Campaign scheduled for ${d.scheduledForDate || new Date(scheduleEpoch).toLocaleString()}`,
+                        type: 'info'
+                    });
                     resetScheduleFormInUI();
                     loadScheduledCampaignsList();
                 } else if (d.status === 'QUEUED') {
                     currentActiveCampaignId = d.campaignId;
                     await hydrateCampaignStateFromServer();
-                    alert(`Campaign launched to ${uniqueRecipients.length} contacts!`);
+                    showCustomDialog({
+                        title: 'Campaign Launched!',
+                        message: `Campaign launched to ${uniqueRecipients.length} contacts!`,
+                        type: 'info'
+                    });
                     bulkBlocks = [{ id: 'bb_' + Date.now(), type: 'text', content: '', file: null, fileName: '', caption: '' }];
                     renderBulkSequence();
                     resetScheduleFormInUI();
                     navigateTab('viewDashboard', document.querySelectorAll('.nav-tab')[2]);
                     pollCampaignLive(d.campaignId);
-                } else alert(d.error || 'Failed to dispatch');
-            } catch(e) { alert('Connection Error: ' + e.message); }
+                } else showCustomDialog({ title: 'Dispatch Error', message: d.error || 'Failed to dispatch', type: 'danger' });
+            } catch(e) { showCustomDialog({ title: 'Connection Error', message: e.message, type: 'danger' }); }
             finally { btnLaunch.disabled = false; }
         }
 
@@ -1984,7 +2265,7 @@
                     document.getElementById('btnResumeCampaign').style.display = 'block';
                     await hydrateCampaignStateFromServer();
                 }
-            } catch(e) { alert('Failed to pause: ' + e.message); }
+            } catch(e) { showCustomDialog({ title: 'Pause Error', message: e.message, type: 'danger' }); }
         }
 
         async function resumeCurrentCampaign() {
@@ -2002,13 +2283,22 @@
                     document.getElementById('btnResumeCampaign').style.display = 'none';
                     pollCampaignLive(currentActiveCampaignId);
                 }
-            } catch(e) { alert('Failed to resume: ' + e.message); }
+            } catch(e) { showCustomDialog({ title: 'Resume Error', message: e.message, type: 'danger' }); }
         }
 
         async function stopCurrentCampaign() {
             const lang = localStorage.getItem('app_lang') || 'en';
             const msg = (i18n[lang] || i18n.en).warnStopCamp;
-            if (!confirm(msg)) return;
+
+            const confirmed = await showCustomDialog({
+                title: 'Stop Campaign?',
+                message: msg,
+                type: 'danger',
+                confirmText: 'Stop Campaign',
+                cancelText: 'Cancel'
+            });
+            if (!confirmed) return;
+
             try {
                 const res = await fetch(`${FIXED_BACKEND_URL}/api/campaign/stop`, {
                     method: 'POST',
@@ -2020,9 +2310,9 @@
                     document.getElementById('campaignCtrlPanel').style.display = 'none';
                     if (pollTimer) clearInterval(pollTimer);
                     await hydrateCampaignStateFromServer();
-                    alert('Campaign stopped and storage cleaned.');
+                    showCustomDialog({ title: 'Stopped', message: 'Campaign stopped and storage cleaned.', type: 'info' });
                 }
-            } catch(e) { alert('Failed to stop: ' + e.message); }
+            } catch(e) { showCustomDialog({ title: 'Stop Error', message: e.message, type: 'danger' }); }
         }
 
         function pollCampaignLive(campId) {
@@ -2168,7 +2458,16 @@
         async function cancelScheduledCampaign(jobId) {
             const lang = localStorage.getItem('app_lang') || 'en';
             const msg = (i18n[lang] || i18n.en).warnCancelSched;
-            if (!confirm(msg)) return;
+
+            const confirmed = await showCustomDialog({
+                title: 'Cancel Schedule?',
+                message: msg,
+                type: 'danger',
+                confirmText: 'Cancel Schedule',
+                cancelText: 'Keep'
+            });
+            if (!confirmed) return;
+
             try {
                 const res = await fetch(`${FIXED_BACKEND_URL}/api/campaign/cancel-schedule`, {
                     method: 'POST',
@@ -2177,10 +2476,10 @@
                 });
                 const d = await res.json();
                 if (d.success) {
-                    alert('Scheduled campaign cancelled and storage cleared.');
+                    showCustomDialog({ title: 'Cancelled', message: 'Scheduled campaign cancelled and storage cleared.', type: 'info' });
                     loadScheduledCampaignsList();
-                } else alert(d.error || 'Failed to cancel');
-            } catch(e) { alert('Error: ' + e.message); }
+                } else showCustomDialog({ title: 'Error', message: d.error || 'Failed to cancel', type: 'danger' });
+            } catch(e) { showCustomDialog({ title: 'Connection Error', message: e.message, type: 'danger' }); }
         }
 
         function showFilteredContacts(campId, filterType) {
@@ -2252,7 +2551,7 @@
                         document.getElementById('lblCloudSyncStatus').innerText = "Up to date";
                         document.getElementById('lblCloudSyncStatus').style.color = "var(--primary)";
                         document.getElementById('updateBanner').style.display = 'none';
-                        if (isManual) alert("Your app is already running the latest version.");
+                        if (isManual) showCustomDialog({ title: 'Latest Version', message: 'Your app is already running the latest version.', type: 'info' });
                     }
                 }
             } catch(e) {
@@ -2286,7 +2585,7 @@
                 } catch(e) {}
             }
             navigator.clipboard.writeText(shareData.url);
-            alert('App download link copied to clipboard!');
+            showCustomDialog({ title: 'Copied', message: 'App download link copied to clipboard!', type: 'info' });
         }
 
         function sortGroups(criteria) {
@@ -2328,9 +2627,9 @@
 
         function saveGroup() {
             const name = document.getElementById('newGroupName').value.trim();
-            if (!name) return alert('Enter group name');
+            if (!name) return showCustomDialog({ title: 'Input Required', message: 'Enter group name', type: 'warning' });
             if (stagedContacts.length > MAX_GROUP_CONTACTS) {
-                return alert(`Group limit exceeded! Maximum allowed is ${MAX_GROUP_CONTACTS} contacts.`);
+                return showCustomDialog({ title: 'Limit Exceeded', message: `Group limit exceeded! Maximum allowed is ${MAX_GROUP_CONTACTS} contacts.`, type: 'warning' });
             }
             groups.push({ id: 'grp_' + Date.now(), name, contacts: stagedContacts, createdAt: Date.now() });
             localStorage.setItem('app_groups', JSON.stringify(groups));
@@ -2357,7 +2656,7 @@
                 localStorage.setItem('app_groups', JSON.stringify(groups));
                 syncGroupsToServer();
                 renderGroups();
-                alert('Group name updated.');
+                showCustomDialog({ title: 'Updated', message: 'Group name updated successfully.', type: 'info' });
             }
         }
 
@@ -2403,13 +2702,21 @@
             }).join('');
         }
 
-        function confirmAndDeleteMemberByPhone(phone) {
+        async function confirmAndDeleteMemberByPhone(phone) {
             const g = groups.find(x => x.id === activeGroupId);
             if (!g) return;
             const target = g.contacts.find(x => x.phone === phone);
             if (!target) return;
             const displayName = target.name || target.phone;
-            if (confirm(`Are you sure you want to delete "${displayName}" from this group?`)) {
+
+            const confirmed = await showCustomDialog({
+                title: 'Delete Contact?',
+                message: `Are you sure you want to delete "${displayName}" from this group?`,
+                type: 'danger',
+                confirmText: 'Delete',
+                cancelText: 'Cancel'
+            });
+            if (confirmed) {
                 g.contacts = g.contacts.filter(c => c.phone !== phone);
                 localStorage.setItem('app_groups', JSON.stringify(groups));
                 syncGroupsToServer(true);
@@ -2435,7 +2742,7 @@
             if (!g || editingMemberIndex === null) return;
             const name = document.getElementById('editTargetName').value.trim();
             const phone = normalizeNumber(document.getElementById('editTargetPhone').value.trim());
-            if (!phone || phone.length < 10) return alert('Enter a valid phone number');
+            if (!phone || phone.length < 10) return showCustomDialog({ title: 'Invalid Phone', message: 'Enter a valid phone number', type: 'warning' });
 
             g.contacts[editingMemberIndex] = { name, phone };
             localStorage.setItem('app_groups', JSON.stringify(groups));
@@ -2448,13 +2755,13 @@
         function addSingleContact() {
             const g = groups.find(x => x.id === activeGroupId);
             if (!g) return;
-            if (g.contacts.length >= MAX_GROUP_CONTACTS) return alert(`Maximum safe limit of ${MAX_GROUP_CONTACTS} reached.`);
+            if (g.contacts.length >= MAX_GROUP_CONTACTS) return showCustomDialog({ title: 'Limit Reached', message: `Maximum safe limit of ${MAX_GROUP_CONTACTS} reached.`, type: 'warning' });
 
             const name = document.getElementById('quickAddName').value.trim();
             const phone = normalizeNumber(document.getElementById('quickAddPhone').value.trim());
-            if (!phone || phone.length < 10) return alert('Enter valid phone number');
+            if (!phone || phone.length < 10) return showCustomDialog({ title: 'Invalid Phone', message: 'Enter valid phone number', type: 'warning' });
 
-            if (g.contacts.some(c => c.phone === phone)) return alert('Phone number already exists in this group.');
+            if (g.contacts.some(c => c.phone === phone)) return showCustomDialog({ title: 'Duplicate Contact', message: 'Phone number already exists in this group.', type: 'warning' });
 
             g.contacts.push({ name, phone });
             localStorage.setItem('app_groups', JSON.stringify(groups));
@@ -2526,7 +2833,7 @@
                     return;
                 } catch(e) {}
             }
-            alert('Contacts permission not granted.');
+            showCustomDialog({ title: 'Permission Required', message: 'Contacts permission not granted.', type: 'warning' });
         }
 
         function showPhonebookOverlay() { document.getElementById('phonebookOverlay').style.display = 'flex'; }
@@ -2566,7 +2873,7 @@
                 selectedPbContacts.delete(phone);
             } else {
                 if (selectedPbContacts.size + 1 > MAX_GROUP_CONTACTS) {
-                    return alert(`Group limit capped at ${MAX_GROUP_CONTACTS} contacts.`);
+                    return showCustomDialog({ title: 'Limit Reached', message: `Group limit capped at ${MAX_GROUP_CONTACTS} contacts.`, type: 'warning' });
                 }
                 selectedPbContacts.add(phone);
             }
@@ -2651,7 +2958,7 @@
                 }
                 stagedContacts.push(...toAdd);
                 document.getElementById('createStagedCount').innerText = `${stagedContacts.length} / ${MAX_GROUP_CONTACTS} Contacts Staged`;
-                alert(`Added ${toAdd.length} unique contacts.`);
+                showCustomDialog({ title: 'Contacts Added', message: `Added ${toAdd.length} unique contacts.`, type: 'info' });
             } else {
                 const g = groups.find(x => x.id === activeGroupId);
                 if (g) {
@@ -2668,7 +2975,7 @@
                     syncGroupsToServer();
                     renderMembers();
                     renderGroups();
-                    alert(`Added ${toAdd.length} unique contacts.`);
+                    showCustomDialog({ title: 'Contacts Added', message: `Added ${toAdd.length} unique contacts.`, type: 'info' });
                 }
             }
         }
