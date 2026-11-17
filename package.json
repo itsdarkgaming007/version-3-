@@ -2,8 +2,9 @@
   "name": "wa-campaign-app",
   "version": "1.0.0",
   "description": "WhatsApp Group-Based Campaign Controller",
-  "main": "index.js",
+  "main": "server.cjs",
   "scripts": {
+    "start": "node server.cjs",
     "build": "echo 'No web build step required'"
   },
   "dependencies": {
@@ -12,6 +13,11 @@
     "@capacitor/app": "^6.0.0",
     "@capacitor/cli": "^6.0.0",
     "@capacitor/core": "^6.0.0",
-    "@capacitor/share": "^6.0.0"
+    "@capacitor/share": "^6.0.0",
+    "@whiskeysockets/baileys": "^6.7.19",
+    "better-sqlite3": "^11.8.1",
+    "express": "^4.21.2",
+    "multer": "^1.4.5-lts.1",
+    "pino": "^9.6.0"
   }
 }
