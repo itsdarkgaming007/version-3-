@@ -775,7 +775,7 @@
         }
 
         // --- Theme-Adaptive Custom Dialog Helper (Replaces default alert/confirm) ---
-        function showCustomDialog({ title, message, type = 'info', confirmText = 'OK', cancelText = null, isHardLock = false }) {
+        function showCustomDialog({ title, message, type = 'info', confirmText = 'OK', cancelText = null }) {
             return new Promise((resolve) => {
                 const modal = document.getElementById('customDialogModal');
                 const badge = document.getElementById('dlgIconBadge');
@@ -800,7 +800,7 @@
 
                 btnGroup.innerHTML = '';
 
-                if (cancelText && !isHardLock) {
+                if (cancelText) {
                     const btnCancel = document.createElement('button');
                     btnCancel.className = 'btn btn-secondary';
                     btnCancel.innerText = cancelText;
@@ -815,9 +815,7 @@
                 btnConfirm.className = type === 'danger' ? 'btn btn-danger' : 'btn btn-primary';
                 btnConfirm.innerText = confirmText;
                 btnConfirm.onclick = () => {
-                    if (!isHardLock) {
-                        modal.style.display = 'none';
-                    }
+                    modal.style.display = 'none';
                     resolve(true);
                 };
                 btnGroup.appendChild(btnConfirm);
@@ -927,7 +925,7 @@
                 warnDeleteGroups: "Permanently delete selected group(s)? The contacts inside these groups will be removed.",
                 warnCancelSched: "Cancel this scheduled campaign? The queue will be removed and attached media purged.",
                 daysLeftNotice: "Days Left",
-                subExpiredMsg: "Your subscription has expired. Please recharge to continue using marketing features.",
+                subExpiredMsg: "Your subscription has expired. Please contact admin to recharge and continue.",
                 subWarnMsg: "Your subscription expires in {DAYS} day(s). Please recharge to ensure uninterrupted service."
             },
             ta: {
@@ -982,7 +980,7 @@
                 warnDeleteGroups: "தேர்ந்தெடுத்த குழுக்களை நிரந்தரமாக நீக்கவா? உள்ளிருக்கும் தொடர்புகள் அகற்றப்படும்.",
                 warnCancelSched: "திட்டமிடப்பட்ட இந்த பிரச்சாரத்தை ரத்து செய்து கோப்புகளை அழிக்கவா?",
                 daysLeftNotice: "நாட்கள் மீதமுள்ளன",
-                subExpiredMsg: "உங்கள் சந்தா முடிவடைந்துவிட்டது. சேவையைத் தொடர உடனடியாக ரீசார்ஜ் செய்யவும்.",
+                subExpiredMsg: "உங்கள் சந்தா முடிவடைந்துவிட்டது. சேவையைத் தொடர அட்மினைத் தொடர்புகொள்ளவும்.",
                 subWarnMsg: "உங்கள் சந்தா இன்னும் {DAYS} நாளில் முடிகிறது. தடையற்ற சேவைக்கு முன்கூட்டியே ரீசார்ஜ் செய்யவும்."
             },
             hi: {
@@ -1037,7 +1035,7 @@
                 warnDeleteGroups: "क्या आप चयनित समूहों को हटाना चाहते हैं?",
                 warnCancelSched: "क्या आप इस शेड्यूल अभियान को रद्द करना चाहते हैं?",
                 daysLeftNotice: "दिन शेष हैं",
-                subExpiredMsg: "आपकी सदस्यता समाप्त हो गई है। कृपया सेवा जारी रखने के लिए रिचार्ज करें।",
+                subExpiredMsg: "आपकी सदस्यता समाप्त हो गई है। कृपया सेवा जारी रखने के लिए एडमिन से संपर्क करें।",
                 subWarnMsg: "आपकी सदस्यता {DAYS} दिनों में समाप्त हो रही है। कृपया समय पर रिचार्ज करें।"
             }
         };
@@ -1749,7 +1747,7 @@
 
         async function saveWelcomeRules() {
             if (isSubscriptionExpiredGlobal) {
-                return showCustomDialog({ title: 'Access Denied', message: 'Subscription expired. Please recharge to save rules.', type: 'danger', isHardLock: true });
+                return showCustomDialog({ title: 'Access Denied', message: 'Your subscription has expired. Please contact admin to recharge before saving welcome sequence.', type: 'danger' });
             }
             if (SESSION_ID === 'unpaired_user') return showCustomDialog({ title: 'Not Connected', message: 'Please pair WhatsApp first before saving rules.', type: 'warning' });
             const enabled = document.getElementById('chkEnableWelcome').checked;
@@ -1800,7 +1798,7 @@
             } catch(e) { showCustomDialog({ title: 'Connection Error', message: e.message, type: 'danger' }); }
         }
 
-        // --- Core Status, WhatsApp Handshake & Subscription Lifecycle ---
+        // --- Core Status, WhatsApp Handshake & Soft-Lock Subscription Lifecycle ---
         async function syncWhatsAppAccountStatus() {
             let targetPhone = localStorage.getItem('connected_phone_permanent');
             if (!targetPhone || targetPhone === 'unpaired_user') {
@@ -1829,20 +1827,12 @@
                 const noticeTxt = document.getElementById('txtNoticeContent');
                 const isDismissedThisSession = sessionStorage.getItem('dismissed_broadcast_notice') === 'true';
 
-                // Subscription Warning & Hard Lock Check
+                // Soft Warning & Expired Banner Check (Browsing completely accessible)
                 if (isSubscriptionExpiredGlobal) {
                     banner.classList.add('expired-alert');
                     banner.style.display = 'flex';
                     noticeTxt.innerText = "⚠️ " + langDict.subExpiredMsg;
                     document.getElementById('btnDismissNotice').style.display = 'none';
-
-                    showCustomDialog({
-                        title: 'Subscription Expired',
-                        message: langDict.subExpiredMsg,
-                        type: 'danger',
-                        confirmText: 'Renew Subscription',
-                        isHardLock: true
-                    });
                 } else if (daysLeft <= 3 && daysLeft > 0) {
                     const todayStr = new Date().toISOString().split('T')[0];
                     const lastDismissedDate = localStorage.getItem('sub_warning_last_dismissed');
@@ -2116,7 +2106,7 @@
 
         function openMultiGroupDispatchModal() {
             if (isSubscriptionExpiredGlobal) {
-                return showCustomDialog({ title: 'Access Denied', message: 'Subscription expired. Please recharge to send campaigns.', type: 'danger', isHardLock: true });
+                return showCustomDialog({ title: 'Access Denied', message: 'Your subscription has expired. Please contact admin to recharge before launching campaigns.', type: 'danger' });
             }
             const hasValidBlocks = bulkBlocks.some(b => {
                 if (b.type === 'text') return (b.content || '').trim().length > 0;
