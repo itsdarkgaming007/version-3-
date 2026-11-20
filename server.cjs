@@ -578,7 +578,6 @@ const authenticate = (req, res, next) => {
     const isMasterSecret = (token === API_SECRET_TOKEN || token === 'marketing_engine_secret_2026');
     const isTenantToken = Boolean(lic && lic.tenantToken && token === lic.tenantToken);
 
-    // For unpaired/bootstrap calls without a registered license yet, allow master secret; once a license exists, require matching tenantToken or master secret
     const isAllowedToken = isTenantToken || (isMasterSecret && (!lic || !lic.tenantToken));
 
     if (!isAllowedToken && !isMasterSecret) {
@@ -790,7 +789,7 @@ function normalizeStrictWelcomeConfig(enabled, blocksMeta, filesMap, existingCon
     }
 
     if (candidates.length === 0) {
-        return { error: 'EMPTY_WELCOME: Add welcome text or 1 compressed image.' };
+        return { error: 'EMPTY_WELCOME: Add welcome text or 1 image.' };
     }
 
     const chosen = candidates[0];
@@ -1718,7 +1717,7 @@ app.get('/api/share-banner', (req, res) => {
     if (!info.filePath || !fs.existsSync(info.filePath)) {
         return res.status(404).send('Banner not configured');
     }
-    res.setHeader('Cache-Control', 'no-cache, must-revalidate');
+    res.setHeader('Cache-Control', 'public, max-age=300');
     res.type(info.mime);
     fs.createReadStream(info.filePath).pipe(res);
 });
@@ -2280,7 +2279,7 @@ app.post('/api/logout', authenticate, async (req, res) => {
         } catch (err) {}
     }
     wipeSessionData(sessionId);
-    res.json({ success: true, status: 'DISCONNECTED', message: 'Account unlinked & session credentials wiped. Groups preserved.' });
+    res.json({ success: true, status: 'DISCONNECTED', message: 'Account unlinked & session credentials wiped. Groups & history preserved on server.' });
 });
 
 app.use((err, req, res, next) => {
