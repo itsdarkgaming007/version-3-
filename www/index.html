@@ -104,26 +104,9 @@
         .group-card-title { font-size: 1.05rem; font-weight: 600; }
         .group-card-badge { background: rgba(0, 168, 132, 0.15); color: var(--primary); font-size: 0.75rem; font-weight: bold; padding: 3px 8px; border-radius: 12px; }
 
-        .quota-banner {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: rgba(0, 168, 132, 0.1);
-            border: 1px solid var(--primary);
-            border-radius: 10px;
-            padding: 10px 12px;
-            margin-bottom: 12px;
-            font-size: 0.8rem;
-        }
-        .quota-pill {
-            font-weight: 800;
-            color: var(--primary);
-            font-size: 0.85rem;
-        }
-
         label { display: block; font-size: 0.82rem; color: var(--text-muted); margin-bottom: 6px; font-weight: 600; }
         input, select { width: 100%; padding: 11px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface-card); color: var(--text); font-size: 0.92rem; margin-bottom: 12px; outline: none; }
-
+        
         .textarea-container { position: relative; margin-bottom: 12px; }
         textarea.safe-textarea {
             width: 100%; min-height: 95px; max-height: 180px; padding: 12px; padding-right: 55px; border-radius: 8px; border: 1px solid var(--border);
@@ -171,35 +154,6 @@
             box-shadow: 0 2px 6px rgba(0, 168, 132, 0.3);
         }
 
-        .mode-selector-row {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 6px;
-            margin-bottom: 12px;
-        }
-        .welcome-mode-row {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 8px;
-            margin-bottom: 12px;
-        }
-        .mode-chip {
-            background: var(--surface);
-            border: 1px solid var(--border);
-            color: var(--text-muted);
-            border-radius: 8px;
-            padding: 9px 6px;
-            font-size: 0.78rem;
-            font-weight: 700;
-            cursor: pointer;
-            text-align: center;
-        }
-        .mode-chip.active {
-            border-color: var(--primary);
-            background: rgba(0, 168, 132, 0.16);
-            color: var(--primary);
-        }
-
         .schedule-presets-row {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
@@ -223,63 +177,80 @@
             color: var(--primary);
         }
 
-        /* Seamless Chat Stream Preview */
-        .chat-stream-preview {
-            background: #0b141a;
-            border: 1px solid var(--border);
+        /* Smart Quota Warning Strip (Shown only where outbound quota applies) */
+        .quota-smart-notice {
+            background: rgba(245, 158, 11, 0.12);
+            border: 1px solid rgba(245, 158, 11, 0.45);
+            border-radius: 9px;
+            padding: 9px 12px;
+            margin-bottom: 12px;
+            font-size: 0.78rem;
+            color: var(--text);
+            line-height: 1.4;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+        }
+        .quota-pill-badge {
+            background: rgba(0, 168, 132, 0.16);
+            color: var(--primary);
+            border: 1px solid rgba(0, 168, 132, 0.4);
             border-radius: 12px;
-            padding: 12px;
-            margin-bottom: 14px;
-            max-height: 220px;
-            overflow-y: auto;
+            padding: 2px 8px;
+            font-size: 0.72rem;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+        .quota-pill-badge.exhausted {
+            background: rgba(239, 68, 68, 0.16);
+            color: var(--danger);
+            border-color: rgba(239, 68, 68, 0.45);
+        }
+
+        /* Seamless Chat Stream Preview */
+        .chat-stream-preview { 
+            background: #0b141a; 
+            border: 1px solid var(--border); 
+            border-radius: 12px; 
+            padding: 12px; 
+            margin-bottom: 14px; 
+            max-height: 260px; 
+            overflow-y: auto; 
             box-shadow: inset 0 2px 6px rgba(0,0,0,0.4);
         }
         body.light-theme .chat-stream-preview { background: #efeae2; box-shadow: inset 0 1px 4px rgba(0,0,0,0.1); }
-        .wa-chat-bubble {
-            background: var(--wa-bubble);
-            color: #fff;
-            border-radius: 8px 8px 2px 8px;
-            padding: 8px 10px;
-            margin-bottom: 8px;
-            max-width: 85%;
-            margin-left: auto;
-            font-size: 0.88rem;
-            word-break: break-word;
+        .wa-chat-bubble { 
+            background: var(--wa-bubble); 
+            color: #fff; 
+            border-radius: 8px 8px 2px 8px; 
+            padding: 8px 10px; 
+            margin-bottom: 8px; 
+            max-width: 85%; 
+            margin-left: auto; 
+            font-size: 0.88rem; 
+            word-break: break-word; 
             box-shadow: 0 1px 2px rgba(0,0,0,0.3);
         }
         body.light-theme .wa-chat-bubble { color: #111b21; }
-        .wa-bubble-meta {
-            display: flex;
-            align-items: center;
-            justify-content: flex-end;
-            gap: 4px;
-            font-size: 0.65rem;
-            color: rgba(255,255,255,0.65);
+        .wa-bubble-meta { 
+            display: flex; 
+            align-items: center; 
+            justify-content: flex-end; 
+            gap: 4px; 
+            font-size: 0.65rem; 
+            color: rgba(255,255,255,0.65); 
             margin-top: 4px;
         }
         body.light-theme .wa-bubble-meta { color: rgba(0,0,0,0.45); }
 
         .modal { display: none; position: fixed; inset: 0; background: var(--modal-backdrop); z-index: 200; align-items: center; justify-content: center; padding: 16px; backdrop-filter: blur(4px); }
         .modal-high { z-index: 300; }
-
+        
         #editMemberModal { z-index: 600 !important; }
-        #blockingWaitModal { z-index: 99998; background: rgba(0, 0, 0, 0.9); }
 
         .modal-content { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; width: 100%; max-width: 500px; padding: 20px; max-height: 90vh; display: flex; flex-direction: column; overflow-y: auto; box-shadow: 0 10px 30px rgba(0,0,0,0.6); }
         .modal-title { font-size: 1.15rem; font-weight: 700; margin-bottom: 14px; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
-
-        .spinner-ring {
-            width: 44px;
-            height: 44px;
-            border: 4px solid rgba(0, 168, 132, 0.22);
-            border-top-color: var(--primary);
-            border-radius: 50%;
-            animation: spinRing 0.9s linear infinite;
-            margin: 0 auto 14px auto;
-        }
-        @keyframes spinRing {
-            to { transform: rotate(360deg); }
-        }
 
         /* Polished Theme-Adaptive Custom Dialog */
         #customDialogModal { z-index: 99999; }
@@ -370,7 +341,10 @@
         .ctrl-btn-group { display: flex; gap: 8px; margin-top: 10px; }
         .ctrl-btn { flex: 1; padding: 10px; border-radius: 8px; font-weight: 700; font-size: 0.88rem; cursor: pointer; border: none; }
 
-        .slot-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px; margin-bottom: 12px; }
+        .welcome-block-item { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px; margin-bottom: 10px; }
+        .welcome-add-bar { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; }
+        .welcome-add-btn { background: rgba(0, 168, 132, 0.12); border: 1px solid var(--primary); color: var(--primary); border-radius: 8px; padding: 10px 4px; font-size: 0.78rem; font-weight: 700; cursor: pointer; text-align: center; }
+        .welcome-add-btn:active { transform: scale(0.97); }
 
         .file-selected-badge {
             display: flex;
@@ -386,40 +360,30 @@
 </head>
 <body>
 
-    <!-- Blocking Please Wait Modal (Prevents closing/turning off net during setup/handshake) -->
-    <div class="modal" id="blockingWaitModal" style="display: none;">
-        <div class="custom-dialog-card">
-            <div class="spinner-ring"></div>
-            <div class="dialog-title-text" id="waitModalTitle">Please Wait...</div>
-            <div class="dialog-desc-text" id="waitModalMessage">Campaign is being initialized and synced with the server. Do not close the app or turn off internet yet.</div>
-        </div>
-    </div>
-
-    <!-- Terms, Own-Risk & Strict No-Refund Agreement Modal -->
     <div class="modal modal-high" id="disclaimerModal" style="display: none; z-index: 9999; background: rgba(0,0,0,0.92);">
         <div class="modal-content" style="max-height: 85vh;">
             <div class="modal-title" style="color: var(--warning); display: flex; align-items: center; gap: 8px;">
-                ⚠️ <span>Terms of Service, Own Risk & No-Refund Policy</span>
+                ⚠️ <span>Usage Terms & Anti-Spam Policy</span>
             </div>
-            <div style="font-size: 0.84rem; line-height: 1.5; color: var(--text-muted); overflow-y: auto; margin-bottom: 14px; padding-right: 4px;">
+            <div style="font-size: 0.85rem; line-height: 1.5; color: var(--text-muted); overflow-y: auto; margin-bottom: 14px; padding-right: 4px;">
                 <p style="margin-bottom: 8px; color: var(--text);">
-                    <b>WA Campaign</b> is an independent automation tool and is NOT affiliated with or endorsed by WhatsApp Inc. or Meta Platforms, Inc.
+                    <b>WA Campaign</b> is designed exclusively for opt-in customer communications, order updates, and legitimate business outreach.
                 </p>
                 <p style="margin-bottom: 8px;">
-                    1. <b>100% Own Risk (Ban / Restriction):</b> Automated or bulk messaging carries WhatsApp restriction or ban risk. You use this tool at your <b>100% own risk</b> with no liability on the developer or service provider.
+                    1. <b>Strict Anti-Spam Rule:</b> Sending unsolicited bulk messages to unknown individuals violates WhatsApp Terms of Service and telecommunication regulations.
                 </p>
                 <p style="margin-bottom: 8px;">
-                    2. <b>Strict No-Refund Policy:</b> All subscriptions and payments are <b>strictly non-refundable</b> under any circumstances, including account bans, blocks, delivery failures, or platform policy changes.
+                    2. <b>Account Safety Disclaimer:</b> The software developer holds <b>NO responsibility or liability</b> for temporary or permanent account restrictions/bans enforced by WhatsApp.
                 </p>
                 <p style="margin-bottom: 8px;">
-                    3. <b>Responsible & Opt-In Usage:</b> Use only with consented recipients, respect the 250-contact group limit and 300/day campaign/schedule cap, and follow safe pacing.
+                    3. <b>Safe Cadence Advice:</b> Always maintain customer consent, respect the 300 contact group limit, and follow recommended delays.
                 </p>
             </div>
             <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; margin-bottom: 14px; font-size: 0.82rem; color: var(--text);">
                 <input type="checkbox" id="chkAcceptTerms" style="width: 20px; height: 20px; margin-bottom: 0;">
-                <span>I agree to the Terms, 100% Own Risk, and Strict No-Refund Policy.</span>
+                <span>I have read and agree to follow these anti-spam rules responsibly.</span>
             </label>
-            <button class="btn btn-primary" id="btnAcceptDisclaimer" onclick="confirmDisclaimerConsent()" disabled style="opacity: 0.5;">I Agree & Continue</button>
+            <button class="btn btn-primary" id="btnAcceptDisclaimer" onclick="confirmDisclaimerConsent()" disabled style="opacity: 0.5;">Accept & Proceed</button>
         </div>
     </div>
 
@@ -463,45 +427,43 @@
             <button type="button" class="seg-tab-btn" id="btnSubTabWelcome" onclick="switchCampaignSubTab('welcome')">🤖 Auto Welcome</button>
         </div>
 
-        <!-- SUB-PANEL A: BULK CAMPAIGN (1+1+1 Single Slot) -->
+        <!-- SUB-PANEL A: BULK CAMPAIGN -->
         <div id="subPanelBlast">
-            <div class="quota-banner">
-                <div>
-                    <div style="font-weight: 700; color: var(--text);" id="lblDailyQuotaTitle">Daily Campaign/Schedule Limit</div>
-                    <div style="font-size: 0.72rem; color: var(--text-muted);" id="lblDailyQuotaSub">Resets daily at 12:00 AM • Welcome bot exempt</div>
-                </div>
-                <div class="quota-pill" id="lblRemainingQuotaBadge">300 / 300 Left</div>
-            </div>
-
             <div class="card">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                    <span style="font-size: 0.88rem; font-weight: 700;" id="lblComposer111Title">1+1+1 Single Slot Format</span>
-                    <span style="font-size: 0.72rem; color: var(--primary); font-weight: bold;">1 Slot Active</span>
+                <!-- Smart Outbound Quota Notice (Campaign + Schedule Combined; Welcome Exempt) -->
+                <div class="quota-smart-notice" id="campaignQuotaNotice">
+                    <span id="txtCampaignQuotaWarning">300 messages/day limit across campaign & schedule (resets 12:00 AM). Welcome bot excluded.</span>
+                    <span class="quota-pill-badge" id="badgeRemainingQuota">300 left</span>
                 </div>
 
-                <div class="mode-selector-row">
-                    <button type="button" class="mode-chip active" id="chipModeText" onclick="selectBulkMode('text')">📝 Text Only</button>
-                    <button type="button" class="mode-chip" id="chipModeImage" onclick="selectBulkMode('image')">🖼️ 1 Image</button>
-                    <button type="button" class="mode-chip" id="chipModeVideo" onclick="selectBulkMode('video')">🎥 1 Video</button>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <span style="font-size: 0.88rem; font-weight: 700;">Campaign Sequence Blocks</span>
+                    <span style="font-size: 0.75rem; color: var(--primary); font-weight: bold;" id="lblBulkTotalBlocks">0/10 Blocks</span>
                 </div>
 
-                <div class="slot-card" id="bulkSlotEditor"></div>
+                <div class="welcome-add-bar">
+                    <button type="button" class="welcome-add-btn" id="btnAddBulkText" onclick="addBulkBlock('text')">+ Text (0/4)</button>
+                    <button type="button" class="welcome-add-btn" id="btnAddBulkImage" onclick="addBulkBlock('image')">+ Image (0/4)</button>
+                    <button type="button" class="welcome-add-btn" id="btnAddBulkVideo" onclick="addBulkBlock('video')">+ Video (0/2)</button>
+                </div>
+
+                <div id="bulkSequenceContainer" style="margin-bottom: 12px;"></div>
 
                 <!-- Seamless Real-time WhatsApp Stream Preview -->
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                    <span style="font-size: 0.8rem; font-weight: bold; color: var(--primary);" id="lblLivePreviewTitle">📱 Live WhatsApp Preview</span>
-                    <span style="font-size: 0.72rem; color: var(--text-muted);">1+1+1 Output</span>
+                    <span style="font-size: 0.8rem; font-weight: bold; color: var(--primary);">📱 Live WhatsApp Preview</span>
+                    <span style="font-size: 0.72rem; color: var(--text-muted);">Real-time Sequence</span>
                 </div>
                 <div class="chat-stream-preview" id="bulkLiveStreamPreview">
-                    <div style="text-align:center; color:var(--text-muted); font-size:0.8rem; padding: 12px;">Preview will appear here...</div>
+                    <div style="text-align:center; color:var(--text-muted); font-size:0.8rem; padding: 12px;">Sequence preview will appear here...</div>
                 </div>
 
-                <!-- Smart Campaign Scheduler (Max 1 Slot, Max 3 Days / 72 Hours) -->
+                <!-- Smart Campaign Scheduler (Max 3 Guarded) -->
                 <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px; margin-bottom: 12px;">
                     <div style="display: flex; justify-content: space-between; align-items: center;">
                         <div>
                             <div style="font-size: 0.88rem; font-weight: 700; color: var(--text);" id="lblScheduleTitle">⏰ Schedule Campaign</div>
-                            <div style="font-size: 0.74rem; color: var(--text-muted);" id="lblScheduleSub">Max 1 schedule slot • Up to 3 days (72h)</div>
+                            <div style="font-size: 0.74rem; color: var(--text-muted);" id="lblScheduleSub">Auto-send later (Max 3 Allowed)</div>
                         </div>
                         <input type="checkbox" id="chkEnableSchedule" style="width: 22px; height: 22px; margin-bottom: 0; cursor: pointer;" onchange="toggleScheduleInput(this)">
                     </div>
@@ -518,40 +480,38 @@
                 </div>
 
                 <div id="lblDisclaimerFooter" style="font-size: 0.74rem; color: var(--text-muted); text-align: center; margin-bottom: 12px; line-height: 1.3;">
-                    ⚠️ Use responsibly. 100% own risk on WhatsApp restrictions; no refunds.
+                    ⚠️ Use responsibly. Sending unsolicited bulk messages violates WhatsApp policies.
                 </div>
 
                 <button class="btn btn-primary" id="btnLaunch" onclick="openMultiGroupDispatchModal()">Select Target Groups & Send</button>
             </div>
         </div>
 
-        <!-- SUB-PANEL B: AUTO WELCOME RESPONDER (Text Only OR 1 Compressed Image + Caption) -->
+        <!-- SUB-PANEL B: AUTO WELCOME RESPONDER -->
         <div id="subPanelWelcome" style="display: none;">
             <div class="card">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--border);">
-                    <div>
-                        <div style="font-size: 0.92rem; font-weight: 700; color: var(--text);" id="lblEnableWelcome">Enable Welcome Message</div>
-                        <div style="font-size: 0.72rem; color: var(--primary);" id="lblWelcomeQuotaExempt">Exempt from 300/day limit • Runs autonomously</div>
-                    </div>
+                    <span style="font-size: 0.92rem; font-weight: 700; color: var(--text);" id="lblEnableWelcome">Enable Welcome Message</span>
                     <input type="checkbox" id="chkEnableWelcome" style="width: 24px; height: 24px; margin-bottom: 0; cursor: pointer;">
                 </div>
 
-                <div class="welcome-mode-row">
-                    <button type="button" class="mode-chip active" id="chipWelcomeText" onclick="selectWelcomeMode('text')">📝 Text Only</button>
-                    <button type="button" class="mode-chip" id="chipWelcomeImage" onclick="selectWelcomeMode('image')">🖼️ 1 Image + Caption</button>
+                <div class="welcome-add-bar">
+                    <button type="button" class="welcome-add-btn" id="btnAddWelcomeText" onclick="addWelcomeBlock('text')">+ Text (0/4)</button>
+                    <button type="button" class="welcome-add-btn" id="btnAddWelcomeImage" onclick="addWelcomeBlock('image')">+ Image (0/4)</button>
+                    <button type="button" class="welcome-add-btn" id="btnAddWelcomeVideo" onclick="addWelcomeBlock('video')">+ Video (0/2)</button>
                 </div>
 
-                <div class="slot-card" id="welcomeSlotEditor"></div>
+                <div id="welcomeSequenceContainer"></div>
 
                 <!-- Auto Welcome Stream Preview -->
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; margin-top: 10px;">
-                    <span style="font-size: 0.8rem; font-weight: bold; color: var(--primary);">📱 Welcome Preview</span>
+                    <span style="font-size: 0.8rem; font-weight: bold; color: var(--primary);">📱 Welcome Stream Preview</span>
                 </div>
                 <div class="chat-stream-preview" id="welcomeLiveStreamPreview">
                     <div style="text-align:center; color:var(--text-muted); font-size:0.8rem; padding: 12px;">Welcome preview will appear here...</div>
                 </div>
 
-                <button class="btn btn-primary" id="btnSaveWelcome" onclick="saveWelcomeRules()">💾 Save Welcome Config</button>
+                <button class="btn btn-primary" id="btnSaveWelcome" onclick="saveWelcomeRules()">💾 Save Welcome Sequence</button>
             </div>
         </div>
     </div>
@@ -575,17 +535,20 @@
         </div>
 
         <div class="card" style="margin-bottom: 16px;">
-            <div style="display: grid; grid-template-columns: repeat(3, 1fr); text-align: center; gap: 6px;">
-                <div><div id="dashTotal" style="font-size: 1.3rem; font-weight: bold;">0</div><div style="font-size: 0.72rem; color: var(--text-muted);" id="lblTotalContacts">Total Contacts</div></div>
-                <div><div id="dashGroups" style="font-size: 1.3rem; font-weight: bold;">0</div><div style="font-size: 0.72rem; color: var(--text-muted);" id="lblTotalGroups">Total Groups</div></div>
-                <div><div id="dashRemainingQuota" style="font-size: 1.3rem; font-weight: bold; color: var(--primary);">300</div><div style="font-size: 0.72rem; color: var(--text-muted);" id="lblDashQuota">Today Left</div></div>
+            <div style="display: grid; grid-template-columns: repeat(2, 1fr); text-align: center;">
+                <div><div id="dashTotal" style="font-size: 1.4rem; font-weight: bold;">0</div><div style="font-size: 0.75rem; color: var(--text-muted);" id="lblTotalContacts">Total Contacts</div></div>
+                <div><div id="dashGroups" style="font-size: 1.4rem; font-weight: bold;">0</div><div style="font-size: 0.75rem; color: var(--text-muted);" id="lblTotalGroups">Total Groups</div></div>
+            </div>
+            <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; font-size: 0.78rem;">
+                <span style="color: var(--text-muted);" id="lblDashQuotaNote">Daily Outbound Limit: 300/day (12:00 AM reset)</span>
+                <b id="dashRemainingQuota" style="color: var(--primary);">300 Remaining</b>
             </div>
         </div>
 
         <h4 style="margin-bottom: 10px; color: var(--text);" id="lblRecentHistory">Recent Campaigns History (Last 3)</h4>
         <div id="dashboardHistoryContainer"></div>
 
-        <h4 style="margin-bottom: 10px; margin-top: 20px; color: var(--text);" id="lblScheduledTitleDash">Scheduled Campaign (Max 1 • Up to 3 Days)</h4>
+        <h4 style="margin-bottom: 10px; margin-top: 20px; color: var(--text);">Scheduled Campaigns (Max: 3)</h4>
         <div id="scheduledCampaignsContainer"></div>
     </div>
 
@@ -593,7 +556,7 @@
     <div class="page-content" id="viewSettings">
         <div class="card">
             <label id="lblConnection">WhatsApp Account Status</label>
-
+            
             <div id="statusConnectedBox" style="display: none;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
                     <span id="badgeServerStatus" style="font-size: 0.75rem; padding: 4px 8px; border-radius: 12px; background: rgba(0, 168, 132, 0.2); color: var(--primary); font-weight: bold;">● CONNECTED</span>
@@ -611,7 +574,7 @@
             <div id="statusPairingBox">
                 <input type="tel" id="txtPairPhone" placeholder="Enter WhatsApp Number (e.g. 9876543210)">
                 <button class="btn btn-primary" id="btnPair" onclick="requestPairCode()">Pair WhatsApp & Sync Backup</button>
-
+                
                 <div id="pairCodeDisplay" style="font-size: 1.5rem; letter-spacing: 4px; font-weight: bold; color: var(--primary); text-align: center; margin-top: 10px; display: none;"></div>
             </div>
         </div>
@@ -667,25 +630,23 @@
     <!-- Modals -->
     <div class="modal" id="createGroupModal">
         <div class="modal-content">
-            <div class="modal-title" id="lblCreateGroup">Create Group (Max 250 Contacts)</div>
+            <div class="modal-title" id="lblCreateGroup">Create Group (Max 300 Contacts)</div>
             <label id="lblGroupName">Group Name</label>
             <input type="text" id="newGroupName" placeholder="e.g. VIP Customers">
 
             <label id="lblAddContacts">Add Contacts</label>
             <div style="display: flex; gap: 8px; margin-bottom: 12px;">
-                <button type="button" class="btn btn-outline" onclick="openPhonebookSelector('create')">📱 Pick</button>
-                <button type="button" class="btn btn-outline" onclick="document.getElementById('csvFileInputCreate').click()">📁 File</button>
-                <input type="file" id="csvFileInputCreate" accept=".csv,.txt,.vcf" style="display: none;" onchange="handleFileImport(event, 'create')">
+                <button type="button" class="btn btn-outline" onclick="openPhonebookSelector('create')">📱 Pick Contacts</button>
             </div>
 
-            <div id="createStagedCount" style="font-size: 0.8rem; color: var(--primary); font-weight: bold; margin-bottom: 8px;">0 / 250 Contacts Staged</div>
+            <div id="createStagedCount" style="font-size: 0.8rem; color: var(--primary); font-weight: bold; margin-bottom: 8px;">0 / 300 Contacts Staged</div>
 
             <button class="btn btn-primary" id="btnSaveGroup" onclick="saveGroup()">Save Group</button>
             <button class="btn btn-secondary" onclick="closeTopModal()">Cancel</button>
         </div>
     </div>
 
-    <!-- FULLSCREEN OVERLAY FOR GROUP MEMBERS -->
+    <!-- FULLSCREEN OVERLAY FOR GROUP MEMBERS (Full Screen + Live Member Search) -->
     <div class="fullscreen-overlay" id="membersOverlay">
         <div class="fs-header">
             <button class="back-arrow-btn" onclick="closeGroupMembersOverlay()">
@@ -708,8 +669,6 @@
 
         <div style="padding: 10px 16px; background: var(--surface); border-bottom: 1px solid var(--border); display: flex; gap: 8px;">
             <button type="button" class="btn btn-outline" style="flex:1; padding: 8px;" onclick="openPhonebookSelector('edit')">📱 Pick Contacts</button>
-            <button type="button" class="btn btn-outline" style="flex:1; padding: 8px;" onclick="document.getElementById('csvFileInputEdit').click()">📁 Import File</button>
-            <input type="file" id="csvFileInputEdit" accept=".csv,.txt,.vcf" style="display: none;" onchange="handleFileImport(event, 'edit')">
         </div>
 
         <div style="padding: 10px 16px; background: var(--surface); border-bottom: 1px solid var(--border);">
@@ -720,6 +679,7 @@
             </div>
         </div>
 
+        <!-- Live Search Bar inside Group Members -->
         <div class="fs-search-container">
             <input type="text" id="groupMembersSearch" placeholder="🔍 Search members by name or phone..." oninput="filterGroupMembers()" style="margin-bottom: 0;">
         </div>
@@ -735,7 +695,7 @@
         </div>
     </div>
 
-    <!-- Edit Member Modal -->
+    <!-- Edit Member Modal with high z-index (600) so it displays over full-screen overlays -->
     <div class="modal modal-high" id="editMemberModal" style="z-index: 600;">
         <div class="modal-content">
             <div class="modal-title">Edit Contact Details</div>
@@ -751,8 +711,12 @@
     <div class="modal" id="multiGroupDispatchModal">
         <div class="modal-content">
             <div class="modal-title" id="lblTargetGroups">Select Target Groups</div>
+            <div class="quota-smart-notice" style="margin-bottom: 10px;">
+                <span id="txtModalQuotaWarning">300 outbound messages/day limit (Campaign + Schedule combined; resets 12:00 AM).</span>
+                <span class="quota-pill-badge" id="badgeModalRemainingQuota">300 left</span>
+            </div>
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                <span style="font-size: 0.8rem; color: var(--text-muted);" id="lblDeduplicateNote">Duplicates merged • Capped by remaining daily quota.</span>
+                <span style="font-size: 0.8rem; color: var(--text-muted);" id="lblDeduplicateNote">Duplicates merged automatically.</span>
                 <button class="icon-btn" style="font-size: 0.85rem; color: var(--primary); font-weight: bold;" onclick="toggleSelectAllTargetGroups()">Select All</button>
             </div>
             <div id="targetGroupsCardsContainer" style="max-height: 280px; overflow-y: auto; margin-bottom: 14px;"></div>
@@ -819,14 +783,12 @@
     <script>
         const FIXED_BACKEND_URL = "https://wa-engine-server.onrender.com";
         const DEFAULT_TOKEN = "marketing_engine_secret_2026";
-
+        
         let SESSION_ID = localStorage.getItem('connected_phone_permanent') || 'unpaired_user';
         let API_BEARER_TOKEN = localStorage.getItem('tenant_token') || DEFAULT_TOKEN;
 
-        const MAX_GROUP_CONTACTS = 250;
-        const DAILY_OUTBOUND_CAP = 300;
-        const MAX_SCHEDULE_SLOTS = 1;
-        const MAX_SCHEDULE_WINDOW_MS = 3 * 24 * 60 * 60 * 1000; // 72 hours
+        const MAX_GROUP_CONTACTS = 300;
+        const DAILY_OUTBOUND_LIMIT = 300;
 
         const CI_INJECTED_BUILD = parseInt("__CLIENT_BUILD_NUMBER__");
         let CURRENT_BUILD_NUMBER = !isNaN(CI_INJECTED_BUILD) ? CI_INJECTED_BUILD : (parseInt(localStorage.getItem('acknowledged_release_build')) || 52);
@@ -837,29 +799,9 @@
         let latestDetectedRemoteBuild = CURRENT_BUILD_NUMBER;
 
         let isSubscriptionExpiredGlobal = false;
-        let remainingDailyQuota = DAILY_OUTBOUND_CAP;
-        let deliveredTodayCount = 0;
-
-        // Strict 1+1+1 Campaign State
-        let bulkSlot = {
-            mode: 'text', // 'text' | 'image' | 'video'
-            text: '',
-            caption: '',
-            file: null,
-            fileName: ''
-        };
-
-        // Strict 1+1 Welcome State (Text Only OR 1 Compressed Image + Caption)
-        let welcomeSlot = {
-            type: 'text', // 'text' | 'image'
-            content: '',
-            caption: '',
-            file: null,
-            fileName: '',
-            existingFilePath: '',
-            mimetype: ''
-        };
-
+        let remainingDailyQuotaGlobal = DAILY_OUTBOUND_LIMIT;
+        let welcomeBlocks = [];
+        let bulkBlocks = [{ id: 'bb_init', type: 'text', content: '', file: null, fileName: '', caption: '' }];
         let cachedScheduledJobs = [];
 
         function escapeHtml(str) {
@@ -875,19 +817,105 @@
             return clean;
         }
 
-        // --- Blocking Readiness Modal ("Please Wait") ---
-        function showBlockingWait(title, message) {
-            const modal = document.getElementById('blockingWaitModal');
-            document.getElementById('waitModalTitle').innerText = title || 'Please Wait...';
-            document.getElementById('waitModalMessage').innerText = message || 'Processing with server. Do not close the app or turn off internet yet.';
-            modal.style.display = 'flex';
+        // --- Persistent Remaining Quota Sync across App Reinstall / Restart ---
+        function getTodayLocalDateKey() {
+            const d = new Date();
+            const yyyy = d.getFullYear();
+            const mm = String(d.getMonth() + 1).padStart(2, '0');
+            const dd = String(d.getDate()).padStart(2, '0');
+            return `${yyyy}-${mm}-${dd}`;
         }
 
-        function hideBlockingWait() {
-            document.getElementById('blockingWaitModal').style.display = 'none';
+        function persistRemainingQuotaCache(quotaObj, sessionKey) {
+            const activeKey = sessionKey || SESSION_ID;
+            if (!quotaObj) return;
+            const rem = Math.max(0, Math.min(DAILY_OUTBOUND_LIMIT, parseInt(quotaObj.remainingQuota ?? (DAILY_OUTBOUND_LIMIT - (quotaObj.deliveredToday || 0)), 10)));
+            const dateKey = quotaObj.dateKey || getTodayLocalDateKey();
+            remainingDailyQuotaGlobal = rem;
+            try {
+                localStorage.setItem('cached_remaining_quota', JSON.stringify({
+                    sessionId: activeKey,
+                    dateKey,
+                    remainingQuota: rem,
+                    deliveredToday: quotaObj.deliveredToday ?? (DAILY_OUTBOUND_LIMIT - rem),
+                    syncedAt: Date.now()
+                }));
+            } catch (e) {}
+            renderQuotaIndicators();
         }
 
-        // --- Theme-Adaptive Custom Dialog Helper ---
+        function loadCachedRemainingQuota(sessionKey) {
+            const activeKey = sessionKey || SESSION_ID;
+            const todayKey = getTodayLocalDateKey();
+            try {
+                const raw = localStorage.getItem('cached_remaining_quota');
+                if (raw) {
+                    const parsed = JSON.parse(raw);
+                    if (parsed.dateKey !== todayKey) {
+                        remainingDailyQuotaGlobal = DAILY_OUTBOUND_LIMIT;
+                        return remainingDailyQuotaGlobal;
+                    }
+                    if (!activeKey || activeKey === 'unpaired_user' || !parsed.sessionId || parsed.sessionId === activeKey) {
+                        remainingDailyQuotaGlobal = Math.max(0, Math.min(DAILY_OUTBOUND_LIMIT, parseInt(parsed.remainingQuota ?? DAILY_OUTBOUND_LIMIT, 10)));
+                        return remainingDailyQuotaGlobal;
+                    }
+                }
+            } catch (e) {}
+            remainingDailyQuotaGlobal = DAILY_OUTBOUND_LIMIT;
+            return remainingDailyQuotaGlobal;
+        }
+
+        function renderQuotaIndicators() {
+            const rem = Math.max(0, parseInt(remainingDailyQuotaGlobal ?? DAILY_OUTBOUND_LIMIT, 10));
+            const isExhausted = rem <= 0;
+            const label = `${rem} left`;
+
+            const badgeMain = document.getElementById('badgeRemainingQuota');
+            if (badgeMain) {
+                badgeMain.innerText = label;
+                badgeMain.classList.toggle('exhausted', isExhausted);
+            }
+
+            const badgeModal = document.getElementById('badgeModalRemainingQuota');
+            if (badgeModal) {
+                badgeModal.innerText = label;
+                badgeModal.classList.toggle('exhausted', isExhausted);
+            }
+
+            const dashRem = document.getElementById('dashRemainingQuota');
+            if (dashRem) {
+                dashRem.innerText = `${rem} / ${DAILY_OUTBOUND_LIMIT} Remaining`;
+                dashRem.style.color = isExhausted ? 'var(--danger)' : 'var(--primary)';
+            }
+        }
+
+        async function syncRemainingQuotaFromServer(targetPhoneOverride = null) {
+            const targetPhone = targetPhoneOverride || localStorage.getItem('connected_phone_permanent') || (SESSION_ID !== 'unpaired_user' ? SESSION_ID : '');
+            if (!targetPhone || targetPhone === 'unpaired_user') {
+                loadCachedRemainingQuota('unpaired_user');
+                renderQuotaIndicators();
+                return remainingDailyQuotaGlobal;
+            }
+
+            try {
+                const res = await fetch(`${FIXED_BACKEND_URL}/api/campaign/state?sessionId=${encodeURIComponent(targetPhone)}`, {
+                    headers: { 'Authorization': `Bearer ${API_BEARER_TOKEN}`, 'ngrok-skip-browser-warning': 'true' }
+                });
+                if (res.ok) {
+                    const d = await res.json();
+                    if (d && d.quota) {
+                        persistRemainingQuotaCache(d.quota, targetPhone);
+                        return remainingDailyQuotaGlobal;
+                    }
+                }
+            } catch (e) {}
+
+            loadCachedRemainingQuota(targetPhone);
+            renderQuotaIndicators();
+            return remainingDailyQuotaGlobal;
+        }
+
+        // --- Theme-Adaptive Custom Dialog Helper (Replaces default alert/confirm) ---
         function showCustomDialog({ title, message, type = 'info', confirmText = 'OK', cancelText = null }) {
             return new Promise((resolve) => {
                 const modal = document.getElementById('customDialogModal');
@@ -973,7 +1001,7 @@
 
                     canvas.toBlob(function(blob) {
                         if (!blob) { callback(file); return; }
-                        const compressedFile = new File([blob], file.name.replace(/\.[^/.]+$/, '.jpg'), {
+                        const compressedFile = new File([blob], file.name.replace(/\.[^/.]+$/, ".jpg"), {
                             type: 'image/jpeg',
                             lastModified: Date.now()
                         });
@@ -987,161 +1015,188 @@
 
         const i18n = {
             en: {
-                title: 'WA Campaign',
-                groups: 'Groups',
-                campaign: 'Campaign',
-                dashboard: 'Dashboard',
-                settings: 'Settings',
-                sortNewest: 'Sort: Newest First',
-                sortAlpha: 'Sort: Alphabetical (A-Z)',
-                sortCount: 'Sort: Most Contacts',
-                subTabBlast: '📢 Bulk Campaign',
-                subTabWelcome: '🤖 Auto Welcome',
-                msgPlaceholder: 'Type message here...',
-                scheduleTitle: '⏰ Schedule Campaign',
-                scheduleSub: 'Max 1 schedule slot • Up to 3 days (72h)',
-                preset1h: '+1 Hour',
-                presetTom9: 'Tomorrow 9 AM',
-                presetTom18: 'Tomorrow 6 PM',
-                disclaimerFooter: '⚠️ Use responsibly. 100% own risk on WhatsApp restrictions; no refunds.',
-                launch: 'Select Target Groups & Send',
-                enableWelcome: 'Enable Welcome Message',
-                saveWelcome: '💾 Save Welcome Config',
-                totalContacts: 'Total Contacts',
-                totalGroups: 'Total Groups',
-                recentHistory: 'Recent Campaigns History (Last 3)',
-                connection: 'WhatsApp Account Status',
-                unlink: 'Unlink WhatsApp',
-                pair: 'Pair WhatsApp',
-                language: 'Language',
-                theme: 'Theme',
-                updates: 'App Version & Updates',
-                updateCheck: '⚡ Update Now (Zero Data Loss)',
-                shareApp: 'Share WA Campaign App',
-                createGroup: 'Create Group (Max 250 Contacts)',
-                groupName: 'Group Name',
-                addContacts: 'Add Contacts',
-                saveGroup: 'Save Group',
-                manageGroup: 'Group Members',
-                renameGroup: 'Group Name',
-                targetGroups: 'Select Target Groups',
-                deduplicateNote: 'Duplicates merged • Capped by remaining daily quota.',
-                deviceContacts: 'Device Contacts',
-                warnUnlink: 'Are you sure you want to unlink your WhatsApp account? Your saved customer groups will NOT be deleted.',
-                warnStopCamp: 'Stop this active campaign? Only actually delivered messages count against your 300 daily quota.',
-                warnDeleteGroups: 'Permanently delete selected group(s)? The contacts inside these groups will be removed.',
-                warnCancelSched: 'Cancel this scheduled campaign? The schedule slot will be cleared and attached media purged.',
-                daysLeftNotice: 'Days Left',
-                subExpiredMsg: 'Your subscription has expired. Please contact admin to recharge and continue.',
-                subWarnMsg: 'Your subscription expires in {DAYS} day(s). Please recharge to ensure uninterrupted service.'
+                title: "WA Campaign",
+                groups: "Groups",
+                campaign: "Campaign",
+                dashboard: "Dashboard",
+                settings: "Settings",
+                sortNewest: "Sort: Newest First",
+                sortAlpha: "Sort: Alphabetical (A-Z)",
+                sortCount: "Sort: Most Contacts",
+                subTabBlast: "📢 Bulk Campaign",
+                subTabWelcome: "🤖 Auto Welcome",
+                quotaCampaignNotice: "300 messages/day limit across campaign & schedule (resets 12:00 AM). Welcome bot excluded.",
+                quotaModalNotice: "300 outbound messages/day limit (Campaign + Schedule combined; resets 12:00 AM).",
+                dashQuotaNote: "Daily Outbound Limit: 300/day (12:00 AM reset)",
+                message: "Message",
+                msgPlaceholder: "Type message here...",
+                attachments: "Attachments (Image, Video, PDF)",
+                preview: "Live Preview",
+                scheduleTitle: "⏰ Schedule Campaign",
+                scheduleSub: "Auto-send later (Max 3 Allowed)",
+                preset1h: "+1 Hour",
+                presetTom9: "Tomorrow 9 AM",
+                presetTom18: "Tomorrow 6 PM",
+                disclaimerFooter: "⚠️ Use responsibly. Sending unsolicited bulk messages violates WhatsApp policies.",
+                launch: "Select Target Groups & Send",
+                enableWelcome: "Enable Welcome Message",
+                addTextBtn: "+ Text",
+                addImageBtn: "+ Image",
+                addVideoBtn: "+ Video",
+                saveWelcome: "💾 Save Welcome Sequence",
+                totalContacts: "Total Contacts",
+                totalGroups: "Total Groups",
+                recentHistory: "Recent Campaigns History (Last 3)",
+                connection: "WhatsApp Account Status",
+                unlink: "Unlink WhatsApp",
+                pair: "Pair WhatsApp",
+                language: "Language",
+                theme: "Theme",
+                updates: "App Version & Updates",
+                updateCheck: "⚡ Update Now (Zero Data Loss)",
+                shareApp: "Share WA Campaign App",
+                createGroup: "Create Group (Max 300 Contacts)",
+                groupName: "Group Name",
+                addContacts: "Add Contacts",
+                saveGroup: "Save Group",
+                manageGroup: "Group Members",
+                renameGroup: "Group Name",
+                targetGroups: "Select Target Groups",
+                deduplicateNote: "Duplicates merged automatically.",
+                deviceContacts: "Device Contacts",
+                warnUnlink: "Are you sure you want to unlink your WhatsApp account? Your saved customer groups will NOT be deleted.",
+                warnStopCamp: "Permanently stop this active campaign? Remaining pending messages will NOT be sent.",
+                warnDeleteGroups: "Permanently delete selected group(s)? The contacts inside these groups will be removed.",
+                warnCancelSched: "Cancel this scheduled campaign? The queue will be removed and attached media purged.",
+                daysLeftNotice: "Days Left",
+                subExpiredMsg: "Your subscription has expired. Please contact admin to recharge and continue.",
+                subWarnMsg: "Your subscription expires in {DAYS} day(s). Please recharge to ensure uninterrupted service."
             },
             ta: {
-                title: 'வாட்ஸ்அப் விளம்பரம்',
-                groups: 'குழுக்கள்',
-                campaign: 'பிரச்சாரம்',
-                dashboard: 'முகப்பு',
-                settings: 'அமைப்புகள்',
-                sortNewest: 'வரிசை: புதியவை முதலில்',
-                sortAlpha: 'வரிசை: அகரவரிசை (A-Z)',
-                sortCount: 'வரிசை: அதிக தொடர்புகள்',
-                subTabBlast: '📢 குழு பிரச்சாரம்',
-                subTabWelcome: '🤖 தானியங்கி வரவேற்பு',
-                msgPlaceholder: 'செய்தியை இங்கே உள்ளிடவும்...',
-                scheduleTitle: '⏰ நேரத்தை திட்டமிடு (Schedule)',
-                scheduleSub: '1 ஷெட்யூல் மட்டுமே • அதிகபட்சம் 3 நாட்கள் (72 மணி)',
-                preset1h: '+1 மணி நேரம்',
-                presetTom9: 'நாளை காலை 9',
-                presetTom18: 'நாளை மாலை 6',
-                disclaimerFooter: '⚠️ பொறுப்புடன் பயன்படுத்தவும். வாட்ஸ்அப் தடைக்கு 100% சொந்தப் பொறுப்பு; ரீபண்ட் கிடையாது.',
-                launch: 'குழுக்களை தேர்வு செய்து அனுப்பு',
-                enableWelcome: 'வரவேற்பு செய்தியை இயக்கு',
-                saveWelcome: '💾 வரவேற்பு அமைப்பை சேமி',
-                totalContacts: 'மொத்த தொடர்புகள்',
-                totalGroups: 'மொத்த குழுக்கள்',
-                recentHistory: 'முந்தைய 3 பிரச்சாரங்கள்',
-                connection: 'வாட்ஸ்அப் இணைப்பு நிலை',
-                unlink: 'வாட்ஸ்அப் துண்டி',
-                pair: 'வாட்ஸ்அப் இணை',
-                language: 'மொழி',
-                theme: 'வண்ண தீம்',
-                updates: 'செயலி பதிப்பு & புதுப்பிப்புகள்',
-                updateCheck: '⚡ புதிய பதிப்பை நிறுவவும் (தரவு அழியாது)',
-                shareApp: 'செயலியை பகிரவும்',
-                createGroup: 'புதிய குழு (அதிகபட்சம் 250 நபர்கள்)',
-                groupName: 'குழுவின் பெயர்',
-                addContacts: 'தொடர்புகளை சேர்க்கவும்',
-                saveGroup: 'குழுவை சேமி',
-                manageGroup: 'குழு உறுப்பினர்கள்',
-                renameGroup: 'குழு பெயர் திருத்து',
-                targetGroups: 'இலக்கு குழுக்கள்',
-                deduplicateNote: 'இரட்டை எண்கள் நீக்கப்படும் • மீதமுள்ள 300 தினசரி லிமிட்டுக்கு ஏற்ப அனுப்பப்படும்.',
-                deviceContacts: 'மொபைல் தொடர்புகள்',
-                warnUnlink: 'வாட்ஸ்அப் கணக்கை துண்டிக்கவா? உங்கள் சேமிக்கப்பட்ட குழுக்கள் அழியாது.',
-                warnStopCamp: 'இந்த பிரச்சாரத்தை நிறுத்தவா? உண்மையில் சென்ற மெசேஜ்கள் மட்டுமே 300 தினசரி லிமிட்டில் கழிக்கப்படும்.',
-                warnDeleteGroups: 'தேர்ந்தெடுத்த குழுக்களை நிரந்தரமாக நீக்கவா? உள்ளிருக்கும் தொடர்புகள் அகற்றப்படும்.',
-                warnCancelSched: 'திட்டமிடப்பட்ட இந்த பிரச்சாரத்தை ரத்து செய்து மீடியா கோப்புகளை நீக்கவா?',
-                daysLeftNotice: 'நாட்கள் மீதமுள்ளன',
-                subExpiredMsg: 'உங்கள் சந்தா முடிவடைந்துவிட்டது. சேவையைத் தொடர அட்மினைத் தொடர்புகொள்ளவும்.',
-                subWarnMsg: 'உங்கள் சந்தா இன்னும் {DAYS} நாளில் முடிகிறது. தடையற்ற சேவைக்கு முன்கூட்டியே ரீசார்ஜ் செய்யவும்.'
+                title: "வாட்ஸ்அப் விளம்பரம்",
+                groups: "குழுக்கள்",
+                campaign: "பிரச்சாரம்",
+                dashboard: "முகப்பு",
+                settings: "அமைப்புகள்",
+                sortNewest: "வரிசை: புதியவை முதலில்",
+                sortAlpha: "வரிசை: அகரவரிசை (A-Z)",
+                sortCount: "வரிசை: அதிக தொடர்புகள்",
+                subTabBlast: "📢 குழு பிரச்சாரம்",
+                subTabWelcome: "🤖 தானியங்கி வரவேற்பு",
+                quotaCampaignNotice: "பிரச்சாரம் & ஷெட்யூலுக்கு ஒரு நாளைக்கு 300 மெசேஜ் வரம்பு (இரவு 12 மணிக்கு ரீசெட்). வெல்கம் பாட்டிற்கு இது பொருந்தாது.",
+                quotaModalNotice: "ஒரு நாளைக்கு 300 outbound மெசேஜ் வரம்பு (பிரச்சாரம் + ஷெட்யூல் சேர்த்து; இரவு 12 மணிக்கு ரீசெட்).",
+                dashQuotaNote: "தினசரி Outbound வரம்பு: 300/நாள் (இரவு 12 மணிக்கு ரீசெட்)",
+                message: "அனுப்ப வேண்டிய செய்தி",
+                msgPlaceholder: "செய்தியை இங்கே உள்ளிடவும்...",
+                attachments: "கோப்புகள் (புகைப்படம், வீடியோ, PDF)",
+                preview: "நேரடி முன்னோட்டம்",
+                scheduleTitle: "⏰ நேரத்தை திட்டமிடு (Schedule)",
+                scheduleSub: "பின்னர் தானாக அனுப்ப (அதிகபட்சம் 3)",
+                preset1h: "+1 மணி நேரம்",
+                presetTom9: "நாளை காலை 9",
+                presetTom18: "நாளை மாலை 6",
+                disclaimerFooter: "⚠️ பொறுப்புடன் பயன்படுத்தவும். அனுமதியின்றி அதிக செய்திகள் அனுப்புவது வாட்ஸ்அப் விதிகளுக்கு எதிரானது.",
+                launch: "குழுக்களை தேர்வு செய்து அனுப்பு",
+                enableWelcome: "வரவேற்பு செய்தியை இயக்கு",
+                addTextBtn: "+ செய்தி",
+                addImageBtn: "+ படம்",
+                addVideoBtn: "+ வீடியோ",
+                saveWelcome: "💾 வரவேற்பு செய்தியை சேமி",
+                totalContacts: "மொத்த தொடர்புகள்",
+                totalGroups: "மொத்த குழுக்கள்",
+                recentHistory: "முந்தைய 3 பிரச்சாரங்கள்",
+                connection: "வாட்ஸ்அப் இணைப்பு நிலை",
+                unlink: "வாட்ஸ்அப் துண்டி",
+                pair: "வாட்ஸ்அப் இணை",
+                language: "மொழி",
+                theme: "வண்ண தீம்",
+                updates: "செயலி பதிப்பு & புதுப்பிப்புகள்",
+                updateCheck: "⚡ புதிய பதிப்பை நிறுவவும் (தரவு அழியாது)",
+                shareApp: "செயலியை பகிரவும்",
+                createGroup: "புதிய குழு (அதிகபட்சம் 300 நபர்கள்)",
+                groupName: "குழுவின் பெயர்",
+                addContacts: "தொடர்புகளை சேர்க்கவும்",
+                saveGroup: "குழுவை சேமி",
+                manageGroup: "குழு உறுப்பினர்கள்",
+                renameGroup: "குழு பெயர் திருத்து",
+                targetGroups: "இலக்கு குழுக்கள்",
+                deduplicateNote: "இரட்டை எண்கள் தானாக நீக்கப்படும்.",
+                deviceContacts: "மொபைல் தொடர்புகள்",
+                warnUnlink: "வாட்ஸ்அப் கணக்கை துண்டிக்கவா? உங்கள் சேமிக்கப்பட்ட குழுக்கள் அழியாது; மீண்டும் உள்நுழையும்போது மீட்டெடுக்கலாம்.",
+                warnStopCamp: "இந்த பிரச்சாரத்தை முழுமையாக நிறுத்தவா? மீதமுள்ள நபர்களுக்கு செய்தி போகாது.",
+                warnDeleteGroups: "தேர்ந்தெடுத்த குழுக்களை நிரந்தரமாக நீக்கவா? உள்ளிருக்கும் தொடர்புகள் அகற்றப்படும்.",
+                warnCancelSched: "திட்டமிடப்பட்ட இந்த பிரச்சாரத்தை ரத்து செய்து கோப்புகளை அழிக்கவா?",
+                daysLeftNotice: "நாட்கள் மீதமுள்ளன",
+                subExpiredMsg: "உங்கள் சந்தா முடிவடைந்துவிட்டது. சேவையைத் தொடர அட்மினைத் தொடர்புகொள்ளவும்.",
+                subWarnMsg: "உங்கள் சந்தா இன்னும் {DAYS} நாளில் முடிகிறது. தடையற்ற சேவைக்கு முன்கூட்டியே ரீசார்ஜ் செய்யவும்."
             },
             hi: {
-                title: 'व्हाट्सएप अभियान',
-                groups: 'समूह',
-                campaign: 'अभियान',
-                dashboard: 'डैशबोर्ड',
-                settings: 'सेटिंग्स',
-                sortNewest: 'क्रम: नवीनतम पहले',
-                sortAlpha: 'क्रम: वर्णमाला (A-Z)',
-                sortCount: 'क्रम: सर्वाधिक संपर्क',
-                subTabBlast: '📢 बल्क अभियान',
-                subTabWelcome: '🤖 ऑटो वेलकम',
-                msgPlaceholder: 'यहाँ संदेश टाइप करें...',
-                scheduleTitle: '⏰ अभियान शेड्यूल करें',
-                scheduleSub: 'अधिकतम 1 शेड्यूल स्लॉट • अधिकतम 3 दिन (72 घंटे)',
-                preset1h: '+1 घंटा',
-                presetTom9: 'कल सुबह 9 बजे',
-                presetTom18: 'कल शाम 6 बजे',
-                disclaimerFooter: '⚠️ जिम्मेदारी से उपयोग करें। प्रतिबंध का 100% जोखिम उपयोगकर्ता का; कोई रिफंड नहीं।',
-                launch: 'समूह चुनें और भेजें',
-                enableWelcome: 'वेलकम मैसेज चालू करें',
-                saveWelcome: '💾 वेलकम सेटिंग सहेजें',
-                totalContacts: 'कुल संपर्क',
-                totalGroups: 'कुल समूह',
-                recentHistory: 'हाल के 3 अभियान',
-                connection: 'व्हाट्सएप कनेक्शन स्थिति',
-                unlink: 'व्हाट्सएप हटाएं',
-                pair: 'व्हाट्सएप जोड़ें',
-                language: 'भाषा',
-                theme: 'थीम',
-                updates: 'ऐप संस्करण और अपडेट',
-                updateCheck: '⚡ नया संस्करण स्थापित करें',
-                shareApp: 'ऐप साझा करें',
-                createGroup: 'समूह बनाएं (अधिकतम 250 संपर्क)',
-                groupName: 'समूह का नाम',
-                addContacts: 'संपर्क जोड़ें',
-                saveGroup: 'समूह सहेजें',
-                manageGroup: 'समूह के सदस्य',
-                renameGroup: 'समूह का नाम बदलें',
-                targetGroups: 'लक्षित समूह चुनें',
-                deduplicateNote: 'डुप्लिकेट हटाए जाएंगे • दैनिक 300 कोटा के अनुसार सीमित।',
-                deviceContacts: 'फ़ोन संपर्क',
-                warnUnlink: 'क्या आप व्हाट्सएप खाता हटाना चाहते हैं? आपके सहेजे गए समूह सुरक्षित रहेंगे।',
-                warnStopCamp: 'क्या आप इस अभियान को रोकना चाहते हैं? केवल भेजे गए संदेश दैनिक 300 कोटा में गिने जाएंगे।',
-                warnDeleteGroups: 'क्या आप चयनित समूहों को हटाना चाहते हैं?',
-                warnCancelSched: 'क्या आप इस शेड्यूल अभियान को रद्द और मीडिया हटाना चाहते हैं?',
-                daysLeftNotice: 'दिन शेष हैं',
-                subExpiredMsg: 'आपकी सदस्यता समाप्त हो गई है। कृपया सेवा जारी रखने के लिए एडमिन से संपर्क करें।',
-                subWarnMsg: 'आपकी सदस्यता {DAYS} दिनों में समाप्त हो रही है। कृपया समय पर रिचार्ज करें।'
+                title: "व्हाट्सएप अभियान",
+                groups: "समूह",
+                campaign: "अभियान",
+                dashboard: "डैशबोर्ड",
+                settings: "सेटिंग्स",
+                sortNewest: "क्रम: नवीनतम पहले",
+                sortAlpha: "क्रम: वर्णमाला (A-Z)",
+                sortCount: "क्रम: सर्वाधिक संपर्क",
+                subTabBlast: "📢 बल्क अभियान",
+                subTabWelcome: "🤖 ऑटो वेलकम",
+                quotaCampaignNotice: "अभियान और शेड्यूल मिलाकर प्रतिदिन 300 संदेश सीमा (रात 12 बजे रीसेट)। वेलकम बॉट इससे बाहर है।",
+                quotaModalNotice: "प्रतिदिन 300 आउटबाउंड संदेश सीमा (अभियान + शेड्यूल मिलाकर; रात 12 बजे रीसेट)।",
+                dashQuotaNote: "दैनिक आउटबाउंड सीमा: 300/दिन (रात 12 बजे रीसेट)",
+                message: "संदेश",
+                msgPlaceholder: "यहाँ संदेश टाइप करें...",
+                attachments: "फ़ाइलें (फोटो, वीडियो, पीडीएफ)",
+                preview: "लाइव पूर्वावलोकन",
+                scheduleTitle: "⏰ अभियान शेड्यूल करें",
+                scheduleSub: "बाद में स्वतः भेजें (अधिकतम 3)",
+                preset1h: "+1 घंटा",
+                presetTom9: "कल सुबह 9 बजे",
+                presetTom18: "कल शाम 6 बजे",
+                disclaimerFooter: "⚠️ जिम्मेदारी से उपयोग करें। अनचाहे बल्क संदेश भेजना व्हाट्सएप नीतियों के विरुद्ध है।",
+                launch: "समूह चुनें और भेजें",
+                enableWelcome: "वेलकम मैसेज चालू करें",
+                addTextBtn: "+ टेक्स्ट",
+                addImageBtn: "+ फोटो",
+                addVideoBtn: "+ वीडियो",
+                saveWelcome: "💾 वेलकम सीक्वेंस सहेजें",
+                totalContacts: "कुल संपर्क",
+                totalGroups: "कुल समूह",
+                recentHistory: "हाल के 3 अभियान",
+                connection: "व्हाट्सएप कनेक्शन स्थिति",
+                unlink: "व्हाट्सएप हटाएं",
+                pair: "व्हाट्सएप जोड़ें",
+                language: "भाषा",
+                theme: "थीम",
+                updates: "ऐप संस्करण और अपडेट",
+                updateCheck: "⚡ नया संस्करण स्थापित करें",
+                shareApp: "ऐप साझा करें",
+                createGroup: "समूह बनाएं (अधिकतम 300 संपर्क)",
+                groupName: "समूह का नाम",
+                addContacts: "संपर्क जोड़ें",
+                saveGroup: "समूह सहेजें",
+                manageGroup: "समूह के सदस्य",
+                renameGroup: "समूह का नाम बदलें",
+                targetGroups: "लक्षित समूह चुनें",
+                deduplicateNote: "डुप्लिकेट संपर्क स्वतः हटा दिए जाएंगे।",
+                deviceContacts: "फ़ोन संपर्क",
+                warnUnlink: "क्या आप व्हाट्सएप खाता हटाना चाहते हैं? आपके सहेजे गए समूह सुरक्षित रहेंगे।",
+                warnStopCamp: "क्या आप इस अभियान को पूरी तरह से रोकना चाहते हैं? शेष संदेश नहीं भेजे जाएंगे।",
+                warnDeleteGroups: "क्या आप चयनित समूहों को हटाना चाहते हैं?",
+                warnCancelSched: "क्या आप इस शेड्यूल अभियान को रद्द करना चाहते हैं?",
+                daysLeftNotice: "दिन शेष हैं",
+                subExpiredMsg: "आपकी सदस्यता समाप्त हो गई है। कृपया सेवा जारी रखने के लिए एडमिन से संपर्क करें।",
+                subWarnMsg: "आपकी सदस्यता {DAYS} दिनों में समाप्त हो रही है। कृपया समय पर रिचार्ज करें।"
             }
         };
 
         let groups = [];
         if (SESSION_ID && SESSION_ID !== 'unpaired_user') {
-            try { groups = JSON.parse(localStorage.getItem('app_groups') || '[]'); } catch (e) { groups = []; }
+            try { groups = JSON.parse(localStorage.getItem('app_groups') || '[]'); } catch(e) { groups = []; }
         }
 
         let globalCampaigns = [];
-        try { globalCampaigns = JSON.parse(localStorage.getItem('app_campaigns') || '[]').filter((c) => !c.isWelcome); } catch (e) { globalCampaigns = []; }
+        try { globalCampaigns = JSON.parse(localStorage.getItem('app_campaigns') || '[]'); } catch(e) { globalCampaigns = []; }
 
         let activeGroupId = null;
         let stagedContacts = [];
@@ -1154,20 +1209,6 @@
         let editingMemberIndex = null;
         let pbTargetMode = 'create';
         const modalStack = [];
-
-        function updateQuotaUI() {
-            const clampedRemaining = Math.max(0, Math.min(DAILY_OUTBOUND_CAP, Number(remainingDailyQuota) || 0));
-            const badge = document.getElementById('lblRemainingQuotaBadge');
-            const dashBadge = document.getElementById('dashRemainingQuota');
-            if (badge) {
-                badge.innerText = `${clampedRemaining} / ${DAILY_OUTBOUND_CAP} Left`;
-                badge.style.color = clampedRemaining > 0 ? 'var(--primary)' : 'var(--danger)';
-            }
-            if (dashBadge) {
-                dashBadge.innerText = `${clampedRemaining}`;
-                dashBadge.style.color = clampedRemaining > 0 ? 'var(--primary)' : 'var(--danger)';
-            }
-        }
 
         function openModal(id) {
             const el = document.getElementById(id);
@@ -1213,9 +1254,6 @@
             const AppPlugin = window.Capacitor?.Plugins?.App;
             if (AppPlugin) {
                 AppPlugin.addListener('backButton', () => {
-                    if (document.getElementById('blockingWaitModal')?.style.display === 'flex') {
-                        return; // Prevent closing while initializing/syncing with server
-                    }
                     const editModal = document.getElementById('editMemberModal');
                     const pbOverlay = document.getElementById('phonebookOverlay');
                     const memOverlay = document.getElementById('membersOverlay');
@@ -1237,7 +1275,7 @@
                             type: 'warning',
                             confirmText: 'Exit',
                             cancelText: 'Stay'
-                        }).then((confirmed) => {
+                        }).then(confirmed => {
                             if (confirmed) AppPlugin.exitApp();
                         });
                     }
@@ -1249,11 +1287,11 @@
             let startY = 0;
             const spinner = document.getElementById('pullToRefreshSpinner');
 
-            window.addEventListener('touchstart', (e) => {
+            window.addEventListener('touchstart', e => {
                 if (window.scrollY === 0) startY = e.touches[0].clientY;
             }, { passive: true });
 
-            window.addEventListener('touchmove', (e) => {
+            window.addEventListener('touchmove', e => {
                 const y = e.touches[0].clientY;
                 if (window.scrollY === 0 && y - startY > 90) {
                     spinner.style.display = 'block';
@@ -1272,12 +1310,15 @@
         }
 
         async function navigateTab(tabId, el) {
-            document.querySelectorAll('.page-content').forEach((p) => p.classList.remove('active'));
-            document.querySelectorAll('.nav-tab').forEach((t) => t.classList.remove('active'));
+            document.querySelectorAll('.page-content').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
             document.getElementById(tabId).classList.add('active');
             el.classList.add('active');
 
             document.getElementById('fabAddGroup').style.display = (tabId === 'viewGroups') ? 'flex' : 'none';
+            if (tabId === 'viewCampaign') {
+                await syncRemainingQuotaFromServer();
+            }
             if (tabId === 'viewDashboard') {
                 await hydrateCampaignStateFromServer();
                 renderDashboard();
@@ -1304,6 +1345,7 @@
                 btnBlast.classList.add('active');
                 panelWelcome.style.display = 'none';
                 panelBlast.style.display = 'block';
+                syncRemainingQuotaFromServer();
             }
         }
 
@@ -1329,6 +1371,9 @@
 
             document.getElementById('btnSubTabBlast').innerText = d.subTabBlast;
             document.getElementById('btnSubTabWelcome').innerText = d.subTabWelcome;
+            document.getElementById('txtCampaignQuotaWarning').innerText = d.quotaCampaignNotice;
+            document.getElementById('txtModalQuotaWarning').innerText = d.quotaModalNotice;
+            document.getElementById('lblDashQuotaNote').innerText = d.dashQuotaNote;
 
             document.getElementById('lblScheduleTitle').innerText = d.scheduleTitle;
             document.getElementById('lblScheduleSub').innerText = d.scheduleSub;
@@ -1363,168 +1408,214 @@
             document.getElementById('lblDeviceContacts').innerText = d.deviceContacts;
             document.getElementById('selLanguage').value = lang;
 
-            renderBulkComposer();
-            renderWelcomeComposer();
+            renderQuotaIndicators();
+            renderWelcomeSequence();
+            renderBulkSequence();
         }
 
-        // ============================================================================
-        // STRICT 1+1+1 CAMPAIGN COMPOSER (Text Only OR 1 Image + Caption OR 1 Video + Caption)
-        // ============================================================================
-        function selectBulkMode(mode) {
-            if (mode !== 'text' && mode !== 'image' && mode !== 'video') return;
-            bulkSlot.mode = mode;
-            if (mode === 'text') {
-                bulkSlot.file = null;
-                bulkSlot.fileName = '';
-                bulkSlot.caption = '';
-            } else {
-                bulkSlot.text = '';
+        // --- Bulk Multi-Block Campaign Handler ---
+        function addBulkBlock(type) {
+            const textCount = bulkBlocks.filter(b => b.type === 'text').length;
+            const imgCount = bulkBlocks.filter(b => b.type === 'image').length;
+            const vidCount = bulkBlocks.filter(b => b.type === 'video').length;
+
+            if (type === 'text' && textCount >= 4) return showCustomDialog({ title: 'Limit Exceeded', message: 'Maximum 4 Text messages allowed per campaign.', type: 'warning' });
+            if (type === 'image' && imgCount >= 4) return showCustomDialog({ title: 'Limit Exceeded', message: 'Maximum 4 Images allowed per campaign.', type: 'warning' });
+            if (type === 'video' && vidCount >= 2) return showCustomDialog({ title: 'Limit Exceeded', message: 'Maximum 2 Videos allowed per campaign.', type: 'warning' });
+
+            bulkBlocks.push({
+                id: 'bb_' + Date.now() + '_' + Math.floor(Math.random() * 1000),
+                type,
+                content: '',
+                file: null,
+                fileName: '',
+                caption: ''
+            });
+            renderBulkSequence();
+        }
+
+        function removeBulkBlock(id) {
+            bulkBlocks = bulkBlocks.filter(b => b.id !== id);
+            renderBulkSequence();
+        }
+
+        function clearBulkBlockFile(id) {
+            const b = bulkBlocks.find(x => x.id === id);
+            if (b) {
+                b.file = null;
+                b.fileName = '';
+                const fileInput = document.getElementById(`bb_file_${id}`);
+                if (fileInput) fileInput.value = '';
+                renderBulkSequence();
             }
-            renderBulkComposer();
         }
 
-        function clearBulkFile() {
-            bulkSlot.file = null;
-            bulkSlot.fileName = '';
-            const inp = document.getElementById('bulkSingleFileInput');
-            if (inp) inp.value = '';
-            renderBulkComposer();
-        }
-
-        function handleBulkFileSelect(e) {
+        function handleBulkBlockFile(e, id) {
             const rawFile = e.target.files[0];
-            if (!rawFile) return;
+            const b = bulkBlocks.find(x => x.id === id);
+            if (!b || !rawFile) return;
 
-            if (bulkSlot.mode === 'video') {
-                if (rawFile.type !== 'video/mp4' && !rawFile.name.toLowerCase().endsWith('.mp4')) {
-                    showCustomDialog({ title: 'Invalid Video', message: 'Please select an MP4 video file.', type: 'danger' });
-                    e.target.value = '';
-                    return;
-                }
-                if (rawFile.size > 15 * 1024 * 1024) {
-                    showCustomDialog({ title: 'File Too Large', message: 'Video size exceeds 15MB limit!', type: 'danger' });
-                    e.target.value = '';
-                    return;
-                }
-                bulkSlot.file = rawFile;
-                bulkSlot.fileName = rawFile.name;
-                renderBulkComposer();
-            } else {
-                if (!rawFile.type.startsWith('image/')) {
-                    showCustomDialog({ title: 'Invalid Image', message: 'Please select a valid image file.', type: 'danger' });
-                    e.target.value = '';
-                    return;
-                }
-                showBlockingWait('Compressing Image...', 'Optimizing image before upload. Please wait...');
+            if (rawFile.type.startsWith('video/') && rawFile.size > 15 * 1024 * 1024) {
+                showCustomDialog({ title: 'File Too Large', message: 'Video size exceeds 15MB limit! Please select a compressed video under 15MB.', type: 'danger' });
+                e.target.value = '';
+                return;
+            }
+
+            if (rawFile.type.startsWith('image/')) {
                 compressImageBeforeUpload(rawFile, (compressedFile) => {
-                    hideBlockingWait();
-                    bulkSlot.file = compressedFile;
-                    bulkSlot.fileName = compressedFile.name;
-                    renderBulkComposer();
+                    b.file = compressedFile;
+                    b.fileName = compressedFile.name;
+                    renderBulkSequence();
                 });
+            } else {
+                b.file = rawFile;
+                b.fileName = rawFile.name;
+                renderBulkSequence();
             }
         }
 
-        function renderBulkComposer() {
+        function updateBulkBlockText(id, val) {
+            const b = bulkBlocks.find(x => x.id === id);
+            if (b) {
+                b.content = val;
+                renderBulkLiveStream();
+            }
+        }
+
+        function updateBulkBlockCaption(id, val) {
+            const b = bulkBlocks.find(x => x.id === id);
+            if (b) {
+                b.caption = val;
+                renderBulkLiveStream();
+            }
+        }
+
+        function clearBulkBlockTextInUI(id) {
+            const b = bulkBlocks.find(x => x.id === id);
+            if (b) {
+                b.content = '';
+                renderBulkSequence();
+            }
+        }
+
+        function renderBulkSequence() {
             const lang = localStorage.getItem('app_lang') || 'en';
             const d = i18n[lang] || i18n.en;
 
-            document.getElementById('chipModeText').classList.toggle('active', bulkSlot.mode === 'text');
-            document.getElementById('chipModeImage').classList.toggle('active', bulkSlot.mode === 'image');
-            document.getElementById('chipModeVideo').classList.toggle('active', bulkSlot.mode === 'video');
+            const textCount = bulkBlocks.filter(b => b.type === 'text').length;
+            const imgCount = bulkBlocks.filter(b => b.type === 'image').length;
+            const vidCount = bulkBlocks.filter(b => b.type === 'video').length;
 
-            const editor = document.getElementById('bulkSlotEditor');
+            const btnTxt = document.getElementById('btnAddBulkText');
+            const btnImg = document.getElementById('btnAddBulkImage');
+            const btnVid = document.getElementById('btnAddBulkVideo');
+            if (btnTxt) btnTxt.innerText = `${d.addTextBtn} (${textCount}/4)`;
+            if (btnImg) btnImg.innerText = `${d.addImageBtn} (${imgCount}/4)`;
+            if (btnVid) btnVid.innerText = `${d.addVideoBtn} (${vidCount}/2)`;
 
-            if (bulkSlot.mode === 'text') {
-                editor.innerHTML = `
-                    <label>Text Message</label>
-                    <div class="textarea-container" style="margin-bottom:0;">
-                        <textarea class="safe-textarea" id="txtBulkMessage" placeholder="${d.msgPlaceholder}" oninput="bulkSlot.text = this.value; renderBulkLiveStream();">${escapeHtml(bulkSlot.text)}</textarea>
-                        <button type="button" class="clear-btn" onclick="bulkSlot.text=''; renderBulkComposer();">✖ Clear</button>
-                    </div>
-                `;
-            } else {
-                const isImg = bulkSlot.mode === 'image';
-                const acceptAttr = isImg ? 'image/*' : 'video/mp4';
-                const labelText = isImg ? '1 Image (Auto-Compressed) + Caption' : '1 Video (MP4, Max 15MB) + Caption';
+            document.getElementById('lblBulkTotalBlocks').innerText = `${bulkBlocks.length}/10 Blocks`;
 
-                let fileBoxHtml = '';
-                if (bulkSlot.fileName) {
-                    fileBoxHtml = `
-                        <div class="file-selected-badge">
-                            <div>
-                                <div style="font-size:0.82rem; font-weight:bold; color:var(--text); word-break:break-all;">✔ ${escapeHtml(bulkSlot.fileName)}</div>
-                                <div style="font-size:0.68rem; color:var(--primary); font-weight:600;">${isImg ? 'Compressed & Ready' : 'Ready for upload'}</div>
+            const container = document.getElementById('bulkSequenceContainer');
+            if (bulkBlocks.length === 0) {
+                container.innerHTML = '<div style="text-align:center; color:var(--text-muted); padding:16px; font-size:0.85rem;">No campaign blocks added. Tap + Text, + Image, or + Video above.</div>';
+                renderBulkLiveStream();
+                return;
+            }
+
+            container.innerHTML = bulkBlocks.map((b, idx) => {
+                if (b.type === 'text') {
+                    return `
+                        <div class="welcome-block-item">
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                                <span style="font-size:0.8rem; font-weight:bold; color:var(--primary);">#${idx + 1} • Text Message</span>
+                                ${bulkBlocks.length > 1 ? `<button type="button" class="btn btn-danger" style="width:auto; padding:2px 8px; font-size:0.72rem;" onclick="removeBulkBlock('${b.id}')">✖</button>` : ''}
                             </div>
-                            <div style="display:flex; gap:6px;">
-                                <button type="button" class="btn btn-outline" style="width:auto; padding:4px 8px; font-size:0.72rem;" onclick="document.getElementById('bulkSingleFileInput').click()">Change</button>
-                                <button type="button" class="btn btn-outline" style="width:auto; padding:4px 8px; font-size:0.72rem; color:var(--warning); border-color:var(--warning);" onclick="clearBulkFile()">Clear</button>
+                            <div class="textarea-container" style="margin-bottom:0;">
+                                <textarea class="safe-textarea" style="min-height:70px; margin-bottom:0;" placeholder="${d.msgPlaceholder}" oninput="updateBulkBlockText('${b.id}', this.value)">${escapeHtml(b.content || '')}</textarea>
+                                <button type="button" class="clear-btn" onclick="clearBulkBlockTextInUI('${b.id}')">✖ Clear</button>
                             </div>
                         </div>
                     `;
                 } else {
-                    fileBoxHtml = `
-                        <input type="file" id="bulkSingleFileInput" accept="${acceptAttr}" onchange="handleBulkFileSelect(event)" style="margin-bottom:10px;">
+                    const acceptType = b.type === 'image' ? 'image/*' : 'video/*';
+                    const typeLabel = b.type === 'image' ? '🖼️ Image Block' : '🎥 Video Block (Max 15MB)';
+                    
+                    let fileControlHtml = '';
+                    if (b.fileName) {
+                        fileControlHtml = `
+                            <div class="file-selected-badge">
+                                <div>
+                                    <div style="font-size:0.82rem; font-weight:bold; color:var(--text); word-break:break-all;">✔ ${escapeHtml(b.fileName)}</div>
+                                    <div style="font-size:0.68rem; color:var(--primary); font-weight:600;">${b.type === 'image' ? 'Ready (Auto-Compressed)' : 'Ready for upload'}</div>
+                                </div>
+                                <button type="button" class="btn btn-outline" style="width:auto; padding:4px 8px; font-size:0.72rem;" onclick="document.getElementById('bb_file_${b.id}').click()">Change</button>
+                            </div>
+                            <input type="file" id="bb_file_${b.id}" accept="${acceptType}" onchange="handleBulkBlockFile(event, '${b.id}')" style="display:none;">
+                        `;
+                    } else {
+                        fileControlHtml = `
+                            <input type="file" id="bb_file_${b.id}" accept="${acceptType}" onchange="handleBulkBlockFile(event, '${b.id}')" style="margin-bottom:8px;">
+                        `;
+                    }
+
+                    return `
+                        <div class="welcome-block-item">
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                                <span style="font-size:0.8rem; font-weight:bold; color:var(--primary);">#${idx + 1} • ${typeLabel}</span>
+                                <div style="display:flex; gap:6px;">
+                                    ${b.fileName ? `<button type="button" class="btn btn-outline" style="width:auto; padding:2px 8px; font-size:0.72rem; color:var(--warning); border-color:var(--warning);" onclick="clearBulkBlockFile('${b.id}')">Clear</button>` : ''}
+                                    <button type="button" class="btn btn-danger" style="width:auto; padding:2px 8px; font-size:0.72rem;" onclick="removeBulkBlock('${b.id}')">✖</button>
+                                </div>
+                            </div>
+                            ${fileControlHtml}
+                            <input type="text" placeholder="Custom caption for this media (optional)..." value="${escapeHtml(b.caption || '')}" oninput="updateBulkBlockCaption('${b.id}', this.value)" style="margin-bottom:0;">
+                        </div>
                     `;
                 }
-
-                editor.innerHTML = `
-                    <label>${labelText}</label>
-                    <input type="file" id="bulkSingleFileInput" accept="${acceptAttr}" onchange="handleBulkFileSelect(event)" style="display:none;">
-                    ${fileBoxHtml}
-                    <label>Caption (Optional)</label>
-                    <input type="text" id="txtBulkCaption" placeholder="Enter caption..." value="${escapeHtml(bulkSlot.caption)}" oninput="bulkSlot.caption = this.value; renderBulkLiveStream();" style="margin-bottom:0;">
-                `;
-            }
+            }).join('');
 
             renderBulkLiveStream();
         }
 
         function renderBulkLiveStream() {
             const stream = document.getElementById('bulkLiveStreamPreview');
-            const nowTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-            if (bulkSlot.mode === 'text') {
-                if (!bulkSlot.text.trim()) {
-                    stream.innerHTML = '<div style="text-align:center; color:var(--text-muted); font-size:0.8rem; padding: 12px;">Text preview will appear here...</div>';
-                    return;
+            const valid = bulkBlocks.filter(b => (b.type === 'text' && (b.content || '').trim()) || ((b.type === 'image' || b.type === 'video') && (b.file || b.fileName)));
+            if (valid.length === 0) {
+                stream.innerHTML = '<div style="text-align:center; color:var(--text-muted); font-size:0.8rem; padding: 12px;">Sequence preview will appear here...</div>';
+                return;
+            }
+            stream.innerHTML = valid.map(b => {
+                const nowTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                if (b.type === 'text') {
+                    return `
+                        <div class="wa-chat-bubble">
+                            ${escapeHtml(b.content || '')}
+                            <div class="wa-bubble-meta">${nowTime} <span style="color: #53bdeb; font-weight: bold;">✓✓</span></div>
+                        </div>
+                    `;
+                } else {
+                    const icon = b.type === 'image' ? '🖼️ Photo' : '🎥 Video';
+                    return `
+                        <div class="wa-chat-bubble">
+                            <div style="font-weight: 600; font-size: 0.8rem; margin-bottom: 2px;">${icon}: ${escapeHtml(b.fileName || 'Selected')}</div>
+                            ${b.caption ? `<div style="margin-top: 4px;">${escapeHtml(b.caption)}</div>` : ''}
+                            <div class="wa-bubble-meta">${nowTime} <span style="color: #53bdeb; font-weight: bold;">✓✓</span></div>
+                        </div>
+                    `;
                 }
-                stream.innerHTML = `
-                    <div class="wa-chat-bubble">
-                        ${escapeHtml(bulkSlot.text)}
-                        <div class="wa-bubble-meta">${nowTime} <span style="color: #53bdeb; font-weight: bold;">✓✓</span></div>
-                    </div>
-                `;
-                return;
-            }
-
-            if (!bulkSlot.file && !bulkSlot.fileName) {
-                stream.innerHTML = `<div style="text-align:center; color:var(--text-muted); font-size:0.8rem; padding: 12px;">Select ${bulkSlot.mode === 'image' ? '1 image' : '1 video'} to preview...</div>`;
-                return;
-            }
-
-            const icon = bulkSlot.mode === 'image' ? '🖼️ Image' : '🎥 Video';
-            stream.innerHTML = `
-                <div class="wa-chat-bubble">
-                    <div style="font-weight: 600; font-size: 0.8rem;">${icon}: ${escapeHtml(bulkSlot.fileName)}</div>
-                    ${bulkSlot.caption ? `<div style="margin-top: 4px;">${escapeHtml(bulkSlot.caption)}</div>` : ''}
-                    <div class="wa-bubble-meta">${nowTime} <span style="color: #53bdeb; font-weight: bold;">✓✓</span></div>
-                </div>
-            `;
+            }).join('');
         }
 
-        // ============================================================================
-        // SCHEDULE PRESETS & 72-HOUR (3-DAY) WINDOW GUARD
-        // ============================================================================
+        // --- Scheduler Presets ---
         function toLocalDateTimeInputString(dateObj) {
-            const pad = (n) => String(n).padStart(2, '0');
+            const pad = n => String(n).padStart(2, '0');
             return `${dateObj.getFullYear()}-${pad(dateObj.getMonth() + 1)}-${pad(dateObj.getDate())}T${pad(dateObj.getHours())}:${pad(dateObj.getMinutes())}`;
         }
 
         function updateScheduleMinMaxGuards() {
             const input = document.getElementById('campScheduleTime');
-            const now = new Date(Date.now() + 2 * 60 * 1000);
-            const maxDate = new Date(Date.now() + MAX_SCHEDULE_WINDOW_MS);
+            const now = new Date(Date.now() + 5 * 60 * 1000);
+            const maxDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
             input.min = toLocalDateTimeInputString(now);
             input.max = toLocalDateTimeInputString(maxDate);
         }
@@ -1559,7 +1650,7 @@
         }
 
         function applySchedulePreset(presetType, btnEl) {
-            document.querySelectorAll('.preset-chip').forEach((c) => c.classList.remove('active'));
+            document.querySelectorAll('.preset-chip').forEach(c => c.classList.remove('active'));
             if (btnEl) btnEl.classList.add('active');
 
             updateScheduleMinMaxGuards();
@@ -1568,18 +1659,13 @@
             else if (presetType === 'tom9') { target.setDate(target.getDate() + 1); target.setHours(9, 0, 0, 0); }
             else if (presetType === 'tom18') { target.setDate(target.getDate() + 1); target.setHours(18, 0, 0, 0); }
 
-            const maxAllowedEpoch = Date.now() + MAX_SCHEDULE_WINDOW_MS - 60000;
-            if (target.getTime() > maxAllowedEpoch) {
-                target.setTime(maxAllowedEpoch);
-            }
-
             const input = document.getElementById('campScheduleTime');
             input.value = toLocalDateTimeInputString(target);
             updateScheduleReadableLabel();
         }
 
         function clearPresetHighlight() {
-            document.querySelectorAll('.preset-chip').forEach((c) => c.classList.remove('active'));
+            document.querySelectorAll('.preset-chip').forEach(c => c.classList.remove('active'));
             updateScheduleReadableLabel();
         }
 
@@ -1592,132 +1678,203 @@
             if (input) input.value = '';
             const lbl = document.getElementById('lblScheduleFormattedPreview');
             if (lbl) lbl.innerText = '';
-            document.querySelectorAll('.preset-chip').forEach((c) => c.classList.remove('active'));
+            document.querySelectorAll('.preset-chip').forEach(c => c.classList.remove('active'));
         }
 
-        // ============================================================================
-        // AUTO WELCOME COMPOSER (Text Only OR 1 Compressed Image + Caption)
-        // ============================================================================
-        function selectWelcomeMode(type) {
-            if (type !== 'text' && type !== 'image') return;
-            welcomeSlot.type = type;
-            if (type === 'text') {
-                welcomeSlot.file = null;
-                welcomeSlot.fileName = '';
-                welcomeSlot.existingFilePath = '';
-                welcomeSlot.caption = '';
-            } else {
-                welcomeSlot.content = '';
+        // --- Auto Welcome Setup ---
+        function addWelcomeBlock(type) {
+            const textCount = welcomeBlocks.filter(b => b.type === 'text').length;
+            const imgCount = welcomeBlocks.filter(b => b.type === 'image').length;
+            const vidCount = welcomeBlocks.filter(b => b.type === 'video').length;
+
+            if (type === 'text' && textCount >= 4) return showCustomDialog({ title: 'Limit Exceeded', message: 'Maximum 4 Text messages allowed in Welcome Sequence.', type: 'warning' });
+            if (type === 'image' && imgCount >= 4) return showCustomDialog({ title: 'Limit Exceeded', message: 'Maximum 4 Images allowed in Welcome Sequence.', type: 'warning' });
+            if (type === 'video' && vidCount >= 2) return showCustomDialog({ title: 'Limit Exceeded', message: 'Maximum 2 Videos allowed in Welcome Sequence.', type: 'warning' });
+
+            welcomeBlocks.push({
+                id: 'wb_' + Date.now() + '_' + Math.floor(Math.random() * 1000),
+                type,
+                content: '',
+                file: null,
+                fileName: '',
+                existingFilePath: '',
+                mimetype: '',
+                caption: ''
+            });
+            renderWelcomeSequence();
+        }
+
+        function removeWelcomeBlock(id) {
+            welcomeBlocks = welcomeBlocks.filter(b => b.id !== id);
+            renderWelcomeSequence();
+        }
+
+        function clearWelcomeBlockFile(id) {
+            const b = welcomeBlocks.find(x => x.id === id);
+            if (b) {
+                b.file = null;
+                b.fileName = '';
+                b.existingFilePath = '';
+                const fileInput = document.getElementById(`wb_file_${id}`);
+                if (fileInput) fileInput.value = '';
+                renderWelcomeSequence();
             }
-            renderWelcomeComposer();
         }
 
-        function clearWelcomeFile() {
-            welcomeSlot.file = null;
-            welcomeSlot.fileName = '';
-            welcomeSlot.existingFilePath = '';
-            const inp = document.getElementById('welcomeSingleFileInput');
-            if (inp) inp.value = '';
-            renderWelcomeComposer();
-        }
-
-        function handleWelcomeFileSelect(e) {
+        function handleWelcomeBlockFile(e, id) {
             const rawFile = e.target.files[0];
-            if (!rawFile) return;
+            const b = welcomeBlocks.find(x => x.id === id);
+            if (!b || !rawFile) return;
 
-            if (!rawFile.type.startsWith('image/')) {
-                showCustomDialog({ title: 'Image Only', message: 'Welcome Bot supports Text Only or 1 compressed Image + Caption (no video).', type: 'warning' });
+            if (rawFile.type.startsWith('video/') && rawFile.size > 15 * 1024 * 1024) {
+                showCustomDialog({ title: 'File Too Large', message: 'Video size exceeds 15MB limit! Please select a compressed video under 15MB.', type: 'danger' });
                 e.target.value = '';
                 return;
             }
 
-            showBlockingWait('Compressing Welcome Image...', 'Compressing image before saving welcome rule. Please wait...');
-            compressImageBeforeUpload(rawFile, (compressedFile) => {
-                hideBlockingWait();
-                welcomeSlot.file = compressedFile;
-                welcomeSlot.fileName = compressedFile.name;
-                welcomeSlot.mimetype = compressedFile.type;
-                welcomeSlot.existingFilePath = '';
-                renderWelcomeComposer();
-            });
+            if (rawFile.type.startsWith('image/')) {
+                compressImageBeforeUpload(rawFile, (compressedFile) => {
+                    b.file = compressedFile;
+                    b.fileName = compressedFile.name;
+                    b.mimetype = compressedFile.type;
+                    renderWelcomeSequence();
+                });
+            } else {
+                b.file = rawFile;
+                b.fileName = rawFile.name;
+                b.mimetype = rawFile.type;
+                renderWelcomeSequence();
+            }
         }
 
-        function renderWelcomeComposer() {
-            document.getElementById('chipWelcomeText').classList.toggle('active', welcomeSlot.type === 'text');
-            document.getElementById('chipWelcomeImage').classList.toggle('active', welcomeSlot.type === 'image');
+        function updateWelcomeBlockText(id, val) {
+            const b = welcomeBlocks.find(x => x.id === id);
+            if (b) {
+                b.content = val;
+                renderWelcomeLiveStream();
+            }
+        }
 
-            const editor = document.getElementById('welcomeSlotEditor');
-            if (welcomeSlot.type === 'text') {
-                editor.innerHTML = `
-                    <label>Welcome Text Message</label>
-                    <div class="textarea-container" style="margin-bottom:0;">
-                        <textarea class="safe-textarea" id="txtWelcomeContent" placeholder="Enter welcome message for new inbound chats..." oninput="welcomeSlot.content = this.value; renderWelcomeLiveStream();">${escapeHtml(welcomeSlot.content)}</textarea>
-                        <button type="button" class="clear-btn" onclick="welcomeSlot.content=''; renderWelcomeComposer();">✖ Clear</button>
-                    </div>
-                `;
-            } else {
-                let badgeHtml = '';
-                if (welcomeSlot.fileName || welcomeSlot.existingFilePath) {
-                    const dispName = welcomeSlot.fileName || (welcomeSlot.existingFilePath || '').split(/[\\/]/).pop() || 'Saved Image';
-                    badgeHtml = `
-                        <div class="file-selected-badge">
-                            <div>
-                                <div style="font-size:0.82rem; font-weight:bold; color:var(--text); word-break:break-all;">✔ ${escapeHtml(dispName)}</div>
-                                <div style="font-size:0.68rem; color:var(--primary); font-weight:600;">Compressed Image Ready</div>
+        function updateWelcomeBlockCaption(id, val) {
+            const b = welcomeBlocks.find(x => x.id === id);
+            if (b) {
+                b.caption = val;
+                renderWelcomeLiveStream();
+            }
+        }
+
+        function renderWelcomeSequence() {
+            const lang = localStorage.getItem('app_lang') || 'en';
+            const d = i18n[lang] || i18n.en;
+
+            const textCount = welcomeBlocks.filter(b => b.type === 'text').length;
+            const imgCount = welcomeBlocks.filter(b => b.type === 'image').length;
+            const vidCount = welcomeBlocks.filter(b => b.type === 'video').length;
+
+            const btnTxt = document.getElementById('btnAddWelcomeText');
+            const btnImg = document.getElementById('btnAddWelcomeImage');
+            const btnVid = document.getElementById('btnAddWelcomeVideo');
+            if (btnTxt) btnTxt.innerText = `${d.addTextBtn} (${textCount}/4)`;
+            if (btnImg) btnImg.innerText = `${d.addImageBtn} (${imgCount}/4)`;
+            if (btnVid) btnVid.innerText = `${d.addVideoBtn} (${vidCount}/2)`;
+
+            const container = document.getElementById('welcomeSequenceContainer');
+            if (welcomeBlocks.length === 0) {
+                container.innerHTML = '';
+                renderWelcomeLiveStream();
+                return;
+            }
+
+            container.innerHTML = welcomeBlocks.map((b, idx) => {
+                if (b.type === 'text') {
+                    return `
+                        <div class="welcome-block-item">
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                                <span style="font-size:0.8rem; font-weight:bold; color:var(--primary);">#${idx + 1} • Text</span>
+                                <button type="button" class="btn btn-danger" style="width:auto; padding:2px 8px; font-size:0.72rem;" onclick="removeWelcomeBlock('${b.id}')">✖</button>
                             </div>
-                            <div style="display:flex; gap:6px;">
-                                <button type="button" class="btn btn-outline" style="width:auto; padding:4px 8px; font-size:0.72rem;" onclick="document.getElementById('welcomeSingleFileInput').click()">Change</button>
-                                <button type="button" class="btn btn-outline" style="width:auto; padding:4px 8px; font-size:0.72rem; color:var(--warning); border-color:var(--warning);" onclick="clearWelcomeFile()">Clear</button>
+                            <div class="textarea-container" style="margin-bottom:0;">
+                                <textarea class="safe-textarea" style="min-height:65px; margin-bottom:0;" placeholder="Enter welcome text..." oninput="updateWelcomeBlockText('${b.id}', this.value)">${escapeHtml(b.content || '')}</textarea>
+                                <button type="button" class="clear-btn" onclick="clearWelcomeBlockTextInUI('${b.id}')">✖ Clear</button>
                             </div>
                         </div>
                     `;
                 } else {
-                    badgeHtml = `<input type="file" id="welcomeSingleFileInput" accept="image/*" onchange="handleWelcomeFileSelect(event)" style="margin-bottom:10px;">`;
-                }
+                    const acceptType = b.type === 'image' ? 'image/*' : 'video/*';
+                    const typeLabel = b.type === 'image' ? '🖼️ Image' : '🎥 Video (Max 15MB)';
+                    
+                    let fileControlHtml = '';
+                    if (b.fileName) {
+                        fileControlHtml = `
+                            <div class="file-selected-badge">
+                                <div>
+                                    <div style="font-size:0.82rem; font-weight:bold; color:var(--text); word-break:break-all;">✔ ${escapeHtml(b.fileName)}</div>
+                                    <div style="font-size:0.68rem; color:var(--primary); font-weight:600;">${b.type === 'image' ? 'Ready (Auto-Compressed)' : 'Ready for upload'}</div>
+                                </div>
+                                <button type="button" class="btn btn-outline" style="width:auto; padding:4px 8px; font-size:0.72rem;" onclick="document.getElementById('wb_file_${b.id}').click()">Change</button>
+                            </div>
+                            <input type="file" id="wb_file_${b.id}" accept="${acceptType}" onchange="handleWelcomeBlockFile(event, '${b.id}')" style="display:none;">
+                        `;
+                    } else {
+                        fileControlHtml = `
+                            <input type="file" id="wb_file_${b.id}" accept="${acceptType}" onchange="handleWelcomeBlockFile(event, '${b.id}')" style="margin-bottom:8px;">
+                        `;
+                    }
 
-                editor.innerHTML = `
-                    <label>1 Compressed Welcome Image</label>
-                    <input type="file" id="welcomeSingleFileInput" accept="image/*" onchange="handleWelcomeFileSelect(event)" style="display:none;">
-                    ${badgeHtml}
-                    <label>Image Caption (Optional)</label>
-                    <input type="text" id="txtWelcomeCaption" placeholder="Enter caption..." value="${escapeHtml(welcomeSlot.caption)}" oninput="welcomeSlot.caption = this.value; renderWelcomeLiveStream();" style="margin-bottom:0;">
-                `;
-            }
+                    return `
+                        <div class="welcome-block-item">
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                                <span style="font-size:0.8rem; font-weight:bold; color:var(--primary);">#${idx + 1} • ${typeLabel}</span>
+                                <div style="display:flex; gap:6px;">
+                                    ${b.fileName ? `<button type="button" class="btn btn-outline" style="width:auto; padding:2px 8px; font-size:0.72rem; color:var(--warning); border-color:var(--warning);" onclick="clearWelcomeBlockFile('${b.id}')">Clear</button>` : ''}
+                                    <button type="button" class="btn btn-danger" style="width:auto; padding:2px 8px; font-size:0.72rem;" onclick="removeWelcomeBlock('${b.id}')">✖</button>
+                                </div>
+                            </div>
+                            ${fileControlHtml}
+                            <input type="text" placeholder="Custom caption (optional)..." value="${escapeHtml(b.caption || '')}" oninput="updateWelcomeBlockCaption('${b.id}', this.value)" style="margin-bottom:0;">
+                        </div>
+                    `;
+                }
+            }).join('');
 
             renderWelcomeLiveStream();
         }
 
         function renderWelcomeLiveStream() {
             const stream = document.getElementById('welcomeLiveStreamPreview');
-            const nowTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-            if (welcomeSlot.type === 'text') {
-                if (!welcomeSlot.content.trim()) {
-                    stream.innerHTML = '<div style="text-align:center; color:var(--text-muted); font-size:0.8rem; padding: 12px;">Welcome text preview will appear here...</div>';
-                    return;
+            const valid = welcomeBlocks.filter(b => (b.type === 'text' && (b.content || '').trim()) || ((b.type === 'image' || b.type === 'video') && (b.file || b.existingFilePath || b.fileName)));
+            if (valid.length === 0) {
+                stream.innerHTML = '<div style="text-align:center; color:var(--text-muted); font-size:0.8rem; padding: 12px;">Welcome preview will appear here...</div>';
+                return;
+            }
+            stream.innerHTML = valid.map(b => {
+                const nowTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                if (b.type === 'text') {
+                    return `
+                        <div class="wa-chat-bubble">
+                            ${escapeHtml(b.content || '')}
+                            <div class="wa-bubble-meta">${nowTime} <span style="color: #53bdeb; font-weight: bold;">✓✓</span></div>
+                        </div>
+                    `;
+                } else {
+                    const icon = b.type === 'image' ? '🖼️ Photo' : '🎥 Video';
+                    return `
+                        <div class="wa-chat-bubble">
+                            <div style="font-weight: 600; font-size: 0.8rem; margin-bottom: 2px;">${icon}: ${escapeHtml(b.fileName || 'Media')}</div>
+                            ${b.caption ? `<div style="margin-top: 4px;">${escapeHtml(b.caption)}</div>` : ''}
+                            <div class="wa-bubble-meta">${nowTime} <span style="color: #53bdeb; font-weight: bold;">✓✓</span></div>
+                        </div>
+                    `;
                 }
-                stream.innerHTML = `
-                    <div class="wa-chat-bubble">
-                        ${escapeHtml(welcomeSlot.content)}
-                        <div class="wa-bubble-meta">${nowTime} <span style="color: #53bdeb; font-weight: bold;">✓✓</span></div>
-                    </div>
-                `;
-                return;
-            }
+            }).join('');
+        }
 
-            if (!welcomeSlot.file && !welcomeSlot.fileName && !welcomeSlot.existingFilePath) {
-                stream.innerHTML = '<div style="text-align:center; color:var(--text-muted); font-size:0.8rem; padding: 12px;">Select 1 compressed image to preview...</div>';
-                return;
+        function clearWelcomeBlockTextInUI(id) {
+            const b = welcomeBlocks.find(x => x.id === id);
+            if (b) {
+                b.content = '';
+                renderWelcomeSequence();
             }
-
-            const dispName = welcomeSlot.fileName || (welcomeSlot.existingFilePath || '').split(/[\\/]/).pop() || 'Welcome Image';
-            stream.innerHTML = `
-                <div class="wa-chat-bubble">
-                    <div style="font-weight: 600; font-size: 0.8rem;">🖼️ Image: ${escapeHtml(dispName)}</div>
-                    ${welcomeSlot.caption ? `<div style="margin-top: 4px;">${escapeHtml(welcomeSlot.caption)}</div>` : ''}
-                    <div class="wa-bubble-meta">${nowTime} <span style="color: #53bdeb; font-weight: bold;">✓✓</span></div>
-                </div>
-            `;
         }
 
         async function loadWelcomeRulesFromServer() {
@@ -1729,93 +1886,77 @@
                 const d = await res.json();
                 if (d.success && d.config) {
                     document.getElementById('chkEnableWelcome').checked = !!d.config.enabled;
-                    const firstSeq = Array.isArray(d.config.sequence) && d.config.sequence.length > 0 ? d.config.sequence[0] : null;
-                    const resolvedType = (d.config.type === 'image' || firstSeq?.type === 'image' || firstSeq?.type === 'media') ? 'image' : 'text';
-                    welcomeSlot.type = resolvedType;
-                    welcomeSlot.content = d.config.content || firstSeq?.content || '';
-                    welcomeSlot.caption = d.config.caption || firstSeq?.caption || '';
-                    welcomeSlot.existingFilePath = d.config.filePath || firstSeq?.filePath || '';
-                    welcomeSlot.fileName = d.config.fileName || firstSeq?.fileName || (welcomeSlot.existingFilePath ? welcomeSlot.existingFilePath.split(/[\\/]/).pop() : '');
-                    welcomeSlot.mimetype = d.config.mimetype || firstSeq?.mimetype || '';
-                    welcomeSlot.file = null;
+                    if (Array.isArray(d.config.sequence) && d.config.sequence.length > 0) {
+                        welcomeBlocks = d.config.sequence.map((s, idx) => ({
+                            id: s.id || ('wb_restored_' + idx),
+                            type: s.type === 'media' ? ((s.mimetype || '').startsWith('video/') ? 'video' : 'image') : s.type,
+                            content: s.content || '',
+                            file: null,
+                            fileName: s.fileName || (s.filePath ? s.filePath.split(/[\\/]/).pop() : ''),
+                            existingFilePath: s.filePath || '',
+                            mimetype: s.mimetype || '',
+                            caption: s.caption || ''
+                        }));
+                    }
                 }
             } catch (e) {}
-            renderWelcomeComposer();
+            renderWelcomeSequence();
         }
 
         async function saveWelcomeRules() {
             if (isSubscriptionExpiredGlobal) {
-                return showCustomDialog({ title: 'Access Denied', message: 'Your subscription has expired. Please contact admin to recharge before saving welcome config.', type: 'danger' });
+                return showCustomDialog({ title: 'Access Denied', message: 'Your subscription has expired. Please contact admin to recharge before saving welcome sequence.', type: 'danger' });
             }
-            if (SESSION_ID === 'unpaired_user') {
-                return showCustomDialog({ title: 'Not Connected', message: 'Please pair WhatsApp first before saving rules.', type: 'warning' });
-            }
-
+            if (SESSION_ID === 'unpaired_user') return showCustomDialog({ title: 'Not Connected', message: 'Please pair WhatsApp first before saving rules.', type: 'warning' });
             const enabled = document.getElementById('chkEnableWelcome').checked;
-            if (enabled) {
-                if (welcomeSlot.type === 'text' && !welcomeSlot.content.trim()) {
-                    return showCustomDialog({ title: 'Empty Text', message: 'Please enter welcome text before saving.', type: 'warning' });
-                }
-                if (welcomeSlot.type === 'image' && !welcomeSlot.file && !welcomeSlot.existingFilePath) {
-                    return showCustomDialog({ title: 'Missing Image', message: 'Please select 1 compressed image for Welcome Bot.', type: 'warning' });
-                }
-            }
 
-            showBlockingWait('Welcome Message Being Ready...', 'Syncing welcome rule with server. Please do not close the app or turn off internet yet.');
+            const validBlocks = welcomeBlocks.filter(b => {
+                if (b.type === 'text') return (b.content || '').trim().length > 0;
+                if (b.type === 'image' || b.type === 'video') return (b.file !== null) || ((b.existingFilePath || '').trim().length > 0);
+                return false;
+            });
+
+            if (enabled && validBlocks.length === 0) return showCustomDialog({ title: 'Empty Content', message: 'Please add welcome text or media before saving.', type: 'warning' });
+
+            const fd = new FormData();
+            fd.append('sessionId', SESSION_ID);
+            fd.append('enabled', enabled);
+
+            const blocksMeta = validBlocks.map(b => ({
+                id: b.id,
+                type: b.type,
+                content: (b.content || '').trim(),
+                caption: (b.caption || '').trim(),
+                existingFilePath: b.existingFilePath || '',
+                fileName: b.fileName || '',
+                mimetype: b.mimetype || ''
+            }));
+
+            fd.append('blocksMeta', JSON.stringify(blocksMeta));
+
+            validBlocks.forEach(b => {
+                if (b.file) fd.append(`file_${b.id}`, b.file);
+            });
 
             try {
-                const fd = new FormData();
-                fd.append('sessionId', SESSION_ID);
-                fd.append('enabled', enabled);
-                fd.append('type', welcomeSlot.type);
-                fd.append('text', welcomeSlot.type === 'text' ? welcomeSlot.content.trim() : '');
-                fd.append('caption', welcomeSlot.type === 'image' ? welcomeSlot.caption.trim() : '');
-
-                const blocksMeta = [{
-                    id: 'w1',
-                    type: welcomeSlot.type,
-                    content: welcomeSlot.type === 'text' ? welcomeSlot.content.trim() : '',
-                    caption: welcomeSlot.type === 'image' ? welcomeSlot.caption.trim() : '',
-                    existingFilePath: welcomeSlot.type === 'image' ? (welcomeSlot.existingFilePath || '') : '',
-                    fileName: welcomeSlot.type === 'image' ? (welcomeSlot.fileName || '') : '',
-                    mimetype: welcomeSlot.type === 'image' ? (welcomeSlot.mimetype || 'image/jpeg') : ''
-                }];
-                fd.append('blocksMeta', JSON.stringify(blocksMeta));
-
-                if (welcomeSlot.type === 'image' && welcomeSlot.file) {
-                    fd.append('file_w1', welcomeSlot.file);
-                }
-
                 const res = await fetch(`${FIXED_BACKEND_URL}/api/welcome/setup`, {
                     method: 'POST',
                     headers: { 'Authorization': `Bearer ${API_BEARER_TOKEN}`, 'ngrok-skip-browser-warning': 'true' },
                     body: fd
                 });
                 const d = await res.json();
-                hideBlockingWait();
-
                 if (d.success) {
                     await loadWelcomeRulesFromServer();
-                    await showCustomDialog({
-                        title: 'Welcome Ready!',
-                        message: enabled
-                            ? 'Welcome message is now active on server. You can close the app or turn off internet anytime.'
-                            : 'Welcome message turned OFF and media cleaned.',
-                        type: 'info',
-                        confirmText: 'OK'
+                    showCustomDialog({
+                        title: 'Success',
+                        message: enabled ? 'Welcome message enabled and saved!' : 'Welcome message turned OFF.',
+                        type: 'info'
                     });
-                } else {
-                    showCustomDialog({ title: 'Error', message: d.error || 'Failed to save welcome config.', type: 'danger' });
-                }
-            } catch (e) {
-                hideBlockingWait();
-                showCustomDialog({ title: 'Connection Error', message: e.message, type: 'danger' });
-            }
+                } else showCustomDialog({ title: 'Error', message: d.error || 'Failed to save', type: 'danger' });
+            } catch(e) { showCustomDialog({ title: 'Connection Error', message: e.message, type: 'danger' }); }
         }
 
-        // ============================================================================
-        // ACCOUNT STATUS, QUOTA SYNC & LIFECYCLE
-        // ============================================================================
+        // --- Core Status, WhatsApp Handshake & Soft-Lock Subscription Lifecycle ---
         async function syncWhatsAppAccountStatus() {
             let targetPhone = localStorage.getItem('connected_phone_permanent');
             if (!targetPhone || targetPhone === 'unpaired_user') {
@@ -1823,11 +1964,15 @@
                 if (inputVal) targetPhone = normalizeNumber(inputVal);
             }
             if (!targetPhone || targetPhone === 'unpaired_user') {
+                loadCachedRemainingQuota('unpaired_user');
+                renderQuotaIndicators();
                 document.getElementById('statusConnectedBox').style.display = 'none';
                 document.getElementById('statusPairingBox').style.display = 'block';
-                updateQuotaUI();
                 return;
             }
+
+            loadCachedRemainingQuota(targetPhone);
+            renderQuotaIndicators();
 
             try {
                 const res = await fetch(`${FIXED_BACKEND_URL}/api/status/${targetPhone}`, {
@@ -1835,14 +1980,10 @@
                 });
                 const d = await res.json();
 
-                if (typeof d.remainingQuota === 'number') {
-                    remainingDailyQuota = Math.max(0, d.remainingQuota);
+                if (d && d.quota) {
+                    persistRemainingQuotaCache(d.quota, d.phone || targetPhone);
                 }
-                if (typeof d.deliveredTodayCount === 'number') {
-                    deliveredTodayCount = Math.max(0, d.deliveredTodayCount);
-                }
-                updateQuotaUI();
-
+                
                 const lang = localStorage.getItem('app_lang') || 'en';
                 const langDict = i18n[lang] || i18n.en;
 
@@ -1856,7 +1997,7 @@
                 if (isSubscriptionExpiredGlobal) {
                     banner.classList.add('expired-alert');
                     banner.style.display = 'flex';
-                    noticeTxt.innerText = '⚠️ ' + langDict.subExpiredMsg;
+                    noticeTxt.innerText = "⚠️ " + langDict.subExpiredMsg;
                     document.getElementById('btnDismissNotice').style.display = 'none';
                 } else if (daysLeft <= 3 && daysLeft > 0) {
                     const todayStr = new Date().toISOString().split('T')[0];
@@ -1878,7 +2019,7 @@
                     if (d.globalNotice && d.globalNotice.trim() !== '' && !isDismissedThisSession) {
                         banner.classList.remove('expired-alert');
                         banner.style.display = 'flex';
-                        noticeTxt.innerText = '📢 ' + d.globalNotice;
+                        noticeTxt.innerText = "📢 " + d.globalNotice;
                         document.getElementById('btnDismissNotice').style.display = 'block';
                     } else {
                         banner.style.display = 'none';
@@ -1887,7 +2028,7 @@
                     if (d.globalNotice && d.globalNotice.trim() !== '' && !isDismissedThisSession) {
                         banner.classList.remove('expired-alert');
                         banner.style.display = 'flex';
-                        noticeTxt.innerText = '📢 ' + d.globalNotice;
+                        noticeTxt.innerText = "📢 " + d.globalNotice;
                         document.getElementById('btnDismissNotice').style.display = 'block';
                     } else {
                         banner.style.display = 'none';
@@ -1897,11 +2038,11 @@
                 document.getElementById('lblSubPlan').innerText = d.plan || 'Monthly';
                 const subDaysEl = document.getElementById('lblSubDays');
                 if (isSubscriptionExpiredGlobal) {
-                    subDaysEl.innerText = 'Expired';
-                    subDaysEl.style.color = 'var(--danger)';
+                    subDaysEl.innerText = "Expired";
+                    subDaysEl.style.color = "var(--danger)";
                 } else {
                     subDaysEl.innerText = `${daysLeft} ${langDict.daysLeftNotice}`;
-                    subDaysEl.style.color = daysLeft <= 3 ? 'var(--warning)' : 'var(--primary)';
+                    subDaysEl.style.color = daysLeft <= 3 ? "var(--warning)" : "var(--primary)";
                 }
 
                 if (d.status === 'CONNECTED' && d.phone) {
@@ -1918,9 +2059,9 @@
                     document.getElementById('statusConnectedBox').style.display = 'block';
                     document.getElementById('statusPairingBox').style.display = 'none';
                     document.getElementById('lblConnectedPhone').innerText = `+${d.phone}`;
-                    document.getElementById('badgeServerStatus').innerText = '● CONNECTED';
-                    document.getElementById('badgeServerStatus').style.color = 'var(--primary)';
-                    document.getElementById('txtServerOfflineNotice').style.display = 'none';
+                    document.getElementById('badgeServerStatus').innerText = "● CONNECTED";
+                    document.getElementById('badgeServerStatus').style.color = "var(--primary)";
+                    document.getElementById('txtServerOfflineNotice').style.display = "none";
 
                     await restoreGroupsFromServer(true);
                     await hydrateCampaignStateFromServer();
@@ -1929,15 +2070,15 @@
                     document.getElementById('statusConnectedBox').style.display = 'none';
                     document.getElementById('statusPairingBox').style.display = 'block';
                 }
-            } catch (e) {
+            } catch(e) {
                 const savedPhone = localStorage.getItem('connected_phone_permanent');
                 if (savedPhone) {
                     document.getElementById('statusConnectedBox').style.display = 'block';
                     document.getElementById('statusPairingBox').style.display = 'none';
                     document.getElementById('lblConnectedPhone').innerText = `+${savedPhone}`;
-                    document.getElementById('badgeServerStatus').innerText = '● SERVER OFFLINE';
-                    document.getElementById('badgeServerStatus').style.color = 'var(--warning)';
-                    document.getElementById('txtServerOfflineNotice').style.display = 'block';
+                    document.getElementById('badgeServerStatus').innerText = "● SERVER OFFLINE";
+                    document.getElementById('badgeServerStatus').style.color = "var(--warning)";
+                    document.getElementById('txtServerOfflineNotice').style.display = "block";
                 }
             }
         }
@@ -1950,7 +2091,7 @@
                     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${API_BEARER_TOKEN}`, 'ngrok-skip-browser-warning': 'true' },
                     body: JSON.stringify({ sessionId: SESSION_ID, groups, allowEmptyOverwrite })
                 });
-            } catch (e) {}
+            } catch(e) {}
         }
 
         async function restoreGroupsFromServer(forcePull = false) {
@@ -1969,7 +2110,7 @@
                         return true;
                     }
                 }
-            } catch (e) {}
+            } catch(e) {}
             return false;
         }
 
@@ -1981,19 +2122,17 @@
                 });
                 const d = await res.json();
 
-                if (d.quota) {
-                    if (typeof d.quota.remainingQuota === 'number') remainingDailyQuota = Math.max(0, d.quota.remainingQuota);
-                    if (typeof d.quota.deliveredTodayCount === 'number') deliveredTodayCount = Math.max(0, d.quota.deliveredTodayCount);
-                    updateQuotaUI();
+                if (d && d.quota) {
+                    persistRemainingQuotaCache(d.quota, SESSION_ID);
                 }
 
-                if (Array.isArray(d.history)) {
-                    globalCampaigns = d.history.filter((c) => !c.isWelcome);
+                if (Array.isArray(d.history) && d.history.length > 0) {
+                    globalCampaigns = d.history;
                     localStorage.setItem('app_campaigns', JSON.stringify(globalCampaigns));
                 }
 
                 const panel = document.getElementById('campaignCtrlPanel');
-                if (d.hasState && d.queue && !d.queue.isWelcome && d.queue.state !== 'STOPPED') {
+                if (d.hasState && d.queue && d.queue.state !== 'STOPPED') {
                     const q = d.queue;
                     currentActiveCampaignId = q.campaignId;
                     panel.style.display = 'block';
@@ -2015,7 +2154,7 @@
                     panel.style.display = 'none';
                 }
                 renderDashboard();
-            } catch (e) {}
+            } catch(e) {}
         }
 
         async function requestPairCode() {
@@ -2054,6 +2193,9 @@
                             }
                             localStorage.setItem('connected_phone_permanent', cleanPhone);
                             localStorage.setItem('tenant_session_id', cleanPhone);
+                            if (sd.quota) {
+                                persistRemainingQuotaCache(sd.quota, cleanPhone);
+                            }
                             await syncWhatsAppAccountStatus();
                             showCustomDialog({
                                 title: 'Connected!',
@@ -2063,14 +2205,14 @@
                         }
                     }, 2500);
                 } else disp.innerText = d.error || 'Pairing error';
-            } catch (e) { disp.innerText = 'Connection Error: Server Offline'; }
+            } catch(e) { disp.innerText = 'Connection Error: Server Offline'; }
             finally { btnPair.disabled = false; }
         }
 
         async function unlinkAccount() {
             const lang = localStorage.getItem('app_lang') || 'en';
             const msg = (i18n[lang] || i18n.en).warnUnlink;
-
+            
             const confirmed = await showCustomDialog({
                 title: 'Unlink Account?',
                 message: msg,
@@ -2086,7 +2228,7 @@
                     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${API_BEARER_TOKEN}`, 'ngrok-skip-browser-warning': 'true' },
                     body: JSON.stringify({ sessionId: SESSION_ID })
                 });
-            } catch (e) {}
+            } catch(e) {}
             localStorage.clear();
             sessionStorage.clear();
             await showCustomDialog({
@@ -2128,47 +2270,46 @@
             });
             if (!confirmed) return;
 
-            groups = groups.filter((g) => !selectedGroupsForDelete.has(g.id));
+            groups = groups.filter(g => !selectedGroupsForDelete.has(g.id));
             localStorage.setItem('app_groups', JSON.stringify(groups));
             syncGroupsToServer(true);
             toggleGroupSelectMode();
         }
 
-        // ============================================================================
-        // CAMPAIGN & SCHEDULE DISPATCH WITH BLOCKING WAIT + OK CLOSE CONFIRMATION
-        // ============================================================================
-        function openMultiGroupDispatchModal() {
+        async function openMultiGroupDispatchModal() {
             if (isSubscriptionExpiredGlobal) {
                 return showCustomDialog({ title: 'Access Denied', message: 'Your subscription has expired. Please contact admin to recharge before launching campaigns.', type: 'danger' });
             }
-            if (remainingDailyQuota <= 0) {
-                return showCustomDialog({ title: 'Daily Quota Reached', message: 'You have reached the 300/day campaign & schedule delivery limit. It resets at 12:00 AM.', type: 'warning' });
+            await syncRemainingQuotaFromServer();
+            if (remainingDailyQuotaGlobal <= 0) {
+                return showCustomDialog({
+                    title: 'Daily Limit Reached',
+                    message: '300 messages/day outbound limit reached across campaign & schedule. Quota resets at 12:00 AM.',
+                    type: 'warning'
+                });
             }
-
-            if (bulkSlot.mode === 'text' && !bulkSlot.text.trim()) {
-                return showCustomDialog({ title: 'Content Missing', message: 'Please enter a message for your campaign.', type: 'warning' });
-            }
-            if ((bulkSlot.mode === 'image' || bulkSlot.mode === 'video') && !bulkSlot.file) {
-                return showCustomDialog({ title: 'Media Missing', message: `Please select ${bulkSlot.mode === 'image' ? '1 image' : '1 video'} for your campaign.`, type: 'warning' });
-            }
-            if (groups.length === 0) {
-                return showCustomDialog({ title: 'No Groups', message: 'No customer groups available.', type: 'warning' });
-            }
+            const hasValidBlocks = bulkBlocks.some(b => {
+                if (b.type === 'text') return (b.content || '').trim().length > 0;
+                return b.file !== null;
+            });
+            if (!hasValidBlocks) return showCustomDialog({ title: 'Content Missing', message: 'Please enter text or select an image/video for your campaign.', type: 'warning' });
+            if (groups.length === 0) return showCustomDialog({ title: 'No Groups', message: 'No customer groups available.', type: 'warning' });
 
             selectedTargetGroupIds.clear();
             renderTargetGroupCards();
+            renderQuotaIndicators();
             openModal('multiGroupDispatchModal');
         }
 
         function renderTargetGroupCards() {
             const container = document.getElementById('targetGroupsCardsContainer');
-            container.innerHTML = groups.map((g) => {
+            container.innerHTML = groups.map(g => {
                 const isSelected = selectedTargetGroupIds.has(g.id);
                 return `
                     <div class="group-select-card ${isSelected ? 'selected' : ''}" onclick="toggleTargetGroupSelect('${g.id}')">
                         <div>
                             <div style="font-weight: 600;">${escapeHtml(g.name)}</div>
-                            <div style="font-size: 0.78rem; color: var(--text-muted);">${g.contacts.length} / 250 contacts</div>
+                            <div style="font-size: 0.78rem; color: var(--text-muted);">${g.contacts.length} / ${MAX_GROUP_CONTACTS} contacts</div>
                         </div>
                         <div class="group-checkbox-custom">${isSelected ? '✓' : ''}</div>
                     </div>
@@ -2184,34 +2325,38 @@
 
         function toggleSelectAllTargetGroups() {
             if (selectedTargetGroupIds.size === groups.length) selectedTargetGroupIds.clear();
-            else groups.forEach((g) => selectedTargetGroupIds.add(g.id));
+            else groups.forEach(g => selectedTargetGroupIds.add(g.id));
             renderTargetGroupCards();
         }
 
         async function confirmDispatchMultiGroup() {
-            if (selectedTargetGroupIds.size === 0) {
-                return showCustomDialog({ title: 'Select Target', message: 'Please select at least one group.', type: 'warning' });
-            }
+            if (selectedTargetGroupIds.size === 0) return showCustomDialog({ title: 'Select Target', message: 'Please select at least one group.', type: 'warning' });
 
             const combinedMap = new Map();
-            selectedTargetGroupIds.forEach((id) => {
-                const g = groups.find((x) => x.id === id);
-                if (g) g.contacts.forEach((c) => {
+            selectedTargetGroupIds.forEach(id => {
+                const g = groups.find(x => x.id === id);
+                if (g) g.contacts.forEach(c => {
                     const norm = normalizeNumber(c.phone);
                     if (norm) combinedMap.set(norm, { name: c.name, phone: norm });
                 });
             });
 
             const uniqueRecipients = Array.from(combinedMap.values());
-            if (uniqueRecipients.length === 0) {
-                return showCustomDialog({ title: 'No Valid Contacts', message: 'Selected groups contain no valid contacts.', type: 'warning' });
-            }
+            if (uniqueRecipients.length === 0) return showCustomDialog({ title: 'No Valid Contacts', message: 'Selected groups contain no valid contacts.', type: 'warning' });
 
             const isScheduleEnabled = document.getElementById('chkEnableSchedule').checked;
             const scheduleTime = document.getElementById('campScheduleTime').value;
 
-            if (isScheduleEnabled && cachedScheduledJobs.length >= MAX_SCHEDULE_SLOTS) {
-                return showCustomDialog({ title: 'Schedule Slot Full', message: 'Only 1 scheduled campaign is allowed at a time. Cancel or wait for the current schedule first.', type: 'warning' });
+            if (!isScheduleEnabled && remainingDailyQuotaGlobal <= 0) {
+                return showCustomDialog({
+                    title: 'Daily Limit Reached',
+                    message: '300 messages/day outbound limit reached across campaign & schedule. Quota resets at 12:00 AM.',
+                    type: 'warning'
+                });
+            }
+
+            if (isScheduleEnabled && cachedScheduledJobs.length >= 3) {
+                return showCustomDialog({ title: 'Queue Full', message: 'Maximum 3 scheduled campaigns allowed! Please cancel an upcoming schedule before adding another.', type: 'warning' });
             }
 
             let scheduleEpoch = 0;
@@ -2220,93 +2365,71 @@
                 scheduleEpoch = new Date(scheduleTime).getTime();
                 const now = Date.now();
                 if (scheduleEpoch <= now) return showCustomDialog({ title: 'Invalid Time', message: 'Schedule time must be in the future.', type: 'warning' });
-                if ((scheduleEpoch - now) > MAX_SCHEDULE_WINDOW_MS) return showCustomDialog({ title: 'Max 3 Days (72h)', message: 'Schedule cannot exceed 3 days (72 hours).', type: 'warning' });
+                if (scheduleEpoch > now + (7 * 24 * 60 * 60 * 1000)) return showCustomDialog({ title: 'Out of Range', message: 'Schedule cannot exceed 7 days.', type: 'warning' });
             }
+
+            const validBlocks = bulkBlocks.filter(b => {
+                if (b.type === 'text') return (b.content || '').trim().length > 0;
+                return b.file !== null;
+            });
+
+            const formData = new FormData();
+            formData.append('sessionId', SESSION_ID);
+            formData.append('recipients', JSON.stringify(uniqueRecipients));
+            formData.append('isScheduled', isScheduleEnabled);
+            if (isScheduleEnabled && scheduleEpoch > 0) formData.append('scheduleEpoch', scheduleEpoch);
+
+            const blocksMeta = validBlocks.map(b => ({
+                id: b.id,
+                type: b.type,
+                content: (b.content || '').trim(),
+                caption: (b.caption || '').trim(),
+                fileName: b.fileName || ''
+            }));
+            formData.append('blocksMeta', JSON.stringify(blocksMeta));
+
+            validBlocks.forEach(b => {
+                if (b.file) formData.append(`file_${b.id}`, b.file);
+            });
 
             closeTopModal();
             const btnLaunch = document.getElementById('btnStartSend');
             btnLaunch.disabled = true;
 
-            showBlockingWait(
-                isScheduleEnabled ? 'Schedule Message Being Ready...' : 'Campaign Being Ready...',
-                'Uploading and syncing with server. Please do not close the app or turn off internet yet.'
-            );
-
             try {
-                const formData = new FormData();
-                formData.append('sessionId', SESSION_ID);
-                formData.append('recipients', JSON.stringify(uniqueRecipients));
-                formData.append('isScheduled', isScheduleEnabled);
-                if (isScheduleEnabled && scheduleEpoch > 0) formData.append('scheduleEpoch', scheduleEpoch);
-
-                formData.append('mode', bulkSlot.mode);
-                formData.append('text', bulkSlot.mode === 'text' ? bulkSlot.text.trim() : '');
-                formData.append('caption', bulkSlot.mode !== 'text' ? bulkSlot.caption.trim() : '');
-
-                const blocksMeta = [{
-                    id: 'b1',
-                    type: bulkSlot.mode,
-                    content: bulkSlot.mode === 'text' ? bulkSlot.text.trim() : '',
-                    caption: bulkSlot.mode !== 'text' ? bulkSlot.caption.trim() : '',
-                    fileName: bulkSlot.fileName || ''
-                }];
-                formData.append('blocksMeta', JSON.stringify(blocksMeta));
-
-                if ((bulkSlot.mode === 'image' || bulkSlot.mode === 'video') && bulkSlot.file) {
-                    formData.append('file_b1', bulkSlot.file);
-                }
-
                 const res = await fetch(`${FIXED_BACKEND_URL}/api/message/send-bulk`, {
                     method: 'POST',
                     headers: { 'Authorization': `Bearer ${API_BEARER_TOKEN}`, 'ngrok-skip-browser-warning': 'true' },
                     body: formData
                 });
                 const d = await res.json();
-                hideBlockingWait();
-
+                if (d && d.quota) {
+                    persistRemainingQuotaCache(d.quota, SESSION_ID);
+                }
                 if (d.status === 'SCHEDULED') {
-                    if (typeof d.remainingQuota === 'number') remainingDailyQuota = d.remainingQuota;
-                    updateQuotaUI();
-                    bulkSlot = { mode: 'text', text: '', caption: '', file: null, fileName: '' };
-                    renderBulkComposer();
-                    resetScheduleFormInUI();
-                    await loadScheduledCampaignsList();
-
-                    await showCustomDialog({
-                        title: 'Schedule Ready!',
-                        message: `Scheduled for ${d.scheduledForDate || new Date(scheduleEpoch).toLocaleString()}. You can now close the app or turn off internet—server will run it automatically.`,
-                        type: 'info',
-                        confirmText: 'OK'
+                    showCustomDialog({
+                        title: 'Campaign Scheduled',
+                        message: `Campaign scheduled for ${d.scheduledForDate || new Date(scheduleEpoch).toLocaleString()}`,
+                        type: 'info'
                     });
+                    resetScheduleFormInUI();
+                    loadScheduledCampaignsList();
                 } else if (d.status === 'QUEUED') {
                     currentActiveCampaignId = d.campaignId;
-                    if (typeof d.remainingQuota === 'number') remainingDailyQuota = d.remainingQuota;
-                    if (typeof d.deliveredTodayCount === 'number') deliveredTodayCount = d.deliveredTodayCount;
-                    updateQuotaUI();
-
-                    bulkSlot = { mode: 'text', text: '', caption: '', file: null, fileName: '' };
-                    renderBulkComposer();
-                    resetScheduleFormInUI();
                     await hydrateCampaignStateFromServer();
-
-                    await showCustomDialog({
-                        title: 'Campaign Started!',
-                        message: `Background dispatch started (${d.totalRecipients} queued, ${remainingDailyQuota} daily quota left). You can now close the app or turn off internet with no problem.`,
-                        type: 'info',
-                        confirmText: 'OK'
+                    showCustomDialog({
+                        title: 'Campaign Launched!',
+                        message: `Campaign launched to ${uniqueRecipients.length} contacts!`,
+                        type: 'info'
                     });
-
+                    bulkBlocks = [{ id: 'bb_' + Date.now(), type: 'text', content: '', file: null, fileName: '', caption: '' }];
+                    renderBulkSequence();
+                    resetScheduleFormInUI();
                     navigateTab('viewDashboard', document.querySelectorAll('.nav-tab')[2]);
                     pollCampaignLive(d.campaignId);
-                } else {
-                    showCustomDialog({ title: 'Dispatch Error', message: d.error || 'Failed to dispatch', type: 'danger' });
-                }
-            } catch (e) {
-                hideBlockingWait();
-                showCustomDialog({ title: 'Connection Error', message: e.message, type: 'danger' });
-            } finally {
-                btnLaunch.disabled = false;
-            }
+                } else showCustomDialog({ title: 'Dispatch Error', message: d.error || 'Failed to dispatch', type: 'danger' });
+            } catch(e) { showCustomDialog({ title: 'Connection Error', message: e.message, type: 'danger' }); }
+            finally { btnLaunch.disabled = false; }
         }
 
         async function pauseCurrentCampaign() {
@@ -2317,10 +2440,7 @@
                     body: JSON.stringify({ sessionId: SESSION_ID, campaignId: currentActiveCampaignId })
                 });
                 const d = await res.json();
-                if (typeof d.remainingQuota === 'number') remainingDailyQuota = d.remainingQuota;
-                if (typeof d.deliveredTodayCount === 'number') deliveredTodayCount = d.deliveredTodayCount;
-                updateQuotaUI();
-
+                if (d && d.quota) persistRemainingQuotaCache(d.quota, SESSION_ID);
                 if (d.status === 'PAUSED') {
                     document.getElementById('txtLiveCampaignState').innerText = 'PAUSED';
                     document.getElementById('txtLiveCampaignState').style.color = 'var(--warning)';
@@ -2328,7 +2448,7 @@
                     document.getElementById('btnResumeCampaign').style.display = 'block';
                     await hydrateCampaignStateFromServer();
                 }
-            } catch (e) { showCustomDialog({ title: 'Pause Error', message: e.message, type: 'danger' }); }
+            } catch(e) { showCustomDialog({ title: 'Pause Error', message: e.message, type: 'danger' }); }
         }
 
         async function resumeCurrentCampaign() {
@@ -2339,16 +2459,15 @@
                     body: JSON.stringify({ sessionId: SESSION_ID, campaignId: currentActiveCampaignId })
                 });
                 const d = await res.json();
+                if (d && d.quota) persistRemainingQuotaCache(d.quota, SESSION_ID);
                 if (d.status === 'RUNNING') {
                     document.getElementById('txtLiveCampaignState').innerText = 'RUNNING';
                     document.getElementById('txtLiveCampaignState').style.color = 'var(--primary)';
                     document.getElementById('btnPauseCampaign').style.display = 'block';
                     document.getElementById('btnResumeCampaign').style.display = 'none';
                     pollCampaignLive(currentActiveCampaignId);
-                } else if (d.error) {
-                    showCustomDialog({ title: 'Cannot Resume', message: d.error, type: 'warning' });
                 }
-            } catch (e) { showCustomDialog({ title: 'Resume Error', message: e.message, type: 'danger' }); }
+            } catch(e) { showCustomDialog({ title: 'Resume Error', message: e.message, type: 'danger' }); }
         }
 
         async function stopCurrentCampaign() {
@@ -2371,22 +2490,14 @@
                     body: JSON.stringify({ sessionId: SESSION_ID, campaignId: currentActiveCampaignId })
                 });
                 const d = await res.json();
+                if (d && d.quota) persistRemainingQuotaCache(d.quota, SESSION_ID);
                 if (d.status === 'STOPPED') {
-                    if (typeof d.remainingQuota === 'number') remainingDailyQuota = d.remainingQuota;
-                    if (typeof d.deliveredTodayCount === 'number') deliveredTodayCount = d.deliveredTodayCount;
-                    updateQuotaUI();
-
                     document.getElementById('campaignCtrlPanel').style.display = 'none';
                     if (pollTimer) clearInterval(pollTimer);
                     await hydrateCampaignStateFromServer();
-                    showCustomDialog({
-                        title: 'Stopped',
-                        message: `Campaign stopped. ${d.deliveredInCampaign || 0} delivered message(s) deducted; ${remainingDailyQuota} remaining today.`,
-                        type: 'info',
-                        confirmText: 'OK'
-                    });
+                    showCustomDialog({ title: 'Stopped', message: 'Campaign stopped and storage cleaned.', type: 'info' });
                 }
-            } catch (e) { showCustomDialog({ title: 'Stop Error', message: e.message, type: 'danger' }); }
+            } catch(e) { showCustomDialog({ title: 'Stop Error', message: e.message, type: 'danger' }); }
         }
 
         function pollCampaignLive(campId) {
@@ -2399,12 +2510,12 @@
                     });
                     const q = await res.json();
 
-                    if (typeof q.remainingQuota === 'number') remainingDailyQuota = Math.max(0, q.remainingQuota);
-                    if (typeof q.deliveredTodayCount === 'number') deliveredTodayCount = Math.max(0, q.deliveredTodayCount);
-                    updateQuotaUI();
+                    if (q && q.quota) {
+                        persistRemainingQuotaCache(q.quota, SESSION_ID);
+                    }
 
-                    if (Array.isArray(q.history)) {
-                        globalCampaigns = q.history.filter((c) => !c.isWelcome);
+                    if (Array.isArray(q.history) && q.history.length > 0) {
+                        globalCampaigns = q.history;
                         localStorage.setItem('app_campaigns', JSON.stringify(globalCampaigns));
                     }
 
@@ -2430,28 +2541,27 @@
                         clearInterval(pollTimer);
                         document.getElementById('campaignCtrlPanel').style.display = 'none';
                     }
-                } catch (e) {}
+                } catch(e) {}
             }, 1500);
         }
 
         function renderDashboard() {
             let total = 0;
-            groups.forEach((g) => total += g.contacts.length);
+            groups.forEach(g => total += g.contacts.length);
             document.getElementById('dashTotal').innerText = total;
             document.getElementById('dashGroups').innerText = groups.length;
-            updateQuotaUI();
+            renderQuotaIndicators();
 
             const container = document.getElementById('dashboardHistoryContainer');
-            const cleanHistory = (globalCampaigns || []).filter((c) => !c.isWelcome).slice(0, 3);
-            if (cleanHistory.length === 0) {
+            if (globalCampaigns.length === 0) {
                 container.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 20px;">No campaigns recorded yet.</div>';
                 return;
             }
 
-            container.innerHTML = cleanHistory.map((camp, idx) => `
+            container.innerHTML = globalCampaigns.map((camp, idx) => `
                 <div class="card">
                     <div style="display: flex; justify-content: space-between; font-weight: bold; margin-bottom: 8px;">
-                        <span>Campaign #${cleanHistory.length - idx}</span>
+                        <span>Campaign #${globalCampaigns.length - idx}</span>
                         <span style="font-size: 0.75rem; color: var(--text-muted);">${escapeHtml(camp.timestamp)}</span>
                     </div>
                     <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px;">
@@ -2488,37 +2598,43 @@
                 });
                 const d = await res.json();
                 if (d.success && Array.isArray(d.jobs)) {
-                    cachedScheduledJobs = d.jobs.slice(0, MAX_SCHEDULE_SLOTS);
-                    if (cachedScheduledJobs.length > 0) {
-                        container.innerHTML = cachedScheduledJobs.map((j) => `
+                    cachedScheduledJobs = d.jobs;
+                    if (d.jobs.length > 0) {
+                        container.innerHTML = d.jobs.map(j => `
                             <div class="card" style="margin-bottom:8px; display:flex; justify-content:space-between; align-items:center; cursor:pointer;" onclick="openScheduledPreview('${j.id}')">
                                 <div>
                                     <div style="font-weight:bold; font-size:0.9rem;">⏰ ${escapeHtml(j.scheduledForDate)}</div>
-                                    <div style="font-size:0.75rem; color:var(--text-muted);">${j.recipientCount} recipients • ${String(j.mode || 'text').toUpperCase()} • Tap to view</div>
+                                    <div style="font-size:0.75rem; color:var(--text-muted);">${j.recipientCount} recipients • ${j.mediaCount} media items • Tap to view</div>
                                 </div>
                                 <button class="btn btn-danger" style="width:auto; padding:6px 12px; font-size:0.78rem;" onclick="event.stopPropagation(); cancelScheduledCampaign('${j.id}')">Cancel</button>
                             </div>
                         `).join('');
                     } else {
-                        container.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 12px; font-size: 0.85rem;">No upcoming scheduled campaign. (Max 1 slot • Up to 3 days)</div>';
+                        container.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 12px; font-size: 0.85rem;">No upcoming scheduled campaigns. (Max 3)</div>';
                     }
                 }
             } catch (e) { container.innerHTML = ''; }
         }
 
         function openScheduledPreview(jobId) {
-            const job = cachedScheduledJobs.find((x) => x.id === jobId);
+            const job = cachedScheduledJobs.find(x => x.id === jobId);
             if (!job) return;
 
             const bodyEl = document.getElementById('schedModalBody');
             let contentHtml = `<div style="margin-bottom:8px;"><b>Date:</b> ${escapeHtml(job.scheduledForDate)}</div>
-                               <div style="margin-bottom:8px;"><b>Type:</b> ${escapeHtml(String(job.mode || 'text').toUpperCase())}</div>
                                <div style="margin-bottom:12px;"><b>Total Recipients:</b> ${job.recipientCount}</div>`;
 
-            if (job.message) {
+            if (job.sequenceSummary && job.sequenceSummary.length > 0) {
+                contentHtml += `<b>Sequence Blocks (${job.sequenceSummary.length}):</b><div style="margin-top:6px;">`;
+                job.sequenceSummary.forEach((s, idx) => {
+                    contentHtml += `<div style="background:var(--surface-card); padding:8px; border-radius:6px; margin-bottom:6px; border:1px solid var(--border);">
+                        <span style="color:var(--primary); font-weight:bold;">#${idx+1} [${s.type.toUpperCase()}]</span>: ${escapeHtml(s.content || s.fileName || '')}
+                        ${s.caption ? `<div style="font-size:0.78rem; color:var(--text-muted); margin-top:2px;">Caption: ${escapeHtml(s.caption)}</div>` : ''}
+                    </div>`;
+                });
+                contentHtml += `</div>`;
+            } else if (job.message) {
                 contentHtml += `<b>Message:</b><div style="background:var(--surface-card); padding:8px; border-radius:6px; margin-top:4px;">${escapeHtml(job.message)}</div>`;
-            } else {
-                contentHtml += `<b>Media:</b><div style="background:var(--surface-card); padding:8px; border-radius:6px; margin-top:4px;">${job.mediaCount || 1} attachment ${job.caption ? `• Caption: ${escapeHtml(job.caption)}` : ''}</div>`;
             }
 
             bodyEl.innerHTML = contentHtml;
@@ -2550,19 +2666,14 @@
                 });
                 const d = await res.json();
                 if (d.success) {
-                    if (typeof d.remainingQuota === 'number') remainingDailyQuota = d.remainingQuota;
-                    if (typeof d.deliveredTodayCount === 'number') deliveredTodayCount = d.deliveredTodayCount;
-                    updateQuotaUI();
-                    showCustomDialog({ title: 'Cancelled', message: 'Scheduled campaign cancelled and media purged.', type: 'info' });
+                    showCustomDialog({ title: 'Cancelled', message: 'Scheduled campaign cancelled and storage cleared.', type: 'info' });
                     loadScheduledCampaignsList();
-                } else {
-                    showCustomDialog({ title: 'Error', message: d.error || 'Failed to cancel', type: 'danger' });
-                }
-            } catch (e) { showCustomDialog({ title: 'Connection Error', message: e.message, type: 'danger' }); }
+                } else showCustomDialog({ title: 'Error', message: d.error || 'Failed to cancel', type: 'danger' });
+            } catch(e) { showCustomDialog({ title: 'Connection Error', message: e.message, type: 'danger' }); }
         }
 
         function showFilteredContacts(campId, filterType) {
-            const camp = globalCampaigns.find((c) => c.id === campId);
+            const camp = globalCampaigns.find(c => c.id === campId);
             if (!camp) return;
 
             let list = camp.recipients || [];
@@ -2579,15 +2690,15 @@
                 return;
             }
 
-            if (filterType === 'FAILED') list = list.filter((r) => r.status === 'FAILED');
-            else if (filterType === 'PENDING') list = list.filter((r) => r.status === 'PENDING');
+            if (filterType === 'FAILED') list = list.filter(r => r.status === 'FAILED');
+            else if (filterType === 'PENDING') list = list.filter(r => r.status === 'PENDING');
 
             document.getElementById('filterModalTitle').innerText = `${filterType} Contacts (${list.length})`;
 
             if (list.length === 0) {
                 container.innerHTML = `<div style="text-align: center; color: var(--text-muted); padding: 24px;">No ${filterType.toLowerCase()} contacts found in this campaign.</div>`;
             } else {
-                container.innerHTML = list.map((c) => `
+                container.innerHTML = list.map(c => `
                     <div class="contact-picker-row">
                         <div class="contact-avatar">${escapeHtml((c.name || 'U').charAt(0).toUpperCase())}</div>
                         <div class="contact-details">
@@ -2612,41 +2723,41 @@
             document.getElementById('lblCurrentVer').innerText = `v3.6.${CURRENT_BUILD_NUMBER}`;
 
             try {
-                const res = await fetch('https://api.github.com/repos/itsdarkgaming007/version-3-/releases/latest', {
+                const res = await fetch("https://api.github.com/repos/itsdarkgaming007/version-3-/releases/latest", {
                     headers: { 'Accept': 'application/vnd.github.v3+json' }
                 });
                 const rel = await res.json();
-
+                
                 if (rel && rel.name) {
                     const latestBuild = extractRunNumber(rel.name);
                     latestDetectedRemoteBuild = latestBuild;
 
                     if (latestBuild > CURRENT_BUILD_NUMBER) {
-                        document.getElementById('lblCloudSyncStatus').innerText = 'Update available';
-                        document.getElementById('lblCloudSyncStatus').style.color = 'var(--warning)';
+                        document.getElementById('lblCloudSyncStatus').innerText = "Update available";
+                        document.getElementById('lblCloudSyncStatus').style.color = "var(--warning)";
                         document.getElementById('updateBanner').style.display = 'block';
                         document.getElementById('lblNewVerNumber').innerText = `Release: ${rel.name}`;
                     } else {
-                        document.getElementById('lblCloudSyncStatus').innerText = 'Up to date';
-                        document.getElementById('lblCloudSyncStatus').style.color = 'var(--primary)';
+                        document.getElementById('lblCloudSyncStatus').innerText = "Up to date";
+                        document.getElementById('lblCloudSyncStatus').style.color = "var(--primary)";
                         document.getElementById('updateBanner').style.display = 'none';
                         if (isManual) showCustomDialog({ title: 'Latest Version', message: 'Your app is already running the latest version.', type: 'info' });
                     }
                 }
-            } catch (e) {
-                document.getElementById('lblCloudSyncStatus').innerText = 'Sync check failed';
-                document.getElementById('lblCloudSyncStatus').style.color = 'var(--danger)';
+            } catch(e) {
+                document.getElementById('lblCloudSyncStatus').innerText = "Sync check failed";
+                document.getElementById('lblCloudSyncStatus').style.color = "var(--danger)";
             }
         }
 
         function downloadDirectUpdate() {
-            window.open('https://github.com/itsdarkgaming007/version-3-/releases/download/latest/WA_Campaign_Latest.apk', '_system');
+            window.open("https://github.com/itsdarkgaming007/version-3-/releases/download/latest/WA_Campaign_Latest.apk", '_system');
         }
 
         async function executeNativeAppShare() {
             const shareData = {
                 title: 'WA Campaign',
-                text: 'Download WA Campaign App:',
+                text: 'Download WA Campaign App for bulk marketing:',
                 url: 'https://github.com/itsdarkgaming007/version-3-/releases/download/latest/WA_Campaign_Latest.apk'
             };
 
@@ -2655,22 +2766,22 @@
                 try {
                     await SharePlugin.share(shareData);
                     return;
-                } catch (e) {}
+                } catch(e) {}
             }
             if (navigator.share) {
                 try {
                     await navigator.share(shareData);
                     return;
-                } catch (e) {}
+                } catch(e) {}
             }
             navigator.clipboard.writeText(shareData.url);
             showCustomDialog({ title: 'Copied', message: 'App download link copied to clipboard!', type: 'info' });
         }
 
         function sortGroups(criteria) {
-            if (criteria === 'alpha') groups.sort((a, b) => a.name.localeCompare(b.name));
-            else if (criteria === 'count') groups.sort((a, b) => b.contacts.length - a.contacts.length);
-            else groups.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+            if (criteria === 'alpha') groups.sort((a,b) => a.name.localeCompare(b.name));
+            else if (criteria === 'count') groups.sort((a,b) => b.contacts.length - a.contacts.length);
+            else groups.sort((a,b) => (b.createdAt || 0) - (a.createdAt || 0));
             renderGroups();
         }
 
@@ -2680,7 +2791,7 @@
                 container.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 40px;">No groups yet. Tap "+" below to create one.</div>';
                 return;
             }
-            container.innerHTML = groups.map((g) => {
+            container.innerHTML = groups.map(g => {
                 const isSelected = selectedGroupsForDelete.has(g.id);
                 return `
                     <div class="group-card ${isSelected ? 'selected' : ''}" onclick="${isGroupSelectMode ? `toggleGroupSelectionForDelete('${g.id}', event)` : `openMembersManagerFor('${g.id}')`}">
@@ -2691,7 +2802,7 @@
                                 <div style="font-size: 0.75rem; color: var(--text-muted);">Created: ${new Date(g.createdAt).toLocaleDateString()}</div>
                             </div>
                         </div>
-                        <span class="group-card-badge">${g.contacts.length} / 250</span>
+                        <span class="group-card-badge">${g.contacts.length} / ${MAX_GROUP_CONTACTS}</span>
                     </div>
                 `;
             }).join('');
@@ -2719,7 +2830,7 @@
 
         function openMembersManagerFor(id) {
             activeGroupId = id;
-            const g = groups.find((x) => x.id === id);
+            const g = groups.find(x => x.id === id);
             if (!g) return;
             document.getElementById('editGroupNameInput').value = g.name;
             document.getElementById('groupMembersSearch').value = '';
@@ -2728,7 +2839,7 @@
         }
 
         function renameActiveGroup() {
-            const g = groups.find((x) => x.id === activeGroupId);
+            const g = groups.find(x => x.id === activeGroupId);
             const val = document.getElementById('editGroupNameInput').value.trim();
             if (g && val) {
                 g.name = val;
@@ -2744,7 +2855,7 @@
         }
 
         function renderMembers() {
-            const g = groups.find((x) => x.id === activeGroupId);
+            const g = groups.find(x => x.id === activeGroupId);
             const container = document.getElementById('membersListContainer');
             const counter = document.getElementById('groupMemberCountBadge');
             if (!g) return;
@@ -2752,7 +2863,7 @@
             const q = (document.getElementById('groupMembersSearch')?.value || '').toLowerCase().trim();
             let displayList = g.contacts || [];
             if (q) {
-                displayList = displayList.filter((c) =>
+                displayList = displayList.filter(c => 
                     (c.name || '').toLowerCase().includes(q) || (c.phone || '').includes(q)
                 );
             }
@@ -2764,25 +2875,27 @@
                 return;
             }
 
-            container.innerHTML = displayList.map((c) => `
-                <div class="contact-picker-row">
-                    <div class="contact-avatar">${escapeHtml((c.name || 'U').charAt(0).toUpperCase())}</div>
-                    <div class="contact-details">
-                        <div class="contact-name-txt">${escapeHtml(c.name || 'Unsaved')}</div>
-                        <div class="contact-phone-txt">${escapeHtml(c.phone)}</div>
+            container.innerHTML = displayList.map(c => {
+                return `
+                    <div class="contact-picker-row">
+                        <div class="contact-avatar">${escapeHtml((c.name || 'U').charAt(0).toUpperCase())}</div>
+                        <div class="contact-details">
+                            <div class="contact-name-txt">${escapeHtml(c.name || 'Unsaved')}</div>
+                            <div class="contact-phone-txt">${escapeHtml(c.phone)}</div>
+                        </div>
+                        <div style="display: flex; gap: 8px;">
+                            <button class="icon-btn" style="color: var(--primary); font-size: 1.1rem;" onclick="openEditMemberByPhone('${c.phone}')">✏️</button>
+                            <button class="icon-btn" style="color: var(--danger); font-size: 1.1rem;" onclick="confirmAndDeleteMemberByPhone('${c.phone}')">🗑️</button>
+                        </div>
                     </div>
-                    <div style="display: flex; gap: 8px;">
-                        <button class="icon-btn" style="color: var(--primary); font-size: 1.1rem;" onclick="openEditMemberByPhone('${c.phone}')">✏️</button>
-                        <button class="icon-btn" style="color: var(--danger); font-size: 1.1rem;" onclick="confirmAndDeleteMemberByPhone('${c.phone}')">🗑️</button>
-                    </div>
-                </div>
-            `).join('');
+                `;
+            }).join('');
         }
 
         async function confirmAndDeleteMemberByPhone(phone) {
-            const g = groups.find((x) => x.id === activeGroupId);
+            const g = groups.find(x => x.id === activeGroupId);
             if (!g) return;
-            const target = g.contacts.find((x) => x.phone === phone);
+            const target = g.contacts.find(x => x.phone === phone);
             if (!target) return;
             const displayName = target.name || target.phone;
 
@@ -2794,7 +2907,7 @@
                 cancelText: 'Cancel'
             });
             if (confirmed) {
-                g.contacts = g.contacts.filter((c) => c.phone !== phone);
+                g.contacts = g.contacts.filter(c => c.phone !== phone);
                 localStorage.setItem('app_groups', JSON.stringify(groups));
                 syncGroupsToServer(true);
                 renderMembers();
@@ -2803,9 +2916,9 @@
         }
 
         function openEditMemberByPhone(phone) {
-            const g = groups.find((x) => x.id === activeGroupId);
+            const g = groups.find(x => x.id === activeGroupId);
             if (!g) return;
-            const targetIdx = g.contacts.findIndex((x) => x.phone === phone);
+            const targetIdx = g.contacts.findIndex(x => x.phone === phone);
             if (targetIdx === -1) return;
             editingMemberIndex = targetIdx;
             const target = g.contacts[targetIdx];
@@ -2815,7 +2928,7 @@
         }
 
         function saveEditedMember() {
-            const g = groups.find((x) => x.id === activeGroupId);
+            const g = groups.find(x => x.id === activeGroupId);
             if (!g || editingMemberIndex === null) return;
             const name = document.getElementById('editTargetName').value.trim();
             const phone = normalizeNumber(document.getElementById('editTargetPhone').value.trim());
@@ -2830,7 +2943,7 @@
         }
 
         function addSingleContact() {
-            const g = groups.find((x) => x.id === activeGroupId);
+            const g = groups.find(x => x.id === activeGroupId);
             if (!g) return;
             if (g.contacts.length >= MAX_GROUP_CONTACTS) return showCustomDialog({ title: 'Limit Reached', message: `Maximum safe limit of ${MAX_GROUP_CONTACTS} reached.`, type: 'warning' });
 
@@ -2838,7 +2951,7 @@
             const phone = normalizeNumber(document.getElementById('quickAddPhone').value.trim());
             if (!phone || phone.length < 10) return showCustomDialog({ title: 'Invalid Phone', message: 'Enter valid phone number', type: 'warning' });
 
-            if (g.contacts.some((c) => c.phone === phone)) return showCustomDialog({ title: 'Duplicate Contact', message: 'Phone number already exists in this group.', type: 'warning' });
+            if (g.contacts.some(c => c.phone === phone)) return showCustomDialog({ title: 'Duplicate Contact', message: 'Phone number already exists in this group.', type: 'warning' });
 
             g.contacts.push({ name, phone });
             localStorage.setItem('app_groups', JSON.stringify(groups));
@@ -2849,21 +2962,22 @@
             renderGroups();
         }
 
+        // --- FULLSCREEN PHONEBOOK SELECTOR ---
         async function openPhonebookSelector(mode) {
             pbTargetMode = mode;
             selectedPbContacts.clear();
             document.getElementById('phonebookSearch').value = '';
 
             if (mode === 'edit') {
-                const g = groups.find((x) => x.id === activeGroupId);
+                const g = groups.find(x => x.id === activeGroupId);
                 if (g && Array.isArray(g.contacts)) {
-                    g.contacts.forEach((c) => {
+                    g.contacts.forEach(c => {
                         const norm = normalizeNumber(c.phone);
                         if (norm) selectedPbContacts.add(norm);
                     });
                 }
             } else if (mode === 'create') {
-                stagedContacts.forEach((c) => {
+                stagedContacts.forEach(c => {
                     const norm = normalizeNumber(c.phone);
                     if (norm) selectedPbContacts.add(norm);
                 });
@@ -2876,15 +2990,15 @@
                     if (perm.contacts === 'granted') {
                         const res = await ContactsPlugin.getContacts({ projection: { name: true, phones: true } });
                         cachedDeviceContacts = [];
-                        (res.contacts || []).forEach((c) => {
+                        (res.contacts || []).forEach(c => {
                             const name = c.name?.display || c.name?.given || '';
-                            (c.phones || []).forEach((p) => {
+                            (c.phones || []).forEach(p => {
                                 const clean = normalizeNumber(p.number);
                                 if (clean && clean.length >= 10) cachedDeviceContacts.push({ name, phone: clean });
                             });
                         });
                         const map = new Map();
-                        cachedDeviceContacts.forEach((item) => map.set(item.phone, item));
+                        cachedDeviceContacts.forEach(item => map.set(item.phone, item));
                         cachedDeviceContacts = Array.from(map.values());
                         currentlyFilteredContacts = [...cachedDeviceContacts];
                         renderPhonebook(currentlyFilteredContacts);
@@ -2892,22 +3006,22 @@
                         showPhonebookOverlay();
                         return;
                     }
-                } catch (e) {}
+                } catch(e) {}
             }
 
             if ('contacts' in navigator && 'select' in navigator.contacts) {
                 try {
                     const selected = await navigator.contacts.select(['name', 'tel'], { multiple: true });
                     const extracted = [];
-                    selected.forEach((s) => {
-                        (s.tel || []).forEach((n) => {
+                    selected.forEach(s => {
+                        (s.tel || []).forEach(n => {
                             const clean = normalizeNumber(n);
                             if (clean && clean.length >= 10) extracted.push({ name: s.name?.[0] || '', phone: clean });
                         });
                     });
                     applyImportedContacts(mode, extracted);
                     return;
-                } catch (e) {}
+                } catch(e) {}
             }
             showCustomDialog({ title: 'Permission Required', message: 'Contacts permission not granted.', type: 'warning' });
         }
@@ -2928,7 +3042,7 @@
                 return;
             }
 
-            container.innerHTML = list.map((c) => {
+            container.innerHTML = list.map(c => {
                 const isSelected = selectedPbContacts.has(c.phone);
                 const initial = (c.name || 'U').charAt(0).toUpperCase();
                 return `
@@ -2958,9 +3072,9 @@
         }
 
         function toggleSelectAllFilteredContacts() {
-            const allSelected = currentlyFilteredContacts.every((c) => selectedPbContacts.has(c.phone));
+            const allSelected = currentlyFilteredContacts.every(c => selectedPbContacts.has(c.phone));
             if (allSelected) {
-                currentlyFilteredContacts.forEach((c) => selectedPbContacts.delete(c.phone));
+                currentlyFilteredContacts.forEach(c => selectedPbContacts.delete(c.phone));
             } else {
                 for (const c of currentlyFilteredContacts) {
                     if (selectedPbContacts.size >= MAX_GROUP_CONTACTS) break;
@@ -2973,19 +3087,19 @@
 
         function filterPhonebook() {
             const q = document.getElementById('phonebookSearch').value.toLowerCase().trim();
-            currentlyFilteredContacts = cachedDeviceContacts.filter((c) =>
+            currentlyFilteredContacts = cachedDeviceContacts.filter(c => 
                 (c.name || '').toLowerCase().includes(q) || c.phone.includes(q)
             );
             renderPhonebook(currentlyFilteredContacts);
         }
 
         function confirmPhonebookSelection() {
-            const selected = cachedDeviceContacts.filter((c) => selectedPbContacts.has(c.phone));
+            const selected = cachedDeviceContacts.filter(c => selectedPbContacts.has(c.phone));
             if (pbTargetMode === 'create') {
                 stagedContacts = selected;
                 document.getElementById('createStagedCount').innerText = `${stagedContacts.length} / ${MAX_GROUP_CONTACTS} Contacts Staged`;
             } else {
-                const g = groups.find((x) => x.id === activeGroupId);
+                const g = groups.find(x => x.id === activeGroupId);
                 if (g) {
                     g.contacts = selected;
                     localStorage.setItem('app_groups', JSON.stringify(groups));
@@ -2997,38 +3111,13 @@
             closePhonebookOverlay();
         }
 
-        function handleFileImport(e, mode) {
-            const file = e.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = function(evt) {
-                const lines = evt.target.result.split(/[\r\n]+/);
-                const imported = [];
-                for (let i = 0; i < lines.length; i++) {
-                    if (imported.length >= MAX_GROUP_CONTACTS) break;
-                    const parts = lines[i].split(/[,;\t]+/);
-                    if (parts.length >= 2) {
-                        const name = parts[0].trim();
-                        const phone = normalizeNumber(parts[1]);
-                        if (phone && phone.length >= 10) imported.push({ name, phone });
-                    } else if (parts.length === 1) {
-                        const phone = normalizeNumber(parts[0]);
-                        if (phone && phone.length >= 10) imported.push({ name: '', phone });
-                    }
-                }
-                applyImportedContacts(mode, imported);
-                e.target.value = '';
-            };
-            reader.readAsText(file);
-        }
-
         function applyImportedContacts(mode, list) {
             if (mode === 'create') {
                 const spaceLeft = MAX_GROUP_CONTACTS - stagedContacts.length;
                 const toAdd = [];
                 for (const item of list) {
                     if (toAdd.length >= spaceLeft) break;
-                    if (!stagedContacts.some((c) => c.phone === item.phone) && !toAdd.some((c) => c.phone === item.phone)) {
+                    if (!stagedContacts.some(c => c.phone === item.phone) && !toAdd.some(c => c.phone === item.phone)) {
                         toAdd.push(item);
                     }
                 }
@@ -3036,13 +3125,13 @@
                 document.getElementById('createStagedCount').innerText = `${stagedContacts.length} / ${MAX_GROUP_CONTACTS} Contacts Staged`;
                 showCustomDialog({ title: 'Contacts Added', message: `Added ${toAdd.length} unique contacts.`, type: 'info' });
             } else {
-                const g = groups.find((x) => x.id === activeGroupId);
+                const g = groups.find(x => x.id === activeGroupId);
                 if (g) {
                     const spaceLeft = MAX_GROUP_CONTACTS - g.contacts.length;
                     const toAdd = [];
                     for (const item of list) {
                         if (toAdd.length >= spaceLeft) break;
-                        if (!g.contacts.some((c) => c.phone === item.phone) && !toAdd.some((c) => c.phone === item.phone)) {
+                        if (!g.contacts.some(c => c.phone === item.phone) && !toAdd.some(c => c.phone === item.phone)) {
                             toAdd.push(item);
                         }
                     }
@@ -3058,15 +3147,16 @@
 
         window.onload = async () => {
             switchTheme(localStorage.getItem('app_theme') || 'dark');
+            loadCachedRemainingQuota(SESSION_ID);
             switchLanguage(localStorage.getItem('app_lang') || 'en');
             checkDisclaimerAcceptance();
             renderGroups();
             renderDashboard();
             setupBackNavigation();
             setupPullToRefresh();
-            renderBulkComposer();
-            renderWelcomeComposer();
+            renderBulkSequence();
             await syncWhatsAppAccountStatus();
+            await syncRemainingQuotaFromServer();
             checkForAppUpdatesBackground();
         };
     </script>
