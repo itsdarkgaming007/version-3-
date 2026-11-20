@@ -26,6 +26,7 @@ const BOUNDED_VARIATION_POOL_SIZE = 8; // Bounded 5-10 varied copies per campaig
 const BASE_TENANTS_DIR = path.join(__dirname, 'tenants');
 const LICENSES_FILE = path.join(__dirname, 'admin_licenses.json');
 const DB_FILE = path.join(__dirname, 'engine_data.sqlite');
+const SHARE_BANNER_DEFAULT_FILE = path.join(__dirname, 'www', 'share_banner.jpg');
 
 if (!fs.existsSync(BASE_TENANTS_DIR)) fs.mkdirSync(BASE_TENANTS_DIR, { recursive: true });
 
@@ -148,19 +149,20 @@ try { db.exec('ALTER TABLE licenses ADD COLUMN purchasedAt INTEGER;'); } catch (
 
 // Prepared Statements for Sub-millisecond Execution
 const stmtGetLicense = db.prepare('SELECT * FROM licenses WHERE sessionId = ?');
+const stmtGetLicenseByPhone = db.prepare('SELECT * FROM licenses WHERE phone = ? ORDER BY validUntil DESC LIMIT 1');
 const stmtGetAllLicensesSorted = db.prepare('SELECT * FROM licenses ORDER BY COALESCE(createdAt, validUntil) DESC');
 const stmtUpsertLicense = db.prepare(`
     INSERT INTO licenses (sessionId, phone, status, plan, tenantToken, validUntil, notes, createdAt, purchasedAt)
     VALUES (@sessionId, @phone, @status, @plan, @tenantToken, @validUntil, @notes, @createdAt, @purchasedAt)
     ON CONFLICT(sessionId) DO UPDATE SET
-        phone = excluded.phone,
+        phone = COALESCE(NULLIF(excluded.phone, ''), licenses.phone),
         status = excluded.status,
-        plan = excluded.plan,
-        tenantToken = excluded.tenantToken,
+        plan = COALESCE(NULLIF(excluded.plan, ''), licenses.plan),
+        tenantToken = COALESCE(NULLIF(excluded.tenantToken, ''), licenses.tenantToken),
         validUntil = excluded.validUntil,
-        notes = excluded.notes,
+        notes = COALESCE(NULLIF(excluded.notes, ''), licenses.notes),
         createdAt = COALESCE(licenses.createdAt, excluded.createdAt),
-        purchasedAt = COALESCE(excluded.purchasedAt, licenses.purchasedAt)
+        purchasedAt = COALESCE(licenses.purchasedAt, excluded.purchasedAt)
 `);
 const stmtDeleteLicense = db.prepare('DELETE FROM licenses WHERE sessionId = ?');
 
@@ -282,9 +284,26 @@ function getDateKeyDaysAgo(daysAgo) {
     return getLocalDateKey(Date.now() - daysAgo * 24 * 60 * 60 * 1000);
 }
 
+function resolveExistingLicense(sessionId) {
+    let lic = stmtGetLicense.get(sessionId);
+    if (!lic && sessionId) {
+        const cleanPhone = String(sessionId).replace(/[^0-9]/g, '');
+        if (cleanPhone.length >= 10) {
+            lic = stmtGetLicenseByPhone.get(cleanPhone);
+        }
+    }
+    return lic || null;
+}
+
 function getDailyQuotaInfo(sessionId) {
     const dateKey = getLocalDateKey();
-    const row = stmtGetDailyQuota.get(sessionId, dateKey);
+    let row = stmtGetDailyQuota.get(sessionId, dateKey);
+    if (!row && sessionId) {
+        const cleanPhone = String(sessionId).replace(/[^0-9]/g, '');
+        if (cleanPhone && cleanPhone !== sessionId) {
+            row = stmtGetDailyQuota.get(cleanPhone, dateKey);
+        }
+    }
     const deliveredToday = row ? (row.deliveredCount || 0) : 0;
     const remainingQuota = Math.max(0, DAILY_OUTBOUND_LIMIT - deliveredToday);
     return {
@@ -377,6 +396,12 @@ function safeWriteJsonSync(filePath, data) {
     }
 }
 
+function triggerGarbageCollectionSafe() {
+    if (typeof global.gc === 'function') {
+        try { global.gc(); } catch (e) {}
+    }
+}
+
 // Seamless Auto-Migration from Legacy Files with One-Time Permanent Guard
 function migrateLegacyJsonFiles() {
     try {
@@ -465,11 +490,19 @@ migrateLegacyJsonFiles();
 
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
+        if (req.body?.uploadPurpose === 'share_banner') {
+            const bannerDir = path.join(__dirname, 'www');
+            if (!fs.existsSync(bannerDir)) fs.mkdirSync(bannerDir, { recursive: true });
+            return cb(null, bannerDir);
+        }
         const tenantId = req.body?.sessionId || req.query?.sessionId || 'unpaired_user';
         const { mediaVaultDir } = getTenantPaths(tenantId);
         cb(null, mediaVaultDir);
     },
     filename: (req, file, cb) => {
+        if (req.body?.uploadPurpose === 'share_banner') {
+            return cb(null, 'share_banner.jpg');
+        }
         const ext = path.extname(file.originalname).toLowerCase() || '';
         cb(null, `vault_${Date.now()}_${crypto.randomBytes(4).toString('hex')}${ext}`);
     }
@@ -513,7 +546,7 @@ const authenticate = (req, res, next) => {
     }
 
     const sessionId = req.body?.sessionId || req.params?.sessionId || req.query?.sessionId || 'unpaired_user';
-    const lic = stmtGetLicense.get(sessionId);
+    const lic = resolveExistingLicense(sessionId);
 
     const isMasterToken = (token === API_SECRET_TOKEN || token === 'marketing_engine_secret_2026');
     const isTenantToken = lic && lic.tenantToken && token === lic.tenantToken;
@@ -582,7 +615,6 @@ function createBoundedVariationPool(sourceFilePath, mimeType, vaultDir, poolSize
                 const tail = crypto.randomBytes(4 + (i % 6));
                 fs.writeFileSync(varPath, Buffer.concat([rawBuf, tail]));
             } else {
-                // Keep exact valid MP4 container intact; rotate source/copy paths without corrupting video stream
                 fs.writeFileSync(varPath, rawBuf);
             }
             poolPaths.push(varPath);
@@ -709,7 +741,6 @@ function normalizeStrict111Sequence(blocksMeta, filesMap, fallbackMessage = '', 
 function normalizeStrictWelcomeConfig(enabled, blocksMeta, filesMap, existingConfig, vaultDir) {
     const resolvedVault = path.resolve(vaultDir);
     if (!enabled) {
-        // Purge existing welcome media immediately when disabled
         (existingConfig?.sequence || []).forEach(s => {
             if (s?.filePath && fs.existsSync(s.filePath)) {
                 try { fs.unlinkSync(s.filePath); } catch (e) {}
@@ -721,7 +752,7 @@ function normalizeStrictWelcomeConfig(enabled, blocksMeta, filesMap, existingCon
     const candidates = Array.isArray(blocksMeta)
         ? blocksMeta.filter(b => {
             if (!b || !b.type) return false;
-            if (b.type === 'video') return false; // Video welcome removed
+            if (b.type === 'video') return false;
             if (b.type === 'text') return typeof b.content === 'string' && b.content.trim().length > 0;
             if (b.type === 'image') return Boolean(filesMap.get(`file_${b.id}`)) || Boolean(b.existingFilePath);
             return false;
@@ -775,7 +806,6 @@ function normalizeStrictWelcomeConfig(enabled, blocksMeta, filesMap, existingCon
         return { error: 'INVALID_WELCOME_MEDIA: Image file missing or invalid.' };
     }
 
-    // Purge any previous welcome media files not referenced by nextSeq
     const keepPaths = new Set(nextSeq.map(s => s.filePath && path.resolve(s.filePath)).filter(Boolean));
     (existingConfig?.sequence || []).forEach(s => {
         if (s?.filePath) {
@@ -1046,7 +1076,6 @@ function putSocketToSleep(sessionId) {
     const session = sessions.get(sessionId);
     if (!session || !session.sock) return;
 
-    // Keep socket awake if Welcome Bot is autonomously active or campaign/priority task is running
     if (
         hasAutonomousWelcomeEnabled(sessionId) ||
         session.queue?.isRunning ||
@@ -1065,6 +1094,7 @@ function putSocketToSleep(sessionId) {
 
     session.sock = null;
     session.status = 'SLEEPING';
+    triggerGarbageCollectionSafe();
 }
 
 function wipeSessionData(sessionId) {
@@ -1133,6 +1163,8 @@ async function initSessionSocket(sessionId) {
         syncFullHistory: false,
         markOnlineOnConnect: false,
         getMessage: undefined,
+        connectTimeoutMs: 30000,
+        defaultQueryTimeoutMs: 60000,
         keepAliveIntervalMs: 30000,
         browser: ['Ubuntu', 'Chrome', '20.0.04']
     });
@@ -1148,7 +1180,7 @@ async function initSessionSocket(sessionId) {
             const msgs = m.messages || [];
             const nowSec = Math.floor(Date.now() / 1000);
 
-            const licCheck = stmtGetLicense.get(sessionId);
+            const licCheck = resolveExistingLicense(sessionId);
             if (licCheck) {
                 if (licCheck.status !== 'ACTIVE' || Date.now() > licCheck.validUntil) {
                     return;
@@ -1209,7 +1241,6 @@ async function initSessionSocket(sessionId) {
                     }
                     try { await sock.sendPresenceUpdate('paused', remoteJid); } catch (e) {}
                 } catch (sendErr) {
-                    // Rollback dedup entry only if sending failed
                     stmtDeleteWelcomeDedup.run(sessionId, dedupKeyJid);
                     console.error('[WELCOME SEND ERROR - ROLLED BACK]:', sendErr.message);
                 } finally {
@@ -1249,9 +1280,10 @@ async function initSessionSocket(sessionId) {
             const rawId = sock.user?.id || '';
             session.phone = rawId.split(':')[0] || rawId.split('@')[0];
 
-            let lic = stmtGetLicense.get(sessionId);
+            // Preserve existing license validity across reinstalls/reconnects; never reset validUntil if already present
+            const existingLic = resolveExistingLicense(sessionId) || resolveExistingLicense(session.phone);
             const nowTime = Date.now();
-            if (!lic) {
+            if (!existingLic) {
                 const tenantToken = crypto.randomBytes(16).toString('hex');
                 stmtUpsertLicense.run({
                     sessionId,
@@ -1260,21 +1292,21 @@ async function initSessionSocket(sessionId) {
                     plan: 'Monthly (₹150)',
                     tenantToken,
                     validUntil: nowTime + (30 * 24 * 60 * 60 * 1000),
-                    notes: 'Auto-registered Device',
+                    notes: 'Registered Device',
                     createdAt: nowTime,
                     purchasedAt: nowTime
                 });
             } else {
                 stmtUpsertLicense.run({
                     sessionId,
-                    phone: session.phone,
-                    status: lic.status,
-                    plan: lic.plan,
-                    tenantToken: lic.tenantToken || crypto.randomBytes(16).toString('hex'),
-                    validUntil: lic.validUntil,
-                    notes: lic.notes || '',
-                    createdAt: lic.createdAt || nowTime,
-                    purchasedAt: lic.purchasedAt || nowTime
+                    phone: session.phone || existingLic.phone,
+                    status: existingLic.status,
+                    plan: existingLic.plan,
+                    tenantToken: existingLic.tenantToken || crypto.randomBytes(16).toString('hex'),
+                    validUntil: existingLic.validUntil,
+                    notes: existingLic.notes || '',
+                    createdAt: existingLic.createdAt || nowTime,
+                    purchasedAt: existingLic.purchasedAt || nowTime
                 });
             }
             resumeInFlightCrashCampaign(sessionId);
@@ -1371,6 +1403,7 @@ async function executeDispatchQueue(sessionId) {
                 upsertCampaignHistory(sessionId, q);
                 clearActiveCampaignState(sessionId);
                 cleanOrphanedMediaVaultFiles(sessionId);
+                triggerGarbageCollectionSafe();
                 session.isDispatchLoopActive = false;
                 return;
             }
@@ -1471,7 +1504,6 @@ async function executeDispatchQueue(sessionId) {
                 if (typeof q.recipients[q.currentIndex] === 'object') {
                     q.recipients[q.currentIndex].status = 'SENT';
                 }
-                // Deduct only actual delivered message from daily 300 quota (never pre-deduct or refund)
                 recordDeliveredOutbound(sessionId);
 
             } catch (e) {
@@ -1504,6 +1536,7 @@ async function executeDispatchQueue(sessionId) {
         upsertCampaignHistory(sessionId, q);
         clearActiveCampaignState(sessionId);
         cleanOrphanedMediaVaultFiles(sessionId);
+        triggerGarbageCollectionSafe();
     } finally {
         session.isDispatchLoopActive = false;
         touchSessionActivity(sessionId);
@@ -1515,7 +1548,7 @@ setInterval(async () => {
     const now = Date.now();
 
     for (const [tenantId, session] of sessions.entries()) {
-        if (session && session.sock && (now - session.lastActive > 15 * 60 * 1000)) {
+        if (session && session.sock && (now - session.lastActive > 10 * 60 * 1000)) {
             putSocketToSleep(tenantId);
         }
     }
@@ -1556,7 +1589,7 @@ setInterval(async () => {
             const tenantId = row.sessionId;
             const quota = getDailyQuotaInfo(tenantId);
             if (quota.remainingQuota <= 0) {
-                continue; // Wait until 12:00 AM reset if daily 300 quota is exhausted
+                continue;
             }
 
             const session = await ensureActiveSocket(tenantId);
@@ -1604,6 +1637,7 @@ setInterval(() => {
         for (const lic of licenses) {
             pruneStaleSessionKeys(lic.sessionId);
         }
+        triggerGarbageCollectionSafe();
     } catch (e) {}
 }, 24 * 60 * 60 * 1000);
 
@@ -1624,6 +1658,77 @@ if (fs.existsSync(BASE_TENANTS_DIR)) {
         }
     });
 }
+
+// ============================================================================
+// DYNAMIC SHARE BANNER & DOWNLOAD LANDING PAGE ROUTES (DASHBOARD CONTROLLED)
+// ============================================================================
+function getShareBannerPath() {
+    const customRow = stmtGetSetting.get('share_banner_path');
+    if (customRow && customRow.value && fs.existsSync(customRow.value)) {
+        return customRow.value;
+    }
+    return SHARE_BANNER_DEFAULT_FILE;
+}
+
+function getApkDownloadUrl() {
+    const apkRow = stmtGetSetting.get('share_apk_url');
+    if (apkRow && apkRow.value && apkRow.value.trim()) {
+        return apkRow.value.trim();
+    }
+    return 'https://github.com/itsdarkgaming007/version-3-/releases/download/latest/WA_Campaign_Latest.apk';
+}
+
+app.get('/api/share-banner', (req, res) => {
+    const bannerPath = getShareBannerPath();
+    if (!fs.existsSync(bannerPath)) {
+        return res.status(404).send('Banner not configured');
+    }
+    res.setHeader('Cache-Control', 'no-cache, must-revalidate');
+    res.type('image/jpeg');
+    fs.createReadStream(bannerPath).pipe(res);
+});
+
+app.get('/share', (req, res) => {
+    const proto = req.headers['x-forwarded-proto'] || req.protocol || 'https';
+    const host = req.headers['x-forwarded-host'] || req.headers.host;
+    const baseUrl = `${proto}://${host}`;
+    const bannerUrl = `${baseUrl}/api/share-banner?v=${Date.now()}`;
+    const apkUrl = getApkDownloadUrl();
+
+    res.send(`
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>WA Campaign — Smart Marketing Platform</title>
+            <meta property="og:type" content="website">
+            <meta property="og:title" content="WA Campaign — உங்கள் ஸ்மார்ட் மார்க்கெட்டிங் தளம்">
+            <meta property="og:description" content="24/7 Cloud Engine • Auto Welcome Bot • Smart Group Campaigns">
+            <meta property="og:image" content="${bannerUrl}">
+            <meta property="og:image:secure_url" content="${bannerUrl}">
+            <meta property="og:url" content="${baseUrl}/share">
+            <style>
+                * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+                body { background: #0b141a; color: #e9edef; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 18px; }
+                .card { max-width: 440px; width: 100%; background: #111b21; border: 1px solid #2a3942; border-radius: 16px; padding: 18px; text-align: center; box-shadow: 0 12px 30px rgba(0,0,0,0.5); }
+                .banner-img { width: 100%; border-radius: 12px; margin-bottom: 16px; border: 1px solid #2a3942; display: block; }
+                h1 { font-size: 1.25rem; color: #00a884; margin-bottom: 8px; }
+                p { font-size: 0.88rem; color: #8696a0; margin-bottom: 16px; line-height: 1.45; }
+                .dl-btn { display: block; width: 100%; padding: 13px; border-radius: 10px; background: #00a884; color: #fff; text-decoration: none; font-weight: 700; font-size: 0.98rem; }
+            </style>
+        </head>
+        <body>
+            <div class="card">
+                <img src="${bannerUrl}" alt="WA Campaign Banner" class="banner-img" onerror="this.style.display='none'">
+                <h1>WA Campaign</h1>
+                <p>24/7 Cloud Campaign & Auto Welcome Engine</p>
+                <a href="${apkUrl}" class="dl-btn">Download Latest APK</a>
+            </div>
+        </body>
+        </html>
+    `);
+});
 
 // ============================================================================
 // API ROUTES (Retained & Compatible with index.html)
@@ -1653,7 +1758,7 @@ app.get('/api/status/:sessionId', async (req, res) => {
     const token = (authHeader ? authHeader.replace(/^Bearer\s+/i, '') : (req.query.token || '')).trim();
 
     const isMasterToken = (token === API_SECRET_TOKEN || token === 'marketing_engine_secret_2026');
-    const lic = stmtGetLicense.get(req.params.sessionId);
+    const lic = resolveExistingLicense(req.params.sessionId);
     const isTenantToken = lic && lic.tenantToken && token === lic.tenantToken;
 
     if (!isMasterToken && !isTenantToken) {
@@ -1693,6 +1798,10 @@ app.get('/api/status/:sessionId', async (req, res) => {
         validUntil = lic.validUntil;
     }
 
+    const proto = req.headers['x-forwarded-proto'] || req.protocol || 'https';
+    const host = req.headers['x-forwarded-host'] || req.headers.host;
+    const shareUrl = `${proto}://${host}/share`;
+
     if (!session || session.status !== 'CONNECTED') {
         return res.json({
             status: 'DISCONNECTED',
@@ -1703,7 +1812,8 @@ app.get('/api/status/:sessionId', async (req, res) => {
             plan: lic?.plan || 'Monthly',
             purchasedAt,
             validUntil,
-            quota
+            quota,
+            shareUrl
         });
     }
 
@@ -1718,7 +1828,8 @@ app.get('/api/status/:sessionId', async (req, res) => {
         plan: lic?.plan || 'Monthly',
         purchasedAt,
         validUntil,
-        quota
+        quota,
+        shareUrl
     });
 });
 
@@ -2154,6 +2265,24 @@ app.get('/master-admin/backup-db', (req, res) => {
     res.download(DB_FILE, `engine_data_backup_${Date.now()}.sqlite`);
 });
 
+app.post('/master-admin/upload-banner', upload.single('bannerFile'), (req, res) => {
+    const pin = req.body?.pin || req.query?.pin;
+    if (pin !== ADMIN_MASTER_PIN) {
+        if (req.file && fs.existsSync(req.file.path)) {
+            try { fs.unlinkSync(req.file.path); } catch (e) {}
+        }
+        return res.status(401).json({ error: 'Forbidden' });
+    }
+    if (!req.file) {
+        return res.status(400).json({ error: 'No banner image uploaded.' });
+    }
+    stmtSaveSetting.run('share_banner_path', req.file.path, Date.now());
+    if (req.body?.apkUrl && req.body.apkUrl.trim()) {
+        stmtSaveSetting.run('share_apk_url', req.body.apkUrl.trim(), Date.now());
+    }
+    res.json({ success: true, message: 'Share banner updated for /share link.' });
+});
+
 // Background Auto-Refresh JSON Polling API (Zero-Flicker + Weekly Metrics & Quota Status)
 app.get('/master-admin/live-metrics', (req, res) => {
     const pin = req.query.pin;
@@ -2341,6 +2470,7 @@ app.get('/master-admin', (req, res) => {
     let totalActiveWelcomes = 0;
 
     const weeklyMetrics = getWeeklyMetricsSummary();
+    const currentApkUrl = getApkDownloadUrl();
 
     const rows = licenses.map((data) => {
         const sid = data.sessionId;
@@ -2557,6 +2687,13 @@ app.get('/master-admin', (req, res) => {
                 </div>
 
                 <div class="notice-box">
+                    <span style="font-size:0.82rem;font-weight:bold;color:#00a884;white-space:nowrap;">🖼️ Share Banner:</span>
+                    <input type="file" id="shareBannerInput" accept="image/jpeg,image/png,image/webp" style="font-size:0.8rem;color:#8696a0;max-width:210px;">
+                    <input type="text" id="txtShareApkUrl" value="${currentApkUrl.replace(/"/g, '&quot;')}" placeholder="APK download URL..." style="flex:1;min-width:180px;padding:7px 10px;border-radius:6px;border:1px solid #202c33;background:#0b141a;color:#fff;font-size:0.82rem;outline:none;">
+                    <button onclick="uploadShareBanner()" style="padding:7px 12px;border-radius:6px;background:#0284c7;color:#fff;border:none;font-weight:700;font-size:0.8rem;cursor:pointer;">Update Share Image</button>
+                </div>
+
+                <div class="notice-box">
                     <span style="font-size:0.82rem;font-weight:bold;color:#00a884;white-space:nowrap;">📢 Global Notice:</span>
                     <input type="text" id="txtGlobalNotice" value="${currentNotice.replace(/"/g, '&quot;')}" placeholder="Type maintenance notice or announcement..." style="flex:1;min-width:200px;padding:7px 10px;border-radius:6px;border:1px solid #202c33;background:#0b141a;color:#fff;font-size:0.85rem;outline:none;">
                     <select id="selNoticeDuration" style="padding:7px;border-radius:6px;border:1px solid #202c33;background:#0b141a;color:#fff;font-size:0.82rem;outline:none;">
@@ -2600,6 +2737,21 @@ app.get('/master-admin', (req, res) => {
             </div>
 
             <script>
+                async function uploadShareBanner() {
+                    const fileInput = document.getElementById('shareBannerInput');
+                    const apkUrl = document.getElementById('txtShareApkUrl').value.trim();
+                    const fd = new FormData();
+                    fd.append('pin', '${ADMIN_MASTER_PIN}');
+                    fd.append('uploadPurpose', 'share_banner');
+                    if (apkUrl) fd.append('apkUrl', apkUrl);
+                    if (fileInput.files && fileInput.files[0]) {
+                        fd.append('bannerFile', fileInput.files[0]);
+                    }
+                    const res = await fetch('/master-admin/upload-banner', { method: 'POST', body: fd });
+                    const d = await res.json();
+                    alert(d.message || d.error || 'Updated');
+                }
+
                 function filterTenants() {
                     const q = document.getElementById('searchInput').value.toLowerCase().trim();
                     const rows = document.querySelectorAll('#tenantBody tr');
@@ -2954,13 +3106,14 @@ app.post('/master-admin/merge-duplicates', (req, res) => {
 app.post('/master-admin/extend', (req, res) => {
     const { pin, sessionId, days = 30, plan = 'Monthly (₹150)' } = req.body;
     if (pin !== ADMIN_MASTER_PIN) return res.status(401).json({ error: 'Forbidden' });
-    const lic = stmtGetLicense.get(sessionId);
+    const lic = resolveExistingLicense(sessionId);
     const now = Date.now();
     if (lic) {
+        const targetSid = lic.sessionId;
         const base = Math.max(now, lic.validUntil);
         const newValidUntil = base + (parseInt(days, 10) * 24 * 60 * 60 * 1000);
         stmtUpsertLicense.run({
-            sessionId,
+            sessionId: targetSid,
             phone: lic.phone,
             status: 'ACTIVE',
             plan: plan || lic.plan,
@@ -2978,11 +3131,12 @@ app.post('/master-admin/cancel-sub', (req, res) => {
     const { pin, sessionId } = req.body;
     if (pin !== ADMIN_MASTER_PIN) return res.status(401).json({ error: 'Forbidden' });
 
-    const lic = stmtGetLicense.get(sessionId);
+    const lic = resolveExistingLicense(sessionId);
     const now = Date.now();
     if (lic) {
+        const targetSid = lic.sessionId;
         stmtUpsertLicense.run({
-            sessionId,
+            sessionId: targetSid,
             phone: lic.phone,
             status: 'ACTIVE',
             plan: lic.plan,
@@ -2993,29 +3147,29 @@ app.post('/master-admin/cancel-sub', (req, res) => {
             purchasedAt: lic.purchasedAt || now
         });
 
-        const session = sessions.get(sessionId);
+        const session = sessions.get(targetSid);
         if (session && session.queue) {
             session.queue.state = 'STOPPED';
             session.queue.isRunning = false;
             purgeCampaignMediaItems(session.queue.sequence || session.queue.mediaItems);
             session.queue.sequence = [];
             session.queue.mediaItems = [];
-            upsertCampaignHistory(sessionId, session.queue);
-            clearActiveCampaignState(sessionId);
+            upsertCampaignHistory(targetSid, session.queue);
+            clearActiveCampaignState(targetSid);
         }
 
-        const scheduledRows = stmtGetScheduledJobs.all(sessionId);
+        const scheduledRows = stmtGetScheduledJobs.all(targetSid);
         scheduledRows.forEach(row => {
             try {
                 const j = JSON.parse(row.jobDataJson);
                 purgeCampaignMediaItems(j.sequence || j.mediaItems);
             } catch (e) {}
         });
-        stmtDeleteAllScheduledJobsForSession.run(sessionId);
+        stmtDeleteAllScheduledJobsForSession.run(targetSid);
 
-        const { scheduledJobsFile } = getTenantPaths(sessionId);
+        const { scheduledJobsFile } = getTenantPaths(targetSid);
         safeWriteJsonSync(scheduledJobsFile, []);
-        cleanOrphanedMediaVaultFiles(sessionId);
+        cleanOrphanedMediaVaultFiles(targetSid);
 
         return res.json({ success: true, message: 'Subscription cancelled. Scheduled jobs purged and active campaign stopped. Groups & welcome config preserved.' });
     }
@@ -3039,10 +3193,10 @@ app.post('/master-admin/purge-media', (req, res) => {
 app.post('/master-admin/toggle-status', (req, res) => {
     const { pin, sessionId, status } = req.body;
     if (pin !== ADMIN_MASTER_PIN) return res.status(401).json({ error: 'Forbidden' });
-    const lic = stmtGetLicense.get(sessionId);
+    const lic = resolveExistingLicense(sessionId);
     if (lic) {
         stmtUpsertLicense.run({
-            sessionId,
+            sessionId: lic.sessionId,
             phone: lic.phone,
             status: status,
             plan: lic.plan,
@@ -3053,7 +3207,7 @@ app.post('/master-admin/toggle-status', (req, res) => {
             purchasedAt: lic.purchasedAt || Date.now()
         });
         if (status === 'DISABLED') {
-            putSocketToSleep(sessionId);
+            putSocketToSleep(lic.sessionId);
         }
     }
     res.json({ success: true });
