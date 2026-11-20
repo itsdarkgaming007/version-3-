@@ -18,12 +18,10 @@ const PORT = process.env.PORT || 3000;
 const API_SECRET_TOKEN = process.env.API_SECRET_TOKEN || 'marketing_engine_secret_2026';
 const ADMIN_MASTER_PIN = process.env.ADMIN_MASTER_PIN || 'adminpass2026';
 
-const DAILY_OUTBOUND_CAP = 300;
+const DAILY_OUTBOUND_LIMIT = 300;
 const MAX_SCHEDULE_SLOTS = 1;
-const MAX_SCHEDULE_WINDOW_MS = 3 * 24 * 60 * 60 * 1000; // 72 hours (3 days)
-const MEDIA_POOL_MIN = 5;
-const MEDIA_POOL_MAX = 10;
-const VIDEO_POOL_CONCURRENCY = 1;
+const MAX_SCHEDULE_WINDOW_MS = 72 * 60 * 60 * 1000; // 72 Hours (3 Days)
+const BOUNDED_VARIATION_POOL_SIZE = 8; // Bounded 5-10 varied copies per campaign
 
 const BASE_TENANTS_DIR = path.join(__dirname, 'tenants');
 const LICENSES_FILE = path.join(__dirname, 'admin_licenses.json');
@@ -39,10 +37,8 @@ process.on('unhandledRejection', (reason) => {
     console.error('[CRITICAL UNHANDLED REJECTION]:', reason);
 });
 
-// In-Memory Brute-Force Rate Limiter for Master Admin (Bounded)
+// In-Memory Brute-Force Rate Limiter for Master Admin
 const adminLoginAttempts = new Map();
-const MAX_ADMIN_ATTEMPT_ENTRIES = 2000;
-
 function checkAdminBruteForce(clientIp) {
     const record = adminLoginAttempts.get(clientIp);
     if (!record) return true;
@@ -53,12 +49,7 @@ function checkAdminBruteForce(clientIp) {
     }
     return record.count < 5;
 }
-
 function recordFailedAdminAttempt(clientIp) {
-    if (!adminLoginAttempts.has(clientIp) && adminLoginAttempts.size >= MAX_ADMIN_ATTEMPT_ENTRIES) {
-        const oldestKey = adminLoginAttempts.keys().next().value;
-        if (oldestKey) adminLoginAttempts.delete(oldestKey);
-    }
     const record = adminLoginAttempts.get(clientIp) || { count: 0, firstAttempt: Date.now(), lockedUntil: 0 };
     record.count++;
     if (record.count >= 5) {
@@ -66,7 +57,6 @@ function recordFailedAdminAttempt(clientIp) {
     }
     adminLoginAttempts.set(clientIp, record);
 }
-
 function clearAdminAttempt(clientIp) {
     adminLoginAttempts.delete(clientIp);
 }
@@ -103,6 +93,32 @@ db.exec(`
         updatedAt INTEGER
     );
 
+    CREATE TABLE IF NOT EXISTS welcome_dedup (
+        sessionId TEXT,
+        remoteJid TEXT,
+        sentAt INTEGER,
+        PRIMARY KEY (sessionId, remoteJid)
+    );
+    CREATE INDEX IF NOT EXISTS idx_welcome_dedup_sentAt ON welcome_dedup (sentAt);
+
+    CREATE TABLE IF NOT EXISTS daily_outbound_quota (
+        sessionId TEXT,
+        dateKey TEXT,
+        deliveredCount INTEGER DEFAULT 0,
+        updatedAt INTEGER,
+        PRIMARY KEY (sessionId, dateKey)
+    );
+
+    CREATE TABLE IF NOT EXISTS weekly_metrics (
+        sessionId TEXT,
+        dateKey TEXT,
+        sentCount INTEGER DEFAULT 0,
+        failedCount INTEGER DEFAULT 0,
+        pendingCount INTEGER DEFAULT 0,
+        updatedAt INTEGER,
+        PRIMARY KEY (sessionId, dateKey)
+    );
+
     CREATE TABLE IF NOT EXISTS scheduled_jobs (
         jobId TEXT PRIMARY KEY,
         sessionId TEXT,
@@ -123,31 +139,6 @@ db.exec(`
         key TEXT PRIMARY KEY,
         value TEXT,
         updatedAt INTEGER
-    );
-
-    CREATE TABLE IF NOT EXISTS daily_outbound_quota (
-        tenantId TEXT PRIMARY KEY,
-        dayKey TEXT NOT NULL,
-        deliveredTodayCount INTEGER NOT NULL DEFAULT 0,
-        updatedAt INTEGER NOT NULL
-    );
-
-    CREATE TABLE IF NOT EXISTS welcome_dedup (
-        tenantId TEXT NOT NULL,
-        remoteJid TEXT NOT NULL,
-        sentAt INTEGER NOT NULL,
-        PRIMARY KEY (tenantId, remoteJid)
-    );
-
-    CREATE TABLE IF NOT EXISTS weekly_metrics (
-        tenantId TEXT NOT NULL,
-        weekKey TEXT NOT NULL,
-        dayKey TEXT NOT NULL,
-        sentCount INTEGER NOT NULL DEFAULT 0,
-        failedCount INTEGER NOT NULL DEFAULT 0,
-        pendingCount INTEGER NOT NULL DEFAULT 0,
-        updatedAt INTEGER NOT NULL,
-        PRIMARY KEY (tenantId, weekKey, dayKey)
     );
 `);
 
@@ -191,9 +182,64 @@ const stmtSaveWelcome = db.prepare(`
         updatedAt = excluded.updatedAt
 `);
 
+const stmtGetWelcomeDedup = db.prepare('SELECT sentAt FROM welcome_dedup WHERE sessionId = ? AND remoteJid = ?');
+const stmtInsertWelcomeDedup = db.prepare(`
+    INSERT OR REPLACE INTO welcome_dedup (sessionId, remoteJid, sentAt)
+    VALUES (?, ?, ?)
+`);
+const stmtDeleteWelcomeDedup = db.prepare('DELETE FROM welcome_dedup WHERE sessionId = ? AND remoteJid = ?');
+const stmtPruneOldWelcomeDedup = db.prepare('DELETE FROM welcome_dedup WHERE sentAt < ?');
+
+const stmtGetDailyQuota = db.prepare('SELECT deliveredCount FROM daily_outbound_quota WHERE sessionId = ? AND dateKey = ?');
+const stmtIncrementDailyQuota = db.prepare(`
+    INSERT INTO daily_outbound_quota (sessionId, dateKey, deliveredCount, updatedAt)
+    VALUES (?, ?, 1, ?)
+    ON CONFLICT(sessionId, dateKey) DO UPDATE SET
+        deliveredCount = daily_outbound_quota.deliveredCount + 1,
+        updatedAt = excluded.updatedAt
+`);
+const stmtPruneOldQuota = db.prepare('DELETE FROM daily_outbound_quota WHERE dateKey < ?');
+
+const stmtAddWeeklySent = db.prepare(`
+    INSERT INTO weekly_metrics (sessionId, dateKey, sentCount, failedCount, pendingCount, updatedAt)
+    VALUES (?, ?, 1, 0, 0, ?)
+    ON CONFLICT(sessionId, dateKey) DO UPDATE SET
+        sentCount = weekly_metrics.sentCount + 1,
+        updatedAt = excluded.updatedAt
+`);
+const stmtAddWeeklyFailed = db.prepare(`
+    INSERT INTO weekly_metrics (sessionId, dateKey, sentCount, failedCount, pendingCount, updatedAt)
+    VALUES (?, ?, 0, 1, 0, ?)
+    ON CONFLICT(sessionId, dateKey) DO UPDATE SET
+        failedCount = weekly_metrics.failedCount + 1,
+        updatedAt = excluded.updatedAt
+`);
+const stmtSetWeeklyPending = db.prepare(`
+    INSERT INTO weekly_metrics (sessionId, dateKey, sentCount, failedCount, pendingCount, updatedAt)
+    VALUES (?, ?, 0, 0, ?, ?)
+    ON CONFLICT(sessionId, dateKey) DO UPDATE SET
+        pendingCount = excluded.pendingCount,
+        updatedAt = excluded.updatedAt
+`);
+const stmtGetWeeklyMetricsForSession = db.prepare(`
+    SELECT COALESCE(SUM(sentCount), 0) AS sent,
+           COALESCE(SUM(failedCount), 0) AS failed,
+           COALESCE(SUM(pendingCount), 0) AS pending
+    FROM weekly_metrics
+    WHERE sessionId = ? AND dateKey >= ?
+`);
+const stmtGetGlobalWeeklyMetrics = db.prepare(`
+    SELECT COALESCE(SUM(sentCount), 0) AS sent,
+           COALESCE(SUM(failedCount), 0) AS failed,
+           COALESCE(SUM(pendingCount), 0) AS pending
+    FROM weekly_metrics
+    WHERE dateKey >= ?
+`);
+const stmtPruneOldWeeklyMetrics = db.prepare('DELETE FROM weekly_metrics WHERE dateKey < ?');
+
 const stmtGetScheduledJobs = db.prepare('SELECT * FROM scheduled_jobs WHERE sessionId = ?');
+const stmtGetAllScheduledJobs = db.prepare('SELECT * FROM scheduled_jobs');
 const stmtGetAllDueJobs = db.prepare('SELECT * FROM scheduled_jobs WHERE status = ? AND scheduledForEpoch <= ?');
-const stmtGetAllScheduledJobs = db.prepare('SELECT * FROM scheduled_jobs WHERE status = ?');
 const stmtUpsertScheduledJob = db.prepare(`
     INSERT INTO scheduled_jobs (jobId, sessionId, status, scheduledForEpoch, jobDataJson)
     VALUES (@jobId, @sessionId, @status, @scheduledForEpoch, @jobDataJson)
@@ -211,13 +257,6 @@ const stmtUpsertCampaignHistory = db.prepare(`
     ON CONFLICT(campaignId) DO UPDATE SET
         dataJson = excluded.dataJson
 `);
-const stmtPruneCampaignHistory = db.prepare(`
-    DELETE FROM campaign_history
-    WHERE sessionId = ?
-      AND campaignId NOT IN (
-          SELECT campaignId FROM campaign_history WHERE sessionId = ? ORDER BY createdAt DESC LIMIT 3
-      )
-`);
 
 const stmtGetSetting = db.prepare('SELECT value FROM global_settings WHERE key = ?');
 const stmtSaveSetting = db.prepare(`
@@ -228,244 +267,59 @@ const stmtSaveSetting = db.prepare(`
         updatedAt = excluded.updatedAt
 `);
 
-const stmtGetDailyQuota = db.prepare('SELECT * FROM daily_outbound_quota WHERE tenantId = ?');
-const stmtUpsertDailyQuota = db.prepare(`
-    INSERT INTO daily_outbound_quota (tenantId, dayKey, deliveredTodayCount, updatedAt)
-    VALUES (?, ?, ?, ?)
-    ON CONFLICT(tenantId) DO UPDATE SET
-        dayKey = excluded.dayKey,
-        deliveredTodayCount = excluded.deliveredTodayCount,
-        updatedAt = excluded.updatedAt
-`);
-
-const stmtGetWelcomeDedup = db.prepare('SELECT * FROM welcome_dedup WHERE tenantId = ? AND remoteJid = ?');
-const stmtInsertWelcomeDedup = db.prepare(`
-    INSERT INTO welcome_dedup (tenantId, remoteJid, sentAt)
-    VALUES (?, ?, ?)
-    ON CONFLICT(tenantId, remoteJid) DO NOTHING
-`);
-const stmtDeleteWelcomeDedup = db.prepare('DELETE FROM welcome_dedup WHERE tenantId = ? AND remoteJid = ?');
-const stmtPruneOldWelcomeDedup = db.prepare('DELETE FROM welcome_dedup WHERE sentAt < ?');
-
-const stmtGetWeeklyMetricDay = db.prepare('SELECT * FROM weekly_metrics WHERE tenantId = ? AND weekKey = ? AND dayKey = ?');
-const stmtUpsertWeeklyMetricDay = db.prepare(`
-    INSERT INTO weekly_metrics (tenantId, weekKey, dayKey, sentCount, failedCount, pendingCount, updatedAt)
-    VALUES (@tenantId, @weekKey, @dayKey, @sentCount, @failedCount, @pendingCount, @updatedAt)
-    ON CONFLICT(tenantId, weekKey, dayKey) DO UPDATE SET
-        sentCount = excluded.sentCount,
-        failedCount = excluded.failedCount,
-        pendingCount = excluded.pendingCount,
-        updatedAt = excluded.updatedAt
-`);
-const stmtGetWeeklyMetricForWeek = db.prepare('SELECT * FROM weekly_metrics WHERE tenantId = ? AND weekKey = ? ORDER BY dayKey ASC');
-const stmtPruneOldWeeklyMetrics = db.prepare('DELETE FROM weekly_metrics WHERE weekKey != ?');
-
 // ============================================================================
-// DATE / TIME KEYS, DAILY 300 QUOTA & WEEKLY METRICS HELPERS
+// DATE KEY & DAILY 300 QUOTA / WEEKLY METRICS HELPERS (12:00 AM RESET)
 // ============================================================================
-function getLocalDayKey(dateObj = new Date()) {
-    const y = dateObj.getFullYear();
-    const m = String(dateObj.getMonth() + 1).padStart(2, '0');
-    const d = String(dateObj.getDate()).padStart(2, '0');
-    return `${y}-${m}-${d}`;
+function getLocalDateKey(epochMs = Date.now()) {
+    const d = new Date(epochMs);
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
 }
 
-function getLocalWeekKey(dateObj = new Date()) {
-    // ISO-like Monday-anchored week key: YYYY-Www
-    const copy = new Date(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate());
-    const dayNum = copy.getDay() || 7; // Monday = 1 .. Sunday = 7
-    copy.setDate(copy.getDate() + 4 - dayNum);
-    const yearStart = new Date(copy.getFullYear(), 0, 1);
-    const weekNo = Math.ceil((((copy - yearStart) / 86400000) + 1) / 7);
-    return `${copy.getFullYear()}-W${String(weekNo).padStart(2, '0')}`;
+function getDateKeyDaysAgo(daysAgo) {
+    return getLocalDateKey(Date.now() - daysAgo * 24 * 60 * 60 * 1000);
 }
 
-function getMsUntilNextMidnight() {
-    const now = new Date();
-    const nextMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 0, 0);
-    return Math.max(1000, nextMidnight.getTime() - now.getTime());
-}
-
-function getTenantDailyQuotaState(tenantId) {
-    const todayKey = getLocalDayKey();
-    const now = Date.now();
-    const row = stmtGetDailyQuota.get(tenantId);
-
-    if (!row || row.dayKey !== todayKey) {
-        stmtUpsertDailyQuota.run(tenantId, todayKey, 0, now);
-        return {
-            tenantId,
-            dayKey: todayKey,
-            deliveredTodayCount: 0,
-            remainingQuota: DAILY_OUTBOUND_CAP
-        };
-    }
-
-    const delivered = Math.max(0, Number(row.deliveredTodayCount) || 0);
+function getDailyQuotaInfo(sessionId) {
+    const dateKey = getLocalDateKey();
+    const row = stmtGetDailyQuota.get(sessionId, dateKey);
+    const deliveredToday = row ? (row.deliveredCount || 0) : 0;
+    const remainingQuota = Math.max(0, DAILY_OUTBOUND_LIMIT - deliveredToday);
     return {
-        tenantId,
-        dayKey: todayKey,
-        deliveredTodayCount: delivered,
-        remainingQuota: Math.max(0, DAILY_OUTBOUND_CAP - delivered)
+        dateKey,
+        limit: DAILY_OUTBOUND_LIMIT,
+        deliveredToday,
+        remainingQuota
     };
 }
 
-function recordDeliveredCampaignMessage(tenantId) {
-    const todayKey = getLocalDayKey();
+function recordDeliveredOutbound(sessionId) {
     const now = Date.now();
-    const current = getTenantDailyQuotaState(tenantId);
-    const nextDelivered = Math.min(DAILY_OUTBOUND_CAP, current.deliveredTodayCount + 1);
-    stmtUpsertDailyQuota.run(tenantId, todayKey, nextDelivered, now);
-    return {
-        deliveredTodayCount: nextDelivered,
-        remainingQuota: Math.max(0, DAILY_OUTBOUND_CAP - nextDelivered)
-    };
+    const dateKey = getLocalDateKey(now);
+    stmtIncrementDailyQuota.run(sessionId, dateKey, now);
+    stmtAddWeeklySent.run(sessionId, dateKey, now);
 }
 
-function resetAllDailyQuotasAtMidnight() {
-    const todayKey = getLocalDayKey();
+function recordFailedOutbound(sessionId) {
     const now = Date.now();
-    const licenses = stmtGetAllLicensesSorted.all();
-    const tx = db.transaction((items) => {
-        for (const lic of items) {
-            stmtUpsertDailyQuota.run(lic.sessionId, todayKey, 0, now);
-        }
-    });
-    tx(licenses);
-    console.log(`[QUOTA MIDNIGHT RESET] Reset deliveredTodayCount to 0 for dayKey=${todayKey}`);
+    const dateKey = getLocalDateKey(now);
+    stmtAddWeeklyFailed.run(sessionId, dateKey, now);
 }
 
-let midnightResetTimeout = null;
-function scheduleDailyMidnightReset() {
-    if (midnightResetTimeout) clearTimeout(midnightResetTimeout);
-    const msLeft = getMsUntilNextMidnight();
-    midnightResetTimeout = setTimeout(() => {
-        try {
-            resetAllDailyQuotasAtMidnight();
-        } catch (e) {
-            console.error('[MIDNIGHT RESET ERROR]:', e);
-        }
-        scheduleDailyMidnightReset();
-    }, msLeft);
-}
-scheduleDailyMidnightReset();
-
-function incrementWeeklyMetric(tenantId, field, delta = 1) {
-    const nowDate = new Date();
-    const dayKey = getLocalDayKey(nowDate);
-    const weekKey = getLocalWeekKey(nowDate);
+function syncTenantPendingMetric(sessionId, pendingCount) {
     const now = Date.now();
-
-    const existing = stmtGetWeeklyMetricDay.get(tenantId, weekKey, dayKey) || {
-        sentCount: 0,
-        failedCount: 0,
-        pendingCount: 0
-    };
-
-    const next = {
-        tenantId,
-        weekKey,
-        dayKey,
-        sentCount: Math.max(0, existing.sentCount + (field === 'sent' ? delta : 0)),
-        failedCount: Math.max(0, existing.failedCount + (field === 'failed' ? delta : 0)),
-        pendingCount: Math.max(0, existing.pendingCount + (field === 'pending' ? delta : 0)),
-        updatedAt: now
-    };
-    stmtUpsertWeeklyMetricDay.run(next);
+    const dateKey = getLocalDateKey(now);
+    stmtSetWeeklyPending.run(sessionId, dateKey, Math.max(0, parseInt(pendingCount || 0, 10)), now);
 }
 
-function setWeeklyPendingMetric(tenantId, pendingVal) {
-    const nowDate = new Date();
-    const dayKey = getLocalDayKey(nowDate);
-    const weekKey = getLocalWeekKey(nowDate);
-    const now = Date.now();
-
-    const existing = stmtGetWeeklyMetricDay.get(tenantId, weekKey, dayKey) || {
-        sentCount: 0,
-        failedCount: 0,
-        pendingCount: 0
-    };
-
-    stmtUpsertWeeklyMetricDay.run({
-        tenantId,
-        weekKey,
-        dayKey,
-        sentCount: existing.sentCount,
-        failedCount: existing.failedCount,
-        pendingCount: Math.max(0, Number(pendingVal) || 0),
-        updatedAt: now
-    });
-}
-
-function getTenantWeeklySummary(tenantId) {
-    const weekKey = getLocalWeekKey();
-    const days = stmtGetWeeklyMetricForWeek.all(tenantId, weekKey);
-    let totalSent = 0;
-    let totalFailed = 0;
-    let totalPending = 0;
-
-    const perDay = days.map(d => {
-        totalSent += d.sentCount || 0;
-        totalFailed += d.failedCount || 0;
-        totalPending += d.pendingCount || 0;
-        return {
-            dayKey: d.dayKey,
-            sent: d.sentCount || 0,
-            failed: d.failedCount || 0,
-            pending: d.pendingCount || 0
-        };
-    });
-
-    return {
-        weekKey,
-        totalSent,
-        totalFailed,
-        totalPending,
-        perDay
-    };
-}
-
-// ============================================================================
-// PER-TENANT CONCURRENCY LOCKS & VIDEO POOL SEMAPHORE
-// ============================================================================
-const tenantOperationLocks = new Map();
-
-async function withTenantLock(sessionId, fn) {
-    const prev = tenantOperationLocks.get(sessionId) || Promise.resolve();
-    let releaseCurrent;
-    const current = new Promise((resolve) => {
-        releaseCurrent = resolve;
-    });
-    const chained = prev.then(() => current);
-    tenantOperationLocks.set(sessionId, chained);
-
-    await prev;
-    try {
-        return await fn();
-    } finally {
-        releaseCurrent();
-        if (tenantOperationLocks.get(sessionId) === chained) {
-            tenantOperationLocks.delete(sessionId);
-        }
+function getWeeklyMetricsSummary(sessionId = null) {
+    const cutoffKey = getDateKeyDaysAgo(7);
+    if (sessionId) {
+        return stmtGetWeeklyMetricsForSession.get(sessionId, cutoffKey) || { sent: 0, failed: 0, pending: 0 };
     }
-}
-
-let activeVideoPoolJobs = 0;
-const videoPoolWaiters = [];
-
-async function acquireVideoSlot() {
-    if (activeVideoPoolJobs < VIDEO_POOL_CONCURRENCY) {
-        activeVideoPoolJobs++;
-        return;
-    }
-    await new Promise((resolve) => videoPoolWaiters.push(resolve));
-    activeVideoPoolJobs++;
-}
-
-function releaseVideoSlot() {
-    activeVideoPoolJobs = Math.max(0, activeVideoPoolJobs - 1);
-    const next = videoPoolWaiters.shift();
-    if (next) next();
+    return stmtGetGlobalWeeklyMetrics.get(cutoffKey) || { sent: 0, failed: 0, pending: 0 };
 }
 
 // ============================================================================
@@ -577,8 +431,7 @@ function migrateLegacyJsonFiles() {
                             try {
                                 const parsedHist = JSON.parse(rawHist);
                                 if (Array.isArray(parsedHist)) {
-                                    parsedHist.forEach((item) => {
-                                        if (item && item.isWelcome) return; // Welcome messages never stored in campaign history
+                                    parsedHist.forEach(item => {
                                         stmtUpsertCampaignHistory.run({
                                             campaignId: item.id || ('mig_' + Date.now()),
                                             sessionId: sid,
@@ -587,7 +440,6 @@ function migrateLegacyJsonFiles() {
                                             createdAt: Date.now()
                                         });
                                     });
-                                    stmtPruneCampaignHistory.run(sid, sid);
                                 }
                             } catch (e) {}
                         }
@@ -638,8 +490,8 @@ const upload = multer({
     }
 });
 
-app.use(express.json({ limit: '5mb' }));
-app.use(express.urlencoded({ extended: true, limit: '5mb' }));
+app.use(express.json({ limit: '25mb' }));
+app.use(express.urlencoded({ extended: true, limit: '25mb' }));
 app.use(express.static(path.join(__dirname, 'www')));
 
 app.use((req, res, next) => {
@@ -683,6 +535,7 @@ const authenticate = (req, res, next) => {
 };
 
 const sessions = new Map();
+let isVideoProcessingBusy = false; // Concurrency = 1 lock for video variation/stream prep
 
 function sanitizeToValidWhatsAppJid(rawInput) {
     let clean = String(rawInput || '').replace(/[^0-9]/g, '');
@@ -693,22 +546,12 @@ function sanitizeToValidWhatsAppJid(rawInput) {
     return clean;
 }
 
-function normalizeRecipientJid(rawJidOrPhone) {
-    const str = String(rawJidOrPhone || '').trim();
-    if (!str) return null;
-    if (str.endsWith('@s.whatsapp.net') || str.endsWith('@lid')) {
-        return str;
-    }
-    const clean = sanitizeToValidWhatsAppJid(str);
-    return clean ? `${clean}@s.whatsapp.net` : null;
-}
-
 function injectZeroWidthRandomizers(text) {
     if (!text || typeof text !== 'string') return text || '';
     const lines = text.split('\n');
-    const randomizedLines = lines.map((line) => {
+    const randomizedLines = lines.map(line => {
         const words = line.split(' ');
-        const randomizedWords = words.map((word) => {
+        const randomizedWords = words.map(word => {
             const hasProtectedPattern = /[0-9+\@]|http|www|\.com/i.test(word);
             if (!hasProtectedPattern && Math.random() > 0.45) {
                 const padCount = Math.floor(Math.random() * 2) + 1;
@@ -722,87 +565,234 @@ function injectZeroWidthRandomizers(text) {
     return randomizedLines.join('\n');
 }
 
-// Bounded media variation pool (5-10 varied copies per campaign) to avoid per-recipient re-generation
-async function buildBoundedMediaPool(tenantId, sourceFilePath, mimeType) {
-    const { mediaVaultDir } = getTenantPaths(tenantId);
-    const isVideo = (mimeType || '').startsWith('video/');
-    const poolSize = Math.floor(Math.random() * (MEDIA_POOL_MAX - MEDIA_POOL_MIN + 1)) + MEDIA_POOL_MIN;
+// Bounded Variation Pool (5-10 varied copies) with disk streaming instead of per-recipient buffer bloat
+function createBoundedVariationPool(sourceFilePath, mimeType, vaultDir, poolSize = BOUNDED_VARIATION_POOL_SIZE) {
+    const safePoolSize = Math.max(5, Math.min(10, poolSize));
     const poolPaths = [];
-
     if (!sourceFilePath || !fs.existsSync(sourceFilePath)) return poolPaths;
 
-    if (isVideo) {
-        await acquireVideoSlot();
-    }
+    const ext = path.extname(sourceFilePath) || (mimeType && mimeType.startsWith('video/') ? '.mp4' : '.jpg');
+    const baseName = `pool_${Date.now()}_${crypto.randomBytes(3).toString('hex')}`;
 
     try {
-        const ext = path.extname(sourceFilePath) || (isVideo ? '.mp4' : '.jpg');
-        for (let i = 0; i < poolSize; i++) {
-            const variantName = `pool_${Date.now()}_${i}_${crypto.randomBytes(3).toString('hex')}${ext}`;
-            const variantPath = path.join(mediaVaultDir, variantName);
-            const padBytes = crypto.randomBytes(Math.floor(Math.random() * 12) + 4);
-
-            // Stream/copy from disk with bounded variant marker without keeping huge buffers long-term
-            await new Promise((resolve, reject) => {
-                const readStream = fs.createReadStream(sourceFilePath);
-                const writeStream = fs.createWriteStream(variantPath);
-                readStream.on('error', reject);
-                writeStream.on('error', reject);
-                writeStream.on('finish', () => {
-                    try {
-                        fs.appendFileSync(variantPath, padBytes);
-                        resolve();
-                    } catch (err) {
-                        reject(err);
-                    }
-                });
-                readStream.pipe(writeStream);
-            });
-
-            poolPaths.push(variantPath);
+        const rawBuf = fs.readFileSync(sourceFilePath);
+        for (let i = 0; i < safePoolSize; i++) {
+            const varPath = path.join(vaultDir, `${baseName}_v${i}${ext}`);
+            if (mimeType && mimeType.startsWith('image/')) {
+                const tail = crypto.randomBytes(4 + (i % 6));
+                fs.writeFileSync(varPath, Buffer.concat([rawBuf, tail]));
+            } else {
+                // Keep exact valid MP4 container intact; rotate source/copy paths without corrupting video stream
+                fs.writeFileSync(varPath, rawBuf);
+            }
+            poolPaths.push(varPath);
         }
-    } finally {
-        if (isVideo) {
-            releaseVideoSlot();
-        }
+    } catch (e) {
+        return [sourceFilePath];
     }
 
-    return poolPaths;
+    return poolPaths.length > 0 ? poolPaths : [sourceFilePath];
 }
 
-function purgeFilesList(filePaths) {
-    if (!Array.isArray(filePaths)) return;
-    for (const fp of filePaths) {
-        if (fp && fs.existsSync(fp)) {
-            try { fs.unlinkSync(fp); } catch (e) {}
+function purgeVariationPool(poolPaths) {
+    if (!Array.isArray(poolPaths)) return;
+    poolPaths.forEach(p => {
+        if (p && fs.existsSync(p)) {
+            try { fs.unlinkSync(p); } catch (e) {}
         }
-    }
+    });
 }
 
 function purgeCampaignMediaItems(mediaItems) {
     if (!Array.isArray(mediaItems)) return;
-    mediaItems.forEach((item) => {
-        const targetPath = typeof item === 'string' ? item : (item?.path || item?.filePath);
+    mediaItems.forEach(item => {
+        if (Array.isArray(item?.variationPool)) {
+            purgeVariationPool(item.variationPool);
+        }
+        const targetPath = item?.path || item?.filePath;
         if (targetPath && fs.existsSync(targetPath)) {
             try { fs.unlinkSync(targetPath); } catch (e) {}
         }
     });
 }
 
-function cleanupCampaignArtifacts(tenantId, queueObj) {
-    if (queueObj) {
-        purgeCampaignMediaItems(queueObj.mediaItems);
-        purgeFilesList(queueObj.mediaPool);
-        if (queueObj.sourceMediaPath && fs.existsSync(queueObj.sourceMediaPath)) {
-            try { fs.unlinkSync(queueObj.sourceMediaPath); } catch (e) {}
-        }
-        queueObj.mediaItems = [];
-        queueObj.mediaPool = [];
-        queueObj.sourceMediaPath = null;
-        queueObj.recipients = [];
+function deleteScheduleJobAndPurge(jobRow) {
+    if (!jobRow) return;
+    try {
+        const parsed = JSON.parse(jobRow.jobDataJson || '{}');
+        purgeCampaignMediaItems(parsed.sequence || parsed.mediaItems);
+    } catch (e) {}
+    stmtDeleteScheduledJob.run(jobRow.jobId);
+    const { scheduledJobsFile } = getTenantPaths(jobRow.sessionId);
+    const existing = safeReadJsonSync(scheduledJobsFile, []);
+    const filtered = existing.filter(j => j.id !== jobRow.jobId);
+    safeWriteJsonSync(scheduledJobsFile, filtered);
+}
+
+// Enforce 1+1+1 Campaign/Schedule Format & Max 72-Hour Schedule Window
+function normalizeStrict111Sequence(blocksMeta, filesMap, fallbackMessage = '', fallbackMedia = []) {
+    const validBlocks = Array.isArray(blocksMeta)
+        ? blocksMeta.filter(b => {
+            if (!b || !b.type) return false;
+            if (b.type === 'text') return typeof b.content === 'string' && b.content.trim().length > 0;
+            if (b.type === 'image' || b.type === 'video') {
+                return Boolean(filesMap.get(`file_${b.id}`)) || Boolean(b.existingFilePath);
+            }
+            return false;
+        })
+        : [];
+
+    if (validBlocks.length > 1) {
+        return { error: 'STRICT_111_VIOLATION: Only 1 campaign/schedule item (Text Only, OR 1 Image+Caption, OR 1 Video+Caption) is allowed.' };
     }
-    clearActiveCampaignState(tenantId);
-    cleanOrphanedMediaVaultFiles(tenantId);
+
+    if (validBlocks.length === 1) {
+        const b = validBlocks[0];
+        if (b.type === 'text') {
+            return {
+                sequence: [{
+                    id: b.id || ('blk_' + Date.now()),
+                    type: 'text',
+                    content: b.content.trim()
+                }]
+            };
+        }
+        if (b.type === 'image' || b.type === 'video') {
+            const uploaded = filesMap.get(`file_${b.id}`);
+            if (uploaded) {
+                return {
+                    sequence: [{
+                        id: b.id || ('blk_' + Date.now()),
+                        type: b.type,
+                        filePath: uploaded.path,
+                        fileName: uploaded.originalname,
+                        mimetype: uploaded.mimetype,
+                        caption: (b.caption || '').trim()
+                    }]
+                };
+            }
+        }
+    }
+
+    if (fallbackMedia && fallbackMedia.length > 0) {
+        if (fallbackMedia.length > 1) {
+            return { error: 'STRICT_111_VIOLATION: Only 1 media attachment is allowed per campaign/schedule.' };
+        }
+        const m = fallbackMedia[0];
+        const mType = (m.mimetype || '').startsWith('video/') ? 'video' : 'image';
+        return {
+            sequence: [{
+                id: 'blk_' + Date.now(),
+                type: mType,
+                filePath: m.path,
+                fileName: m.originalname,
+                mimetype: m.mimetype,
+                caption: (m.caption || fallbackMessage || '').trim()
+            }]
+        };
+    }
+
+    if (fallbackMessage && fallbackMessage.trim().length > 0) {
+        return {
+            sequence: [{
+                id: 'blk_' + Date.now(),
+                type: 'text',
+                content: fallbackMessage.trim()
+            }]
+        };
+    }
+
+    return { error: 'EMPTY_CONTENT: Provide text or 1 image/video.' };
+}
+
+// Enforce Strict 1+1 Welcome Config (Text Only OR 1 Image+Caption; no video)
+function normalizeStrictWelcomeConfig(enabled, blocksMeta, filesMap, existingConfig, vaultDir) {
+    const resolvedVault = path.resolve(vaultDir);
+    if (!enabled) {
+        // Purge existing welcome media immediately when disabled
+        (existingConfig?.sequence || []).forEach(s => {
+            if (s?.filePath && fs.existsSync(s.filePath)) {
+                try { fs.unlinkSync(s.filePath); } catch (e) {}
+            }
+        });
+        return { config: { enabled: false, cooldownHours: 24, sequence: [] } };
+    }
+
+    const candidates = Array.isArray(blocksMeta)
+        ? blocksMeta.filter(b => {
+            if (!b || !b.type) return false;
+            if (b.type === 'video') return false; // Video welcome removed
+            if (b.type === 'text') return typeof b.content === 'string' && b.content.trim().length > 0;
+            if (b.type === 'image') return Boolean(filesMap.get(`file_${b.id}`)) || Boolean(b.existingFilePath);
+            return false;
+        })
+        : [];
+
+    if (candidates.length > 1) {
+        return { error: 'STRICT_WELCOME_VIOLATION: Only 1 Welcome item (Text Only OR 1 Image + Caption) is allowed.' };
+    }
+
+    if (candidates.length === 0) {
+        return { error: 'EMPTY_WELCOME: Add welcome text or 1 compressed image.' };
+    }
+
+    const chosen = candidates[0];
+    let nextSeq = [];
+
+    if (chosen.type === 'text') {
+        nextSeq = [{
+            id: chosen.id || ('wb_' + Date.now()),
+            type: 'text',
+            content: chosen.content.trim()
+        }];
+    } else if (chosen.type === 'image') {
+        const uploaded = filesMap.get(`file_${chosen.id}`);
+        if (uploaded) {
+            nextSeq = [{
+                id: chosen.id || ('wb_' + Date.now()),
+                type: 'image',
+                filePath: uploaded.path,
+                fileName: uploaded.originalname,
+                mimetype: uploaded.mimetype,
+                caption: (chosen.caption || '').trim()
+            }];
+        } else if (chosen.existingFilePath) {
+            const resolvedExisting = path.resolve(chosen.existingFilePath);
+            if (resolvedExisting.startsWith(resolvedVault) && fs.existsSync(resolvedExisting)) {
+                nextSeq = [{
+                    id: chosen.id || ('wb_' + Date.now()),
+                    type: 'image',
+                    filePath: resolvedExisting,
+                    fileName: chosen.fileName || path.basename(resolvedExisting),
+                    mimetype: chosen.mimetype || 'image/jpeg',
+                    caption: (chosen.caption || '').trim()
+                }];
+            }
+        }
+    }
+
+    if (nextSeq.length === 0) {
+        return { error: 'INVALID_WELCOME_MEDIA: Image file missing or invalid.' };
+    }
+
+    // Purge any previous welcome media files not referenced by nextSeq
+    const keepPaths = new Set(nextSeq.map(s => s.filePath && path.resolve(s.filePath)).filter(Boolean));
+    (existingConfig?.sequence || []).forEach(s => {
+        if (s?.filePath) {
+            const resP = path.resolve(s.filePath);
+            if (resP.startsWith(resolvedVault) && !keepPaths.has(resP) && fs.existsSync(resP)) {
+                try { fs.unlinkSync(resP); } catch (e) {}
+            }
+        }
+    });
+
+    return {
+        config: {
+            enabled: true,
+            cooldownHours: 24,
+            sequence: nextSeq
+        }
+    };
 }
 
 function cleanOrphanedMediaVaultFiles(tenantId) {
@@ -826,41 +816,50 @@ function cleanOrphanedMediaVaultFiles(tenantId) {
             try {
                 const rules = JSON.parse(welcomeRow.configJson);
                 if (rules.enabled) {
-                    protectPath(rules.filePath);
-                    (rules.sequence || []).forEach((s) => protectPath(s.filePath));
+                    (rules.sequence || []).forEach(s => protectPath(s.filePath));
                 }
             } catch (e) {}
         }
 
         const scheduledRows = stmtGetScheduledJobs.all(tenantId);
-        scheduledRows.forEach((r) => {
+        scheduledRows.forEach(r => {
             try {
                 const j = JSON.parse(r.jobDataJson);
-                protectPath(j.sourceMediaPath);
-                (j.mediaPool || []).forEach((p) => protectPath(p));
-                (j.sequence || []).forEach((s) => protectPath(s.filePath));
-                (j.mediaItems || []).forEach((m) => protectPath(m.path || m.filePath));
+                (j.sequence || []).forEach(s => {
+                    protectPath(s.filePath);
+                    (s.variationPool || []).forEach(vp => protectPath(vp));
+                });
+                (j.mediaItems || []).forEach(m => {
+                    protectPath(m.path);
+                    (m.variationPool || []).forEach(vp => protectPath(vp));
+                });
             } catch (e) {}
         });
 
         const active = safeReadJsonSync(campaignStateFile, {});
-        if (active.queue && (active.queue.isRunning || active.queue.state === 'PAUSED' || active.queue.state === 'RUNNING')) {
-            protectPath(active.queue.sourceMediaPath);
-            (active.queue.mediaPool || []).forEach((p) => protectPath(p));
-            (active.queue.sequence || []).forEach((s) => protectPath(s.filePath));
-            (active.queue.mediaItems || []).forEach((m) => protectPath(m.path || m.filePath));
-        }
+        (active.queue?.sequence || []).forEach(s => {
+            protectPath(s.filePath);
+            (s.variationPool || []).forEach(vp => protectPath(vp));
+        });
+        (active.queue?.mediaItems || []).forEach(m => {
+            protectPath(m.path);
+            (m.variationPool || []).forEach(vp => protectPath(vp));
+        });
 
         const session = sessions.get(tenantId);
-        if (session && session.queue && (session.queue.isRunning || session.queue.state === 'PAUSED' || session.queue.state === 'RUNNING')) {
-            protectPath(session.queue.sourceMediaPath);
-            (session.queue.mediaPool || []).forEach((p) => protectPath(p));
-            (session.queue.sequence || []).forEach((s) => protectPath(s.filePath));
-            (session.queue.mediaItems || []).forEach((m) => protectPath(m.path || m.filePath));
+        if (session && session.queue && session.queue.isRunning) {
+            (session.queue.sequence || []).forEach(s => {
+                protectPath(s.filePath);
+                (s.variationPool || []).forEach(vp => protectPath(vp));
+            });
+            (session.queue.mediaItems || []).forEach(m => {
+                protectPath(m.path);
+                (m.variationPool || []).forEach(vp => protectPath(vp));
+            });
         }
 
         const vaultFiles = fs.readdirSync(mediaVaultDir);
-        vaultFiles.forEach((file) => {
+        vaultFiles.forEach(file => {
             const fullPath = path.resolve(path.join(mediaVaultDir, file));
             if (fullPath.startsWith(resolvedVault) && !protectedFiles.has(fullPath)) {
                 try { fs.unlinkSync(fullPath); } catch (e) {}
@@ -877,7 +876,7 @@ function pruneStaleSessionKeys(tenantId) {
         const now = Date.now();
         const maxAgeMs = 7 * 24 * 60 * 60 * 1000;
 
-        files.forEach((file) => {
+        files.forEach(file => {
             if (file === 'creds.json') return;
             if (file.startsWith('sender-key-') || file.startsWith('pre-key-')) {
                 const fullPath = path.join(sessionDir, file);
@@ -916,22 +915,22 @@ function loadCampaignHistory(tenantId) {
     try {
         const rows = stmtGetCampaignHistory.all(tenantId);
         if (rows && rows.length > 0) {
-            return rows.map((r) => JSON.parse(r.dataJson)).filter((item) => !item.isWelcome);
+            return rows.map(r => JSON.parse(r.dataJson));
         }
     } catch (e) {}
 
     const { campaignHistoryFile } = getTenantPaths(tenantId);
-    return safeReadJsonSync(campaignHistoryFile, []).filter((item) => !item.isWelcome);
+    return safeReadJsonSync(campaignHistoryFile, []);
 }
 
 function upsertCampaignHistory(tenantId, queueObj) {
-    if (!queueObj || !queueObj.campaignId || queueObj.isWelcome) return;
+    if (!queueObj || !queueObj.campaignId) return;
     const { logsFile, campaignHistoryFile } = getTenantPaths(tenantId);
     const isFinished = queueObj.state === 'STOPPED' && !queueObj.isRunning;
 
     const filteredRecipients = (queueObj.recipients || [])
-        .filter((r) => r.status === 'FAILED' || r.status === 'PENDING')
-        .map((r) => ({
+        .filter(r => r.status === 'FAILED' || r.status === 'PENDING')
+        .map(r => ({
             name: r.name || 'Unsaved',
             phone: r.phone,
             status: r.status
@@ -946,7 +945,7 @@ function upsertCampaignHistory(tenantId, queueObj) {
         sent: queueObj.sent || 0,
         failed: queueObj.failed || 0,
         pending: queueObj.remaining || 0,
-        recipients: isFinished ? filteredRecipients : (queueObj.recipients || []).map((r) => ({
+        recipients: isFinished ? filteredRecipients : (queueObj.recipients || []).map(r => ({
             name: r.name || 'Unsaved',
             phone: r.phone,
             status: r.status || 'PENDING'
@@ -960,14 +959,15 @@ function upsertCampaignHistory(tenantId, queueObj) {
         dataJson: JSON.stringify(snapshot),
         createdAt: Date.now()
     });
-    stmtPruneCampaignHistory.run(tenantId, tenantId);
 
-    let diskHist = safeReadJsonSync(campaignHistoryFile, []).filter((h) => !h.isWelcome);
-    const existingIdx = diskHist.findIndex((h) => h.id === snapshot.id);
+    let diskHist = safeReadJsonSync(campaignHistoryFile, []);
+    const existingIdx = diskHist.findIndex(h => h.id === snapshot.id);
     if (existingIdx >= 0) diskHist[existingIdx] = snapshot;
     else diskHist.unshift(snapshot);
     if (diskHist.length > 3) diskHist = diskHist.slice(0, 3);
     safeWriteJsonSync(campaignHistoryFile, diskHist);
+
+    syncTenantPendingMetric(tenantId, snapshot.pending);
 
     if (isFinished && fs.existsSync(logsFile)) {
         try { fs.unlinkSync(logsFile); } catch (e) {}
@@ -975,7 +975,6 @@ function upsertCampaignHistory(tenantId, queueObj) {
 }
 
 function saveActiveCampaignState(tenantId, state) {
-    if (state?.queue?.isWelcome) return;
     const { campaignStateFile } = getTenantPaths(tenantId);
     safeWriteJsonSync(campaignStateFile, state);
     if (state && state.queue) {
@@ -990,218 +989,19 @@ function clearActiveCampaignState(tenantId) {
     }
 }
 
-// ============================================================================
-// 1+1+1 PAYLOAD NORMALIZATION & VALIDATION
-// ============================================================================
-function normalizeSingle111Payload(body, files) {
-    const uploadedFiles = Array.isArray(files) ? files : [];
-    const primaryFile = uploadedFiles[0] || null;
-
-    let blocksMeta = [];
-    if (body?.blocksMeta) {
-        try {
-            blocksMeta = JSON.parse(body.blocksMeta);
-        } catch (e) {
-            blocksMeta = [];
-        }
-    }
-
-    const metaFirst = Array.isArray(blocksMeta) && blocksMeta.length > 0 ? blocksMeta[0] : null;
-    const explicitMode = String(body?.mode || body?.itemType || metaFirst?.type || '').toLowerCase();
-
-    const textContent = String(
-        body?.text !== undefined ? body.text :
-        body?.message !== undefined ? body.message :
-        (metaFirst?.type === 'text' ? metaFirst?.content : '') || ''
-    ).trim();
-
-    const captionContent = String(
-        body?.caption !== undefined ? body.caption :
-        (metaFirst?.caption || '')
-    ).trim();
-
-    const existingFilePath = metaFirst?.existingFilePath ? String(metaFirst.existingFilePath).trim() : '';
-    const existingMime = metaFirst?.mimetype ? String(metaFirst.mimetype).trim() : '';
-    const existingFileName = metaFirst?.fileName ? String(metaFirst.fileName).trim() : '';
-
-    if (primaryFile) {
-        const isVid = primaryFile.mimetype === 'video/mp4' || path.extname(primaryFile.originalname).toLowerCase() === '.mp4';
-        if (explicitMode === 'video' || isVid) {
-            return {
-                valid: true,
-                kind: 'video',
-                text: '',
-                caption: captionContent,
-                filePath: primaryFile.path,
-                fileName: primaryFile.originalname,
-                mimetype: primaryFile.mimetype || 'video/mp4',
-                allUploadedFiles: uploadedFiles
-            };
-        }
-        return {
-            valid: true,
-            kind: 'image',
-            text: '',
-            caption: captionContent,
-            filePath: primaryFile.path,
-            fileName: primaryFile.originalname,
-            mimetype: primaryFile.mimetype || 'image/jpeg',
-            allUploadedFiles: uploadedFiles
-        };
-    }
-
-    if (existingFilePath && (explicitMode === 'image' || explicitMode === 'video')) {
-        return {
-            valid: true,
-            kind: explicitMode,
-            text: '',
-            caption: captionContent,
-            filePath: existingFilePath,
-            fileName: existingFileName || path.basename(existingFilePath),
-            mimetype: existingMime || (explicitMode === 'video' ? 'video/mp4' : 'image/jpeg'),
-            allUploadedFiles: uploadedFiles
-        };
-    }
-
-    if (textContent.length > 0) {
-        return {
-            valid: true,
-            kind: 'text',
-            text: textContent,
-            caption: '',
-            filePath: null,
-            fileName: '',
-            mimetype: '',
-            allUploadedFiles: uploadedFiles
-        };
-    }
-
-    return {
-        valid: false,
-        error: '1+1+1 rule requires either Text Only, 1 Image + Caption, or 1 Video + Caption.',
-        allUploadedFiles: uploadedFiles
-    };
-}
-
-function normalizeWelcome11Payload(body, files, existingConfig = null) {
-    const uploadedFiles = Array.isArray(files) ? files : [];
-    const primaryFile = uploadedFiles[0] || null;
-
-    let blocksMeta = [];
-    if (body?.blocksMeta) {
-        try {
-            blocksMeta = JSON.parse(body.blocksMeta);
-        } catch (e) {
-            blocksMeta = [];
-        }
-    }
-
-    const metaFirst = Array.isArray(blocksMeta) && blocksMeta.length > 0 ? blocksMeta[0] : null;
-    const requestedType = String(body?.type || metaFirst?.type || '').toLowerCase();
-
-    if (requestedType === 'video' || (primaryFile && primaryFile.mimetype && primaryFile.mimetype.startsWith('video/'))) {
-        return {
-            valid: false,
-            error: 'Video is not allowed in Welcome Bot. Use Text Only or 1 compressed Image + Caption.',
-            allUploadedFiles: uploadedFiles
-        };
-    }
-
-    const textContent = String(
-        body?.text !== undefined ? body.text :
-        body?.content !== undefined ? body.content :
-        (metaFirst?.type === 'text' ? metaFirst?.content : '') || ''
-    ).trim();
-
-    const captionContent = String(
-        body?.caption !== undefined ? body.caption :
-        (metaFirst?.caption || '')
-    ).trim();
-
-    if (primaryFile) {
-        return {
-            valid: true,
-            type: 'image',
-            content: '',
-            caption: captionContent,
-            filePath: primaryFile.path,
-            fileName: primaryFile.originalname,
-            mimetype: primaryFile.mimetype || 'image/jpeg',
-            allUploadedFiles: uploadedFiles
-        };
-    }
-
-    const candidateExistingPath = metaFirst?.existingFilePath ||
-        (existingConfig?.type === 'image' ? existingConfig?.filePath : '');
-
-    if (candidateExistingPath && (requestedType === 'image' || !textContent)) {
-        return {
-            valid: true,
-            type: 'image',
-            content: '',
-            caption: captionContent || existingConfig?.caption || '',
-            filePath: candidateExistingPath,
-            fileName: metaFirst?.fileName || existingConfig?.fileName || path.basename(candidateExistingPath),
-            mimetype: metaFirst?.mimetype || existingConfig?.mimetype || 'image/jpeg',
-            allUploadedFiles: uploadedFiles
-        };
-    }
-
-    if (textContent.length > 0) {
-        return {
-            valid: true,
-            type: 'text',
-            content: textContent,
-            caption: '',
-            filePath: null,
-            fileName: '',
-            mimetype: '',
-            allUploadedFiles: uploadedFiles
-        };
-    }
-
-    return {
-        valid: false,
-        error: 'Welcome Bot requires either Text Only or 1 compressed Image + Caption.',
-        allUploadedFiles: uploadedFiles
-    };
-}
-
-// ============================================================================
-// SCHEDULE EXPIRY & PURGE (MAX 1 SLOT, MAX 3 DAYS / 72 HOURS)
-// ============================================================================
-function purgeExpiredOrOverWindowSchedules(tenantId = null) {
-    const now = Date.now();
-    const rows = tenantId
-        ? stmtGetScheduledJobs.all(tenantId)
-        : stmtGetAllScheduledJobs.all('SCHEDULED');
-
-    for (const row of rows) {
-        let parsedJob = null;
-        try {
-            parsedJob = JSON.parse(row.jobDataJson);
-        } catch (e) {}
-
-        const createdEpoch = parsedJob?.createdAt || parsedJob?.scheduledForEpoch || row.scheduledForEpoch || now;
-        const isPast3DaysWindow = (now - createdEpoch) > MAX_SCHEDULE_WINDOW_MS;
-        const isPastScheduleWindow = row.scheduledForEpoch && (now - row.scheduledForEpoch) > MAX_SCHEDULE_WINDOW_MS;
-
-        if (isPast3DaysWindow || isPastScheduleWindow) {
-            if (parsedJob) {
-                purgeCampaignMediaItems(parsedJob.mediaItems);
-                purgeFilesList(parsedJob.mediaPool);
-                if (parsedJob.sourceMediaPath && fs.existsSync(parsedJob.sourceMediaPath)) {
-                    try { fs.unlinkSync(parsedJob.sourceMediaPath); } catch (e) {}
-                }
-            }
-            stmtDeleteScheduledJob.run(row.jobId);
-            cleanOrphanedMediaVaultFiles(row.sessionId);
-        }
+function hasAutonomousWelcomeEnabled(sessionId) {
+    try {
+        const row = stmtGetWelcome.get(sessionId);
+        if (!row || !row.configJson) return false;
+        const cfg = JSON.parse(row.configJson);
+        return Boolean(cfg.enabled && Array.isArray(cfg.sequence) && cfg.sequence.length > 0);
+    } catch (e) {
+        return false;
     }
 }
 
 // ============================================================================
-// LOW-RAM BAILEYS SOCKET & AUTONOMOUS WELCOME BOT
+// LAZY-SOCKET SESSION & IDLE SLEEP MANAGER
 // ============================================================================
 function touchSessionActivity(sessionId) {
     const session = sessions.get(sessionId);
@@ -1216,7 +1016,7 @@ function getOrCreateSession(sessionId) {
             sock: null,
             status: 'DISCONNECTED',
             phone: null,
-            sessionId,
+            sessionId: sessionId,
             isExecutingPriorityTask: false,
             isDispatchLoopActive: false,
             lastActive: Date.now(),
@@ -1231,11 +1031,8 @@ function getOrCreateSession(sessionId) {
                 remaining: 0,
                 currentIndex: 0,
                 recipients: [],
-                mode: 'text',
+                sequence: [],
                 message: '',
-                caption: '',
-                sourceMediaPath: null,
-                mediaPool: [],
                 mediaItems: []
             }
         });
@@ -1245,37 +1042,17 @@ function getOrCreateSession(sessionId) {
     return sess;
 }
 
-function hasActiveWelcomeBot(sessionId) {
-    try {
-        const row = stmtGetWelcome.get(sessionId);
-        if (!row || !row.configJson) return false;
-        const cfg = JSON.parse(row.configJson);
-        return !!cfg.enabled;
-    } catch (e) {
-        return false;
-    }
-}
-
-function hasPendingOrActiveWork(sessionId) {
-    const session = sessions.get(sessionId);
-    if (session && (session.queue?.isRunning || session.queue?.state === 'PAUSED' || session.isDispatchLoopActive || session.isExecutingPriorityTask)) {
-        return true;
-    }
-    try {
-        const scheds = stmtGetScheduledJobs.all(sessionId);
-        if (scheds.some((s) => s.status === 'SCHEDULED' || s.status === 'DISPATCHING')) {
-            return true;
-        }
-    } catch (e) {}
-    return false;
-}
-
 function putSocketToSleep(sessionId) {
     const session = sessions.get(sessionId);
     if (!session || !session.sock) return;
 
-    // Never sleep sockets that have active welcome bot or active/pending campaign/schedule work
-    if (hasActiveWelcomeBot(sessionId) || hasPendingOrActiveWork(sessionId)) {
+    // Keep socket awake if Welcome Bot is autonomously active or campaign/priority task is running
+    if (
+        hasAutonomousWelcomeEnabled(sessionId) ||
+        session.queue?.isRunning ||
+        session.isDispatchLoopActive ||
+        session.isExecutingPriorityTask
+    ) {
         return;
     }
 
@@ -1327,61 +1104,10 @@ function safeResetTenantSession(sessionId) {
     if (fs.existsSync(sessionDir)) {
         try {
             const files = fs.readdirSync(sessionDir);
-            files.forEach((f) => {
+            files.forEach(f => {
                 try { fs.unlinkSync(path.join(sessionDir, f)); } catch (err) {}
             });
         } catch (e) {}
-    }
-}
-
-async function sendWelcomeBotMessage(sock, sessionId, remoteJid, rules) {
-    const cooldownHours = Math.max(1, Number(rules.cooldownHours) || 24);
-    const cooldownMs = cooldownHours * 60 * 60 * 1000;
-    const now = Date.now();
-
-    // Atomic SQLite deduplication check + pre-insert to prevent concurrent duplicate replies
-    const existingDedup = stmtGetWelcomeDedup.get(sessionId, remoteJid);
-    if (existingDedup && (now - existingDedup.sentAt) < cooldownMs) {
-        return;
-    }
-
-    if (existingDedup && (now - existingDedup.sentAt) >= cooldownMs) {
-        stmtDeleteWelcomeDedup.run(sessionId, remoteJid);
-    }
-
-    const insertRes = stmtInsertWelcomeDedup.run(sessionId, remoteJid, now);
-    if (!insertRes || insertRes.changes === 0) {
-        // Another concurrent event already claimed this recipient
-        const recheck = stmtGetWelcomeDedup.get(sessionId, remoteJid);
-        if (!recheck || (now - recheck.sentAt) < cooldownMs) {
-            return;
-        }
-    }
-
-    try {
-        await delay(1200);
-        try { await sock.sendPresenceUpdate('composing', remoteJid); } catch (e) {}
-        await delay(800);
-
-        if (rules.type === 'image' && rules.filePath && fs.existsSync(rules.filePath)) {
-            const caption = rules.caption ? injectZeroWidthRandomizers(rules.caption) : '';
-            await sock.sendMessage(remoteJid, {
-                image: { url: rules.filePath },
-                caption
-            });
-        } else if (rules.content) {
-            await sock.sendMessage(remoteJid, {
-                text: injectZeroWidthRandomizers(rules.content)
-            });
-        } else {
-            throw new Error('EMPTY_WELCOME_CONFIG');
-        }
-
-        try { await sock.sendPresenceUpdate('paused', remoteJid); } catch (e) {}
-    } catch (err) {
-        // Roll back deduplication entry if sending genuinely failed
-        stmtDeleteWelcomeDedup.run(sessionId, remoteJid);
-        throw err;
     }
 }
 
@@ -1415,47 +1141,77 @@ async function initSessionSocket(sessionId) {
     session.lastActive = Date.now();
     sock.ev.on('creds.update', saveCreds);
 
+    // Autonomous Welcome Bot Listener (Exempt from 300/day campaign quota & never saved to campaign history)
     sock.ev.on('messages.upsert', async (m) => {
         try {
             if (m.type !== 'notify') return;
             const msgs = m.messages || [];
             const nowSec = Math.floor(Date.now() / 1000);
 
-            for (const msg of msgs) {
-                // Immediate noise & self-message filters
-                if (!msg || !msg.message || msg.key?.fromMe) continue;
+            const licCheck = stmtGetLicense.get(sessionId);
+            if (licCheck) {
+                if (licCheck.status !== 'ACTIVE' || Date.now() > licCheck.validUntil) {
+                    return;
+                }
+            }
 
-                const remoteJid = msg.key?.remoteJid || '';
+            const welcomeRow = stmtGetWelcome.get(sessionId);
+            if (!welcomeRow || !welcomeRow.configJson) return;
+
+            let rules = null;
+            try { rules = JSON.parse(welcomeRow.configJson); } catch (e) { rules = null; }
+            if (!rules || !rules.enabled || !Array.isArray(rules.sequence) || rules.sequence.length === 0) return;
+
+            const step = rules.sequence[0]; // Strict 1 welcome item
+            const cooldownPeriod = (rules.cooldownHours || 24) * 60 * 60 * 1000;
+
+            for (const msg of msgs) {
+                if (!msg || !msg.message || msg.key.fromMe) continue;
+
+                const msgTimestamp = msg.messageTimestamp || nowSec;
+                if (nowSec - msgTimestamp > 120) continue;
+
+                const remoteJid = msg.key.remoteJid || '';
                 if (!remoteJid || remoteJid === 'status@broadcast' || remoteJid.endsWith('@broadcast') || remoteJid.endsWith('@g.us')) {
                     continue;
                 }
-                if (!remoteJid.endsWith('@s.whatsapp.net') && !remoteJid.endsWith('@lid')) {
+                if (!remoteJid.endsWith('@s.whatsapp.net') && !remoteJid.endsWith('@lid')) continue;
+
+                if (msg.message.reactionMessage || msg.message.protocolMessage || msg.message.stickerMessage) continue;
+
+                const dedupKeyJid = remoteJid;
+                const existingDedup = stmtGetWelcomeDedup.get(sessionId, dedupKeyJid);
+                const nowMs = Date.now();
+
+                if (existingDedup && (nowMs - existingDedup.sentAt) < cooldownPeriod) {
                     continue;
                 }
 
-                const msgTimestamp = Number(msg.messageTimestamp || nowSec);
-                if (nowSec - msgTimestamp > 120) continue;
-
-                if (msg.message.reactionMessage || msg.message.protocolMessage || msg.message.stickerMessage) {
-                    continue;
-                }
-
-                const welcomeRow = stmtGetWelcome.get(sessionId);
-                if (!welcomeRow || !welcomeRow.configJson) continue;
-
-                let rules = null;
-                try {
-                    rules = JSON.parse(welcomeRow.configJson);
-                } catch (e) {
-                    continue;
-                }
-                if (!rules || !rules.enabled) continue;
+                // Insert before sending to prevent race conditions; rollback on failure
+                stmtInsertWelcomeDedup.run(sessionId, dedupKeyJid, nowMs);
 
                 session.isExecutingPriorityTask = true;
                 touchSessionActivity(sessionId);
 
                 try {
-                    await sendWelcomeBotMessage(sock, sessionId, remoteJid, rules);
+                    await delay(1500);
+                    try { await sock.sendPresenceUpdate('composing', remoteJid); } catch (e) {}
+                    await delay(800);
+
+                    if (step.type === 'text' && step.content) {
+                        await sock.sendMessage(remoteJid, { text: injectZeroWidthRandomizers(step.content) });
+                    } else if (step.type === 'image' && step.filePath && fs.existsSync(step.filePath)) {
+                        const caption = step.caption ? injectZeroWidthRandomizers(step.caption) : '';
+                        await sock.sendMessage(remoteJid, {
+                            image: { url: step.filePath },
+                            caption
+                        });
+                    }
+                    try { await sock.sendPresenceUpdate('paused', remoteJid); } catch (e) {}
+                } catch (sendErr) {
+                    // Rollback dedup entry only if sending failed
+                    stmtDeleteWelcomeDedup.run(sessionId, dedupKeyJid);
+                    console.error('[WELCOME SEND ERROR - ROLLED BACK]:', sendErr.message);
                 } finally {
                     session.isExecutingPriorityTask = false;
                     touchSessionActivity(sessionId);
@@ -1463,7 +1219,7 @@ async function initSessionSocket(sessionId) {
             }
         } catch (err) {
             session.isExecutingPriorityTask = false;
-            console.error('[WELCOME ERROR]:', err.message || err);
+            console.error('[WELCOME ERROR]', err);
         }
     });
 
@@ -1486,19 +1242,14 @@ async function initSessionSocket(sessionId) {
                 session.phone = null;
                 wipeSessionData(sessionId);
             } else {
-                // Autonomous reconnect even if customer phone is offline
-                setTimeout(() => {
-                    if (sessions.has(sessionId)) {
-                        initSessionSocket(sessionId).catch(() => {});
-                    }
-                }, 3000);
+                setTimeout(() => { if (sessions.has(sessionId)) initSessionSocket(sessionId); }, 3000);
             }
         } else if (connection === 'open') {
             session.status = 'CONNECTED';
             const rawId = sock.user?.id || '';
             session.phone = rawId.split(':')[0] || rawId.split('@')[0];
 
-            const lic = stmtGetLicense.get(sessionId);
+            let lic = stmtGetLicense.get(sessionId);
             const nowTime = Date.now();
             if (!lic) {
                 const tenantToken = crypto.randomBytes(16).toString('hex');
@@ -1526,8 +1277,6 @@ async function initSessionSocket(sessionId) {
                     purchasedAt: lic.purchasedAt || nowTime
                 });
             }
-
-            getTenantDailyQuotaState(sessionId);
             resumeInFlightCrashCampaign(sessionId);
         }
     });
@@ -1543,7 +1292,7 @@ async function ensureActiveSocket(sessionId) {
         if (fs.existsSync(path.join(sessionDir, 'creds.json'))) {
             await initSessionSocket(sessionId);
             let attempts = 0;
-            while (session.status !== 'CONNECTED' && attempts < 20) {
+            while (session.status !== 'CONNECTED' && attempts < 15) {
                 await delay(500);
                 attempts++;
             }
@@ -1561,13 +1310,6 @@ function resumeInFlightCrashCampaign(sessionId) {
             const session = sessions.get(sessionId);
             session.queue = saved.queue;
             if (saved.queue.state === 'RUNNING') {
-                const quotaState = getTenantDailyQuotaState(sessionId);
-                if (quotaState.remainingQuota <= 0) {
-                    session.queue.isRunning = false;
-                    session.queue.state = 'PAUSED';
-                    saveActiveCampaignState(sessionId, { sessionId, queue: session.queue });
-                    return;
-                }
                 session.queue.isRunning = true;
                 executeDispatchQueue(sessionId);
             } else {
@@ -1577,55 +1319,75 @@ function resumeInFlightCrashCampaign(sessionId) {
     } catch (e) {}
 }
 
-// ============================================================================
-// CAMPAIGN & SCHEDULE DISPATCH ENGINE (DAILY 300 CAP + BOUNDED POOL + PACING)
-// ============================================================================
+function pickMediaSourceFromStep(step, recipientIdx) {
+    if (Array.isArray(step.variationPool) && step.variationPool.length > 0) {
+        const candidate = step.variationPool[recipientIdx % step.variationPool.length];
+        if (candidate && fs.existsSync(candidate)) {
+            return candidate;
+        }
+    }
+    return step.filePath;
+}
+
 async function executeDispatchQueue(sessionId) {
     const session = sessions.get(sessionId);
-    if (!session || !session.queue || session.queue.isWelcome) return;
+    if (!session || !session.queue) return;
     if (session.isDispatchLoopActive) return;
 
     session.isDispatchLoopActive = true;
     const q = session.queue;
+    const { mediaVaultDir } = getTenantPaths(sessionId);
+
+    // Prepare bounded variation pool (5-10 copies) once per campaign for disk streaming
+    if (Array.isArray(q.sequence) && q.sequence.length > 0) {
+        for (const step of q.sequence) {
+            if ((step.type === 'image' || step.type === 'video') && step.filePath && fs.existsSync(step.filePath) && !step.variationPool) {
+                if (step.type === 'video') {
+                    while (isVideoProcessingBusy) {
+                        await delay(250);
+                    }
+                    isVideoProcessingBusy = true;
+                    try {
+                        step.variationPool = createBoundedVariationPool(step.filePath, step.mimetype || 'video/mp4', mediaVaultDir, BOUNDED_VARIATION_POOL_SIZE);
+                    } finally {
+                        isVideoProcessingBusy = false;
+                    }
+                } else {
+                    step.variationPool = createBoundedVariationPool(step.filePath, step.mimetype || 'image/jpeg', mediaVaultDir, BOUNDED_VARIATION_POOL_SIZE);
+                }
+            }
+        }
+    }
 
     try {
-        // Ensure bounded 5-10 variation pool exists if this is a media campaign
-        if ((q.mode === 'image' || q.mode === 'video') && q.sourceMediaPath && (!Array.isArray(q.mediaPool) || q.mediaPool.length === 0)) {
-            q.mediaPool = await buildBoundedMediaPool(sessionId, q.sourceMediaPath, q.mimetype);
-            saveActiveCampaignState(sessionId, { sessionId, queue: q });
-        }
-
-        let poolCursor = 0;
-
         while (q.currentIndex < q.recipients.length) {
             touchSessionActivity(sessionId);
 
             if (q.state === 'STOPPED') {
                 q.isRunning = false;
-                const remainingCount = Math.max(0, (q.total || q.recipients.length) - (q.sent || 0) - (q.failed || 0));
-                q.remaining = remainingCount;
-                setWeeklyPendingMetric(sessionId, 0);
+                purgeCampaignMediaItems(q.sequence || q.mediaItems);
+                q.sequence = [];
+                q.mediaItems = [];
                 upsertCampaignHistory(sessionId, q);
-                cleanupCampaignArtifacts(sessionId, q);
+                clearActiveCampaignState(sessionId);
+                cleanOrphanedMediaVaultFiles(sessionId);
                 session.isDispatchLoopActive = false;
                 return;
             }
 
             if (q.state === 'PAUSED') {
                 q.isRunning = false;
-                setWeeklyPendingMetric(sessionId, q.remaining || 0);
                 saveActiveCampaignState(sessionId, { sessionId, queue: q });
                 session.isDispatchLoopActive = false;
                 return;
             }
 
-            // Enforce Daily 300 Outbound Cap across campaigns and schedules
-            const quotaState = getTenantDailyQuotaState(sessionId);
-            if (quotaState.remainingQuota <= 0) {
+            // Enforce Daily 300 Outbound Quota (Campaign + Schedule combined)
+            const quota = getDailyQuotaInfo(sessionId);
+            if (quota.remainingQuota <= 0) {
                 q.isRunning = false;
                 q.state = 'PAUSED';
-                q.remaining = Math.max(0, q.total - q.sent - q.failed);
-                setWeeklyPendingMetric(sessionId, q.remaining);
+                q.pauseReason = 'DAILY_QUOTA_REACHED_300';
                 saveActiveCampaignState(sessionId, { sessionId, queue: q });
                 session.isDispatchLoopActive = false;
                 return;
@@ -1645,20 +1407,15 @@ async function executeDispatchQueue(sessionId) {
                 if (typeof q.recipients[q.currentIndex] === 'object') {
                     q.recipients[q.currentIndex].status = 'FAILED';
                 }
-                incrementWeeklyMetric(sessionId, 'failed', 1);
-                setWeeklyPendingMetric(sessionId, q.remaining);
+                recordFailedOutbound(sessionId);
                 q.currentIndex++;
                 saveActiveCampaignState(sessionId, { sessionId, queue: q });
                 continue;
             }
 
-            const targetJid = `${clean}@s.whatsapp.net`;
+            const targetJid = clean + '@s.whatsapp.net';
 
             try {
-                if (!session.sock || session.status !== 'CONNECTED') {
-                    await ensureActiveSocket(sessionId);
-                }
-
                 const [lookup] = await session.sock.onWhatsApp(targetJid);
                 if (!lookup?.exists) {
                     throw new Error('NOT_ON_WHATSAPP');
@@ -1666,93 +1423,103 @@ async function executeDispatchQueue(sessionId) {
 
                 if (q.state === 'PAUSED' || q.state === 'STOPPED') continue;
 
-                const jidToSend = lookup.jid || targetJid;
-                await session.sock.sendPresenceUpdate('composing', jidToSend);
+                const step = (Array.isArray(q.sequence) && q.sequence.length > 0) ? q.sequence[0] : null;
+
+                await session.sock.sendPresenceUpdate('composing', lookup.jid);
                 await delay(Math.floor(Math.random() * (900 - 500 + 1)) + 500);
 
-                if (q.mode === 'image' && Array.isArray(q.mediaPool) && q.mediaPool.length > 0) {
-                    const variantPath = q.mediaPool[poolCursor % q.mediaPool.length];
-                    poolCursor++;
-                    const caption = q.caption ? injectZeroWidthRandomizers(q.caption) : '';
-                    await session.sock.sendMessage(jidToSend, {
-                        image: { url: variantPath },
-                        caption
-                    });
-                } else if (q.mode === 'video' && Array.isArray(q.mediaPool) && q.mediaPool.length > 0) {
-                    const variantPath = q.mediaPool[poolCursor % q.mediaPool.length];
-                    poolCursor++;
-                    const caption = q.caption ? injectZeroWidthRandomizers(q.caption) : '';
-                    await session.sock.sendMessage(jidToSend, {
-                        video: { url: variantPath },
-                        caption
-                    });
+                if (step) {
+                    if (step.type === 'text' && step.content) {
+                        await session.sock.sendMessage(lookup.jid, { text: injectZeroWidthRandomizers(step.content) });
+                    } else if (step.type === 'image' || step.type === 'video') {
+                        const streamPath = pickMediaSourceFromStep(step, q.currentIndex);
+                        if (streamPath && fs.existsSync(streamPath)) {
+                            const caption = step.caption ? injectZeroWidthRandomizers(step.caption) : '';
+                            if (step.type === 'image') {
+                                await session.sock.sendMessage(lookup.jid, { image: { url: streamPath }, caption });
+                            } else {
+                                await session.sock.sendMessage(lookup.jid, { video: { url: streamPath }, caption });
+                            }
+                        }
+                    }
                 } else {
                     const resolvedMessage = q.message ? injectZeroWidthRandomizers(q.message) : '';
-                    await session.sock.sendMessage(jidToSend, { text: resolvedMessage });
+                    if (q.mediaItems && q.mediaItems.length > 0) {
+                        const media = q.mediaItems[0];
+                        const streamPath = (Array.isArray(media.variationPool) && media.variationPool.length > 0)
+                            ? media.variationPool[q.currentIndex % media.variationPool.length]
+                            : media.path;
+                        if (streamPath && fs.existsSync(streamPath)) {
+                            const mime = media.mimetype || '';
+                            const captionText = media.caption
+                                ? injectZeroWidthRandomizers(media.caption)
+                                : resolvedMessage;
+                            if (mime.startsWith('image/')) {
+                                await session.sock.sendMessage(lookup.jid, { image: { url: streamPath }, caption: captionText });
+                            } else if (mime.startsWith('video/')) {
+                                await session.sock.sendMessage(lookup.jid, { video: { url: streamPath }, caption: captionText });
+                            }
+                        }
+                    } else if (resolvedMessage) {
+                        await session.sock.sendMessage(lookup.jid, { text: resolvedMessage });
+                    }
                 }
 
-                try { await session.sock.sendPresenceUpdate('paused', jidToSend); } catch (e) {}
-
-                // Deduct strictly 1 delivered message in persistent SQLite daily quota
-                recordDeliveredCampaignMessage(sessionId);
+                await session.sock.sendPresenceUpdate('paused', lookup.jid);
                 q.sent++;
                 q.remaining = Math.max(0, q.total - q.sent - q.failed);
                 if (typeof q.recipients[q.currentIndex] === 'object') {
                     q.recipients[q.currentIndex].status = 'SENT';
                 }
-                incrementWeeklyMetric(sessionId, 'sent', 1);
-                setWeeklyPendingMetric(sessionId, q.remaining);
+                // Deduct only actual delivered message from daily 300 quota (never pre-deduct or refund)
+                recordDeliveredOutbound(sessionId);
+
             } catch (e) {
                 q.failed++;
                 q.remaining = Math.max(0, q.total - q.sent - q.failed);
                 if (typeof q.recipients[q.currentIndex] === 'object') {
                     q.recipients[q.currentIndex].status = 'FAILED';
                 }
-                incrementWeeklyMetric(sessionId, 'failed', 1);
-                setWeeklyPendingMetric(sessionId, q.remaining);
+                recordFailedOutbound(sessionId);
             }
 
             q.currentIndex++;
             saveActiveCampaignState(sessionId, { sessionId, queue: q });
 
-            // Tested pacing baseline (~8.7s average / ~172 messages per 25 minutes)
             if (q.currentIndex < q.recipients.length && q.state === 'RUNNING') {
-                const pacingMs = Math.floor(Math.random() * (10200 - 7200 + 1)) + 7200;
-                await delay(pacingMs);
+                if (q.sent > 0 && q.sent % 25 === 0) {
+                    const breatherMs = Math.floor(Math.random() * (18000 - 12000 + 1)) + 12000;
+                    await delay(breatherMs);
+                } else {
+                    await delay(Math.floor(Math.random() * (4200 - 2200 + 1)) + 2200);
+                }
             }
         }
 
         q.isRunning = false;
         q.state = 'STOPPED';
-        q.remaining = Math.max(0, q.total - q.sent - q.failed);
-        setWeeklyPendingMetric(sessionId, 0);
+        purgeCampaignMediaItems(q.sequence || q.mediaItems);
+        q.sequence = [];
+        q.mediaItems = [];
         upsertCampaignHistory(sessionId, q);
-        cleanupCampaignArtifacts(sessionId, q);
+        clearActiveCampaignState(sessionId);
+        cleanOrphanedMediaVaultFiles(sessionId);
     } finally {
         session.isDispatchLoopActive = false;
         touchSessionActivity(sessionId);
     }
 }
 
-// ============================================================================
-// BACKGROUND CRONS & ENGINE STARTUP RECOVERY
-// ============================================================================
+// Background Cron: 72-Hour Schedule Expiry Purge, Due Schedule Dispatch & Idle Socket Check (Every 20s)
 setInterval(async () => {
     const now = Date.now();
 
-    // 1. Auto-expire and purge any schedule past 3 days (72 hours)
-    try {
-        purgeExpiredOrOverWindowSchedules();
-    } catch (e) {}
-
-    // 2. Idle socket check (never sleeps welcome-bot or active/pending tenants)
     for (const [tenantId, session] of sessions.entries()) {
-        if (session && session.sock && (now - session.lastActive > 60 * 60 * 1000)) {
+        if (session && session.sock && (now - session.lastActive > 15 * 60 * 1000)) {
             putSocketToSleep(tenantId);
         }
     }
 
-    // 3. Auto-expire global notices
     try {
         const noticeExpRow = stmtGetSetting.get('global_notice_expiry');
         if (noticeExpRow && noticeExpRow.value) {
@@ -1764,105 +1531,94 @@ setInterval(async () => {
         }
     } catch (e) {}
 
-    // 4. Trigger due scheduled campaigns (1+1+1 format)
+    // Purge any schedule exceeding 72-hour window or expired stale schedules
+    try {
+        const allSchedRows = stmtGetAllScheduledJobs.all();
+        for (const row of allSchedRows) {
+            let maxAllowedEpoch = row.scheduledForEpoch;
+            try {
+                const parsed = JSON.parse(row.jobDataJson || '{}');
+                if (parsed.maxWindowExpiryEpoch) {
+                    maxAllowedEpoch = Math.min(maxAllowedEpoch, parsed.maxWindowExpiryEpoch);
+                }
+            } catch (e) {}
+
+            if (now > maxAllowedEpoch && row.status === 'SCHEDULED') {
+                deleteScheduleJobAndPurge(row);
+                cleanOrphanedMediaVaultFiles(row.sessionId);
+            }
+        }
+    } catch (e) {}
+
     try {
         const dueJobs = stmtGetAllDueJobs.all('SCHEDULED', now);
         for (const row of dueJobs) {
             const tenantId = row.sessionId;
-            await withTenantLock(tenantId, async () => {
-                const quotaState = getTenantDailyQuotaState(tenantId);
-                let job = null;
-                try {
-                    job = JSON.parse(row.jobDataJson);
-                } catch (e) {
-                    stmtDeleteScheduledJob.run(row.jobId);
-                    return;
-                }
+            const quota = getDailyQuotaInfo(tenantId);
+            if (quota.remainingQuota <= 0) {
+                continue; // Wait until 12:00 AM reset if daily 300 quota is exhausted
+            }
 
-                if ((now - (job.createdAt || row.scheduledForEpoch)) > MAX_SCHEDULE_WINDOW_MS) {
-                    purgeCampaignMediaItems(job.mediaItems);
-                    purgeFilesList(job.mediaPool);
-                    if (job.sourceMediaPath && fs.existsSync(job.sourceMediaPath)) {
-                        try { fs.unlinkSync(job.sourceMediaPath); } catch (e) {}
-                    }
-                    stmtDeleteScheduledJob.run(row.jobId);
-                    cleanOrphanedMediaVaultFiles(tenantId);
-                    return;
-                }
+            const session = await ensureActiveSocket(tenantId);
 
-                if (quotaState.remainingQuota <= 0) {
-                    return; // Wait for next quota window / midnight reset; do not lose schedule before 72h expiry
-                }
+            if (session && session.status === 'CONNECTED' && (!session.queue || !session.queue.isRunning)) {
+                const job = JSON.parse(row.jobDataJson);
+                deleteScheduleJobAndPurge(row);
 
-                const session = await ensureActiveSocket(tenantId);
-                if (session && session.status === 'CONNECTED' && (!session.queue || !session.queue.isRunning)) {
-                    const allowedRecipients = (job.recipients || []).slice(0, quotaState.remainingQuota);
-                    stmtDeleteScheduledJob.run(row.jobId);
-                    const { scheduledJobsFile } = getTenantPaths(tenantId);
-                    safeWriteJsonSync(scheduledJobsFile, []);
+                session.queue = {
+                    isRunning: true,
+                    state: 'RUNNING',
+                    campaignId: job.id,
+                    timestamp: new Date().toLocaleString(),
+                    total: job.recipients.length,
+                    sent: 0,
+                    failed: 0,
+                    remaining: job.recipients.length,
+                    currentIndex: 0,
+                    recipients: job.recipients.map(r => ({
+                        name: r.name || 'Unsaved',
+                        phone: r.phone,
+                        status: 'PENDING'
+                    })),
+                    sequence: job.sequence || [],
+                    message: job.message || '',
+                    mediaItems: job.mediaItems || []
+                };
 
-                    session.queue = {
-                        isRunning: true,
-                        state: 'RUNNING',
-                        campaignId: job.id,
-                        timestamp: new Date().toLocaleString(),
-                        total: allowedRecipients.length,
-                        sent: 0,
-                        failed: 0,
-                        remaining: allowedRecipients.length,
-                        currentIndex: 0,
-                        recipients: allowedRecipients.map((r) => ({
-                            name: r.name || 'Unsaved',
-                            phone: r.phone,
-                            status: 'PENDING'
-                        })),
-                        mode: job.mode || 'text',
-                        message: job.message || '',
-                        caption: job.caption || '',
-                        sourceMediaPath: job.sourceMediaPath || null,
-                        mimetype: job.mimetype || '',
-                        mediaPool: job.mediaPool || [],
-                        mediaItems: job.mediaItems || []
-                    };
-
-                    setWeeklyPendingMetric(tenantId, session.queue.remaining);
-                    saveActiveCampaignState(tenantId, { sessionId: tenantId, queue: session.queue });
-                    executeDispatchQueue(tenantId);
-                }
-            });
+                saveActiveCampaignState(tenantId, { sessionId: tenantId, queue: session.queue });
+                executeDispatchQueue(tenantId);
+            }
         }
     } catch (e) {}
 }, 20000);
 
-// Non-blocking 24-hour maintenance cron: prune old welcome dedup rows, weekly metrics, and stale session keys
+// Non-blocking 24-hour maintenance cron (Prunes stale keys, old welcome_dedup, quota & weekly metrics)
 setInterval(() => {
     try {
-        const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
-        stmtPruneOldWelcomeDedup.run(thirtyDaysAgo);
-        stmtPruneOldWeeklyMetrics.run(getLocalWeekKey());
+        const now = Date.now();
+        stmtPruneOldWelcomeDedup.run(now - 7 * 24 * 60 * 60 * 1000);
+        stmtPruneOldQuota.run(getDateKeyDaysAgo(7));
+        stmtPruneOldWeeklyMetrics.run(getDateKeyDaysAgo(14));
 
         const licenses = stmtGetAllLicensesSorted.all();
         for (const lic of licenses) {
             pruneStaleSessionKeys(lic.sessionId);
-            cleanOrphanedMediaVaultFiles(lic.sessionId);
         }
-        db.pragma('wal_checkpoint(PASSIVE)');
     } catch (e) {}
 }, 24 * 60 * 60 * 1000);
 
-// Boot recovery: wake up tenants with active welcome bots or pending/in-flight campaigns
+// Wake up sockets on boot for in-flight campaigns OR active autonomous welcome bots
 if (fs.existsSync(BASE_TENANTS_DIR)) {
-    purgeExpiredOrOverWindowSchedules();
-    fs.readdirSync(BASE_TENANTS_DIR).forEach((d) => {
+    fs.readdirSync(BASE_TENANTS_DIR).forEach(d => {
         if (d.startsWith('tenant_')) {
             const tid = d.replace('tenant_', '');
             const { sessionDir, campaignStateFile } = getTenantPaths(tid);
             if (fs.existsSync(path.join(sessionDir, 'creds.json'))) {
                 const saved = safeReadJsonSync(campaignStateFile, null);
-                const hasPendingCamp = !!(saved && saved.queue?.remaining > 0 && saved.queue?.state !== 'STOPPED');
-                const welcomeActive = hasActiveWelcomeBot(tid);
-                if (hasPendingCamp || welcomeActive) {
-                    initSessionSocket(tid).catch(() => {});
+                const hasPendingCampaign = Boolean(saved && saved.queue?.remaining > 0);
+                const hasWelcome = hasAutonomousWelcomeEnabled(tid);
+                if (hasPendingCampaign || hasWelcome) {
+                    initSessionSocket(tid);
                 }
             }
         }
@@ -1870,7 +1626,7 @@ if (fs.existsSync(BASE_TENANTS_DIR)) {
 }
 
 // ============================================================================
-// API ROUTES
+// API ROUTES (Retained & Compatible with index.html)
 // ============================================================================
 
 app.post('/api/pair', authenticate, async (req, res) => {
@@ -1913,7 +1669,7 @@ app.get('/api/status/:sessionId', async (req, res) => {
 
     touchSessionActivity(sessionId);
 
-    const quotaState = getTenantDailyQuotaState(sessionId);
+    const quota = getDailyQuotaInfo(sessionId);
     const noticeRow = stmtGetSetting.get('global_notice');
     let globalNotice = noticeRow ? noticeRow.value : '';
 
@@ -1947,9 +1703,7 @@ app.get('/api/status/:sessionId', async (req, res) => {
             plan: lic?.plan || 'Monthly',
             purchasedAt,
             validUntil,
-            dailyCap: DAILY_OUTBOUND_CAP,
-            deliveredTodayCount: quotaState.deliveredTodayCount,
-            remainingQuota: quotaState.remainingQuota
+            quota
         });
     }
 
@@ -1964,22 +1718,7 @@ app.get('/api/status/:sessionId', async (req, res) => {
         plan: lic?.plan || 'Monthly',
         purchasedAt,
         validUntil,
-        dailyCap: DAILY_OUTBOUND_CAP,
-        deliveredTodayCount: quotaState.deliveredTodayCount,
-        remainingQuota: quotaState.remainingQuota
-    });
-});
-
-app.get('/api/quota/:sessionId', authenticate, (req, res) => {
-    const { sessionId } = req.params;
-    const quotaState = getTenantDailyQuotaState(sessionId);
-    res.json({
-        success: true,
-        dailyCap: DAILY_OUTBOUND_CAP,
-        dayKey: quotaState.dayKey,
-        deliveredTodayCount: quotaState.deliveredTodayCount,
-        remainingQuota: quotaState.remainingQuota,
-        welcomeExempt: true
+        quota
     });
 });
 
@@ -1994,7 +1733,7 @@ app.post('/api/groups/sync', authenticate, async (req, res) => {
     const { groupsBackupFile } = getTenantPaths(sessionId);
 
     const existingRow = stmtGetGroups.get(sessionId);
-    if (Array.isArray(groups) && groups.length === 0 && !allowEmptyOverwrite) {
+    if (groups.length === 0 && !allowEmptyOverwrite) {
         if (existingRow && existingRow.groupsJson) {
             try {
                 const existing = JSON.parse(existingRow.groupsJson);
@@ -2011,8 +1750,8 @@ app.post('/api/groups/sync', authenticate, async (req, res) => {
         }
     }
 
-    stmtSaveGroups.run(sessionId, JSON.stringify(groups || []), Date.now());
-    safeWriteJsonSync(groupsBackupFile, groups || []);
+    stmtSaveGroups.run(sessionId, JSON.stringify(groups), Date.now());
+    safeWriteJsonSync(groupsBackupFile, groups);
 
     touchSessionActivity(sessionId);
     res.json({ success: true });
@@ -2045,7 +1784,6 @@ app.get('/api/groups/restore', authenticate, (req, res) => {
     res.json({ success: true, groups: diskGroups });
 });
 
-// Welcome Bot Setup (1+1: Text Only OR 1 Compressed Image + Caption; no video; exempt from 300/day quota)
 app.post('/api/welcome/setup', upload.any(), authenticate, async (req, res) => {
     const sessionId = req.body.sessionId || 'unpaired_user';
     await ensureActiveSocket(sessionId);
@@ -2056,94 +1794,34 @@ app.post('/api/welcome/setup', upload.any(), authenticate, async (req, res) => {
     }
 
     const { welcomeRulesFile, mediaVaultDir } = getTenantPaths(sessionId);
-    const resolvedVault = path.resolve(mediaVaultDir);
     const enabled = req.body.enabled === 'true' || req.body.enabled === true;
-    const cooldownHours = Math.max(1, parseInt(req.body.cooldownHours || 24, 10) || 24);
 
-    let prevConfig = null;
-    const prevRow = stmtGetWelcome.get(sessionId);
-    if (prevRow && prevRow.configJson) {
-        try { prevConfig = JSON.parse(prevRow.configJson); } catch (e) {}
+    let blocksMeta = [];
+    try { blocksMeta = JSON.parse(req.body.blocksMeta || '[]'); } catch (e) { blocksMeta = []; }
+
+    const filesMap = new Map();
+    if (req.files && req.files.length > 0) {
+        req.files.forEach(f => filesMap.set(f.fieldname, f));
     }
 
-    if (!enabled) {
-        // Immediately purge welcome media when disabled
-        if (prevConfig?.filePath && path.resolve(prevConfig.filePath).startsWith(resolvedVault) && fs.existsSync(prevConfig.filePath)) {
-            try { fs.unlinkSync(prevConfig.filePath); } catch (e) {}
-        }
-        (prevConfig?.sequence || []).forEach((s) => {
-            if (s.filePath && path.resolve(s.filePath).startsWith(resolvedVault) && fs.existsSync(s.filePath)) {
-                try { fs.unlinkSync(s.filePath); } catch (e) {}
-            }
-        });
+    let existingConfig = { enabled: false, sequence: [] };
+    const existingRow = stmtGetWelcome.get(sessionId);
+    if (existingRow && existingRow.configJson) {
+        try { existingConfig = JSON.parse(existingRow.configJson); } catch (e) {}
+    }
+
+    const normalized = normalizeStrictWelcomeConfig(enabled, blocksMeta, filesMap, existingConfig, mediaVaultDir);
+    if (normalized.error) {
         purgeCampaignMediaItems(req.files);
-
-        const disabledConfig = { enabled: false, cooldownHours, type: 'text', content: '', caption: '', filePath: null, fileName: '', mimetype: '' };
-        stmtSaveWelcome.run(sessionId, JSON.stringify(disabledConfig), Date.now());
-        safeWriteJsonSync(welcomeRulesFile, disabledConfig);
-        cleanOrphanedMediaVaultFiles(sessionId);
-        touchSessionActivity(sessionId);
-        return res.json({ success: true, config: disabledConfig });
+        return res.status(400).json({ error: normalized.error });
     }
 
-    const parsed11 = normalizeWelcome11Payload(req.body, req.files, prevConfig);
-    if (!parsed11.valid) {
-        purgeCampaignMediaItems(req.files);
-        return res.status(400).json({ error: parsed11.error });
-    }
-
-    // Purge any extra files if more than 1 file was uploaded
-    if (req.files && req.files.length > 1) {
-        purgeCampaignMediaItems(req.files.slice(1));
-    }
-
-    let finalFilePath = null;
-    if (parsed11.type === 'image' && parsed11.filePath) {
-        const resolvedCandidate = path.resolve(parsed11.filePath);
-        if (!resolvedCandidate.startsWith(resolvedVault) || !fs.existsSync(resolvedCandidate)) {
-            purgeCampaignMediaItems(req.files);
-            return res.status(400).json({ error: 'Invalid welcome image path.' });
-        }
-        finalFilePath = resolvedCandidate;
-
-        // Purge previous welcome image if replaced
-        const oldPaths = new Set();
-        if (prevConfig?.filePath) oldPaths.add(path.resolve(prevConfig.filePath));
-        (prevConfig?.sequence || []).forEach((s) => { if (s.filePath) oldPaths.add(path.resolve(s.filePath)); });
-        for (const oldP of oldPaths) {
-            if (oldP !== finalFilePath && oldP.startsWith(resolvedVault) && fs.existsSync(oldP)) {
-                try { fs.unlinkSync(oldP); } catch (e) {}
-            }
-        }
-    } else {
-        // Switching to text welcome: purge old welcome media
-        const oldPaths = new Set();
-        if (prevConfig?.filePath) oldPaths.add(path.resolve(prevConfig.filePath));
-        (prevConfig?.sequence || []).forEach((s) => { if (s.filePath) oldPaths.add(path.resolve(s.filePath)); });
-        for (const oldP of oldPaths) {
-            if (oldP.startsWith(resolvedVault) && fs.existsSync(oldP)) {
-                try { fs.unlinkSync(oldP); } catch (e) {}
-            }
-        }
-    }
-
-    const config = {
-        enabled: true,
-        cooldownHours,
-        type: parsed11.type,
-        content: parsed11.content,
-        caption: parsed11.caption,
-        filePath: finalFilePath,
-        fileName: parsed11.type === 'image' ? parsed11.fileName : '',
-        mimetype: parsed11.type === 'image' ? parsed11.mimetype : ''
-    };
-
-    stmtSaveWelcome.run(sessionId, JSON.stringify(config), Date.now());
-    safeWriteJsonSync(welcomeRulesFile, config);
+    stmtSaveWelcome.run(sessionId, JSON.stringify(normalized.config), Date.now());
+    safeWriteJsonSync(welcomeRulesFile, normalized.config);
     cleanOrphanedMediaVaultFiles(sessionId);
     touchSessionActivity(sessionId);
 
-    res.json({ success: true, config });
+    res.json({ success: true, config: normalized.config });
 });
 
 app.get('/api/welcome/rules', authenticate, (req, res) => {
@@ -2158,238 +1836,188 @@ app.get('/api/welcome/rules', authenticate, (req, res) => {
     }
 
     const { welcomeRulesFile } = getTenantPaths(sessionId);
-    const config = safeReadJsonSync(welcomeRulesFile, { enabled: false, cooldownHours: 24, type: 'text', content: '' });
+    const config = safeReadJsonSync(welcomeRulesFile, { enabled: false, sequence: [] });
     res.json({ success: true, config });
 });
 
-// Bulk Campaign or 1-Slot Schedule (Strict 1+1+1 + Max 1 Schedule Slot + Max 3 Days / 72h + 300/day Quota)
 app.post('/api/message/send-bulk', upload.any(), authenticate, async (req, res) => {
     const sessionId = req.body.sessionId || 'unpaired_user';
-    const recipientsRaw = req.body.recipients;
+    const recipients = req.body.recipients;
     const scheduleEpoch = parseInt(req.body.scheduleEpoch || 0, 10);
     const isScheduled = req.body.isScheduled === 'true' || req.body.isScheduled === true;
 
-    purgeExpiredOrOverWindowSchedules(sessionId);
-
-    const payload111 = normalizeSingle111Payload(req.body, req.files);
-    if (!payload111.valid) {
+    await ensureActiveSocket(sessionId);
+    const session = sessions.get(sessionId);
+    if (!session || session.status !== 'CONNECTED') {
         purgeCampaignMediaItems(req.files);
-        return res.status(400).json({ error: payload111.error });
+        return res.status(400).json({ error: 'WhatsApp not connected.' });
     }
 
-    // Purge any extra files beyond slot 1
-    if (req.files && req.files.length > 1) {
-        purgeCampaignMediaItems(req.files.slice(1));
+    if (!isScheduled && session.queue && session.queue.isRunning) {
+        purgeCampaignMediaItems(req.files);
+        return res.status(400).json({ error: 'A campaign is already running. Please wait or stop it first.' });
+    }
+
+    const scheduledRows = stmtGetScheduledJobs.all(sessionId);
+    const activeSchedules = scheduledRows.filter(r => r.status === 'SCHEDULED');
+    if (isScheduled && activeSchedules.length >= MAX_SCHEDULE_SLOTS) {
+        purgeCampaignMediaItems(req.files);
+        return res.status(400).json({ error: 'Maximum 1 scheduled slot allowed at a time! Cancel the active schedule first.' });
+    }
+
+    const now = Date.now();
+    if (isScheduled) {
+        if (!scheduleEpoch || scheduleEpoch <= now) {
+            purgeCampaignMediaItems(req.files);
+            return res.status(400).json({ error: 'Schedule time must be in the future.' });
+        }
+        if (scheduleEpoch > now + MAX_SCHEDULE_WINDOW_MS) {
+            purgeCampaignMediaItems(req.files);
+            return res.status(400).json({ error: 'Schedule window cannot exceed 72 hours (3 days).' });
+        }
     }
 
     let parsed = [];
-    try { parsed = JSON.parse(recipientsRaw || '[]'); } catch (e) { parsed = []; }
-    if (!Array.isArray(parsed) || parsed.length === 0) {
+    try { parsed = JSON.parse(recipients || '[]'); } catch (e) { parsed = []; }
+    if (parsed.length === 0) {
         purgeCampaignMediaItems(req.files);
         return res.status(400).json({ error: 'Recipient list cannot be empty.' });
     }
 
-    await withTenantLock(sessionId, async () => {
-        await ensureActiveSocket(sessionId);
-        const session = sessions.get(sessionId);
-        if (!session || session.status !== 'CONNECTED') {
-            purgeCampaignMediaItems(req.files);
-            return res.status(400).json({ error: 'WhatsApp not connected.' });
-        }
+    const quota = getDailyQuotaInfo(sessionId);
+    if (!isScheduled && quota.remainingQuota <= 0) {
+        purgeCampaignMediaItems(req.files);
+        return res.status(429).json({
+            error: 'Daily 300 outbound message quota reached. Resets at 12:00 AM.',
+            quota
+        });
+    }
 
-        const now = Date.now();
-        const quotaState = getTenantDailyQuotaState(sessionId);
+    let blocksMeta = [];
+    try { blocksMeta = JSON.parse(req.body.blocksMeta || '[]'); } catch (e) { blocksMeta = []; }
 
-        if (isScheduled) {
-            if (quotaState.remainingQuota <= 0) {
-                purgeCampaignMediaItems(req.files);
-                return res.status(400).json({ error: 'Daily 300 message quota exhausted for today. Resets at 12:00 AM.' });
-            }
+    const filesMap = new Map();
+    if (req.files && req.files.length > 0) {
+        req.files.forEach(f => filesMap.set(f.fieldname, f));
+    }
 
-            const existingScheds = stmtGetScheduledJobs.all(sessionId).filter((r) => r.status === 'SCHEDULED' || r.status === 'DISPATCHING');
-            if (existingScheds.length >= MAX_SCHEDULE_SLOTS) {
-                purgeCampaignMediaItems(req.files);
-                return res.status(400).json({ error: 'Only 1 scheduled campaign slot is allowed at a time. Cancel or wait for the active schedule first.' });
-            }
+    const legacyMessage = req.body.message || '';
+    const legacyMedia = (req.files || []).map(f => ({
+        path: f.path,
+        originalname: f.originalname,
+        mimetype: f.mimetype,
+        caption: req.body[`caption_${f.fieldname}`] || req.body.globalCaption || ''
+    }));
 
-            if (!scheduleEpoch || scheduleEpoch <= now) {
-                purgeCampaignMediaItems(req.files);
-                return res.status(400).json({ error: 'Schedule time must be in the future.' });
-            }
-            if ((scheduleEpoch - now) > MAX_SCHEDULE_WINDOW_MS) {
-                purgeCampaignMediaItems(req.files);
-                return res.status(400).json({ error: 'Maximum schedule window is 3 days (72 hours).' });
-            }
+    const strict111 = normalizeStrict111Sequence(blocksMeta, filesMap, legacyMessage, legacyMedia);
+    if (strict111.error) {
+        purgeCampaignMediaItems(req.files);
+        return res.status(400).json({ error: strict111.error });
+    }
 
-            const cappedRecipients = parsed.slice(0, quotaState.remainingQuota).map((r) => ({
-                name: r.name || 'Unsaved',
-                phone: sanitizeToValidWhatsAppJid(typeof r === 'object' ? r.phone : r),
-                status: 'PENDING'
-            }));
+    const formattedRecipients = parsed.map(r => ({
+        name: r.name || 'Unsaved',
+        phone: sanitizeToValidWhatsAppJid(r.phone || r),
+        status: 'PENDING'
+    }));
 
-            const job = {
-                id: 'sch_' + now,
-                createdAt: now,
-                scheduledForEpoch: scheduleEpoch,
-                scheduledForDate: new Date(scheduleEpoch).toLocaleString(),
-                status: 'SCHEDULED',
-                mode: payload111.kind,
-                message: payload111.text,
-                caption: payload111.caption,
-                sourceMediaPath: payload111.filePath || null,
-                mimetype: payload111.mimetype || '',
-                mediaPool: [],
-                mediaItems: payload111.filePath ? [{
-                    path: payload111.filePath,
-                    originalname: payload111.fileName,
-                    mimetype: payload111.mimetype,
-                    caption: payload111.caption
-                }] : [],
-                recipients: cappedRecipients
-            };
-
-            stmtUpsertScheduledJob.run({
-                jobId: job.id,
-                sessionId,
-                status: 'SCHEDULED',
-                scheduledForEpoch: scheduleEpoch,
-                jobDataJson: JSON.stringify(job)
-            });
-
-            const { scheduledJobsFile } = getTenantPaths(sessionId);
-            safeWriteJsonSync(scheduledJobsFile, [job]);
-
-            touchSessionActivity(sessionId);
-            return res.json({
-                status: 'SCHEDULED',
-                jobId: job.id,
-                scheduledForDate: job.scheduledForDate,
-                recipientsCount: cappedRecipients.length,
-                remainingQuota: quotaState.remainingQuota
-            });
-        }
-
-        // Immediate Campaign (Only 1 active campaign slot)
-        if (session.queue && (session.queue.isRunning || session.queue.state === 'RUNNING' || session.queue.state === 'PAUSED')) {
-            purgeCampaignMediaItems(req.files);
-            return res.status(400).json({ error: 'A campaign is already active or paused. Stop or finish it before starting a new one.' });
-        }
-
-        if (quotaState.remainingQuota <= 0) {
-            purgeCampaignMediaItems(req.files);
-            return res.status(400).json({ error: 'Daily 300 message quota exhausted for today. Resets at 12:00 AM.' });
-        }
-
-        const allowedRecipients = parsed.slice(0, quotaState.remainingQuota).map((r) => ({
-            name: r.name || 'Unsaved',
-            phone: sanitizeToValidWhatsAppJid(typeof r === 'object' ? r.phone : r),
-            status: 'PENDING'
-        }));
-
-        const campaignId = 'cmp_' + now;
-        session.queue = {
-            isRunning: true,
-            state: 'RUNNING',
-            campaignId,
-            timestamp: new Date().toLocaleString(),
-            total: allowedRecipients.length,
-            sent: 0,
-            failed: 0,
-            remaining: allowedRecipients.length,
-            currentIndex: 0,
-            recipients: allowedRecipients,
-            mode: payload111.kind,
-            message: payload111.text,
-            caption: payload111.caption,
-            sourceMediaPath: payload111.filePath || null,
-            mimetype: payload111.mimetype || '',
-            mediaPool: [],
-            mediaItems: payload111.filePath ? [{
-                path: payload111.filePath,
-                originalname: payload111.fileName,
-                mimetype: payload111.mimetype,
-                caption: payload111.caption
-            }] : []
+    if (isScheduled) {
+        const job = {
+            id: 'sch_' + Date.now(),
+            scheduledForEpoch: scheduleEpoch,
+            maxWindowExpiryEpoch: now + MAX_SCHEDULE_WINDOW_MS,
+            scheduledForDate: new Date(scheduleEpoch).toLocaleString(),
+            status: 'SCHEDULED',
+            recipients: formattedRecipients,
+            sequence: strict111.sequence,
+            message: '',
+            mediaItems: []
         };
 
-        setWeeklyPendingMetric(sessionId, session.queue.remaining);
-        saveActiveCampaignState(sessionId, { sessionId, queue: session.queue });
-        touchSessionActivity(sessionId);
-
-        res.json({
-            status: 'QUEUED',
-            campaignId,
-            totalRecipients: allowedRecipients.length,
-            dailyCap: DAILY_OUTBOUND_CAP,
-            deliveredTodayCount: quotaState.deliveredTodayCount,
-            remainingQuota: quotaState.remainingQuota,
-            campaign: session.queue
+        stmtUpsertScheduledJob.run({
+            jobId: job.id,
+            sessionId,
+            status: 'SCHEDULED',
+            scheduledForEpoch: scheduleEpoch,
+            jobDataJson: JSON.stringify(job)
         });
 
-        executeDispatchQueue(sessionId);
-    });
+        const { scheduledJobsFile } = getTenantPaths(sessionId);
+        safeWriteJsonSync(scheduledJobsFile, [job]);
+
+        touchSessionActivity(sessionId);
+        return res.json({ status: 'SCHEDULED', jobId: job.id, scheduledForDate: job.scheduledForDate, quota });
+    }
+
+    const campaignId = 'cmp_' + Date.now();
+    session.queue = {
+        isRunning: true,
+        state: 'RUNNING',
+        campaignId,
+        timestamp: new Date().toLocaleString(),
+        total: formattedRecipients.length,
+        sent: 0,
+        failed: 0,
+        remaining: formattedRecipients.length,
+        currentIndex: 0,
+        recipients: formattedRecipients,
+        sequence: strict111.sequence,
+        message: '',
+        mediaItems: []
+    };
+
+    saveActiveCampaignState(sessionId, { sessionId, queue: session.queue });
+    touchSessionActivity(sessionId);
+    res.json({ status: 'QUEUED', campaignId, totalRecipients: formattedRecipients.length, campaign: session.queue, quota });
+
+    executeDispatchQueue(sessionId);
 });
 
 app.get('/api/campaign/scheduled-jobs/:sessionId', authenticate, (req, res) => {
     const { sessionId } = req.params;
-    purgeExpiredOrOverWindowSchedules(sessionId);
     touchSessionActivity(sessionId);
-
     const rows = stmtGetScheduledJobs.all(sessionId);
-    const scheduled = rows
-        .filter((r) => r.status === 'SCHEDULED')
-        .slice(0, MAX_SCHEDULE_SLOTS)
-        .map((r) => {
-            const j = JSON.parse(r.jobDataJson);
-            return {
-                id: j.id,
-                scheduledForDate: j.scheduledForDate,
-                scheduledForEpoch: j.scheduledForEpoch,
-                expiresAtEpoch: (j.createdAt || j.scheduledForEpoch || Date.now()) + MAX_SCHEDULE_WINDOW_MS,
-                recipientCount: (j.recipients || []).length,
-                mode: j.mode || 'text',
-                message: j.message || '',
-                caption: j.caption || '',
-                mediaCount: j.sourceMediaPath || (j.mediaItems || []).length > 0 ? 1 : 0
-            };
-        });
+    const now = Date.now();
+    const scheduled = [];
 
-    res.json({ success: true, maxSlots: MAX_SCHEDULE_SLOTS, maxWindowHours: 72, jobs: scheduled });
+    for (const r of rows) {
+        if (r.status !== 'SCHEDULED') continue;
+        if (now > r.scheduledForEpoch + MAX_SCHEDULE_WINDOW_MS) {
+            deleteScheduleJobAndPurge(r);
+            continue;
+        }
+        const j = JSON.parse(r.jobDataJson);
+        scheduled.push({
+            id: j.id,
+            scheduledForDate: j.scheduledForDate,
+            scheduledForEpoch: j.scheduledForEpoch,
+            recipientCount: (j.recipients || []).length,
+            sequenceSummary: (j.sequence || []).map(s => ({
+                type: s.type,
+                content: s.content || '',
+                caption: s.caption || '',
+                fileName: s.fileName || ''
+            })),
+            message: j.message || '',
+            mediaCount: (j.mediaItems || []).length + (j.sequence || []).filter(s => s.type !== 'text').length
+        });
+    }
+
+    res.json({ success: true, jobs: scheduled.slice(0, MAX_SCHEDULE_SLOTS) });
 });
 
-app.post('/api/campaign/cancel-schedule', authenticate, async (req, res) => {
+app.post('/api/campaign/cancel-schedule', authenticate, (req, res) => {
     const { sessionId, jobId } = req.body;
-    await withTenantLock(sessionId, async () => {
-        const rows = stmtGetScheduledJobs.all(sessionId);
-        const targetRow = jobId ? rows.find((r) => r.jobId === jobId) : rows[0];
+    const rows = stmtGetScheduledJobs.all(sessionId);
+    const targetRow = rows.find(r => r.jobId === jobId);
 
-        if (!targetRow) {
-            return res.status(404).json({ error: 'Scheduled job not found.' });
-        }
-
-        try {
-            const targetJob = JSON.parse(targetRow.jobDataJson);
-            purgeCampaignMediaItems(targetJob.mediaItems);
-            purgeFilesList(targetJob.mediaPool);
-            if (targetJob.sourceMediaPath && fs.existsSync(targetJob.sourceMediaPath)) {
-                try { fs.unlinkSync(targetJob.sourceMediaPath); } catch (e) {}
-            }
-        } catch (e) {}
-
-        stmtDeleteScheduledJob.run(targetRow.jobId);
-        const { scheduledJobsFile } = getTenantPaths(sessionId);
-        safeWriteJsonSync(scheduledJobsFile, []);
+    if (targetRow) {
+        deleteScheduleJobAndPurge(targetRow);
         cleanOrphanedMediaVaultFiles(sessionId);
         touchSessionActivity(sessionId);
-
-        const quotaState = getTenantDailyQuotaState(sessionId);
-        return res.json({
-            success: true,
-            message: 'Scheduled campaign cancelled and media purged. Delivered quota preserved.',
-            deliveredTodayCount: quotaState.deliveredTodayCount,
-            remainingQuota: quotaState.remainingQuota
-        });
-    });
+        return res.json({ success: true, message: 'Scheduled campaign cancelled and media files purged.' });
+    }
+    res.status(404).json({ error: 'Job not found.' });
 });
 
 app.get('/api/campaign/state', authenticate, (req, res) => {
@@ -2397,107 +2025,75 @@ app.get('/api/campaign/state', authenticate, (req, res) => {
     touchSessionActivity(sessionId);
     const session = sessions.get(sessionId);
     const history = loadCampaignHistory(sessionId);
-    const quotaState = getTenantDailyQuotaState(sessionId);
+    const quota = getDailyQuotaInfo(sessionId);
 
-    if (session && session.queue && session.queue.campaignId && !session.queue.isWelcome && session.queue.state !== 'STOPPED') {
-        return res.json({ hasState: true, queue: session.queue, history, quota: quotaState });
+    if (session && session.queue && session.queue.campaignId && session.queue.state !== 'STOPPED') {
+        return res.json({ hasState: true, queue: session.queue, history, quota });
     }
 
     const { campaignStateFile } = getTenantPaths(sessionId);
     const saved = safeReadJsonSync(campaignStateFile, null);
-    if (saved && saved.queue && !saved.queue.isWelcome && saved.queue.state !== 'STOPPED') {
-        return res.json({ hasState: true, queue: saved.queue, history, quota: quotaState });
+    if (saved) {
+        return res.json({ hasState: true, queue: saved.queue, history, quota });
     }
 
-    res.json({ hasState: false, history, quota: quotaState });
+    res.json({ hasState: false, history, quota });
 });
 
-app.post('/api/campaign/pause', authenticate, async (req, res) => {
+app.post('/api/campaign/pause', authenticate, (req, res) => {
     const sessionId = req.body.sessionId || 'unpaired_user';
-    await withTenantLock(sessionId, async () => {
-        const session = sessions.get(sessionId);
-        if (!session || !session.queue || session.queue.isWelcome || session.queue.state === 'STOPPED') {
-            return res.status(400).json({ error: 'No active campaign to pause.' });
-        }
+    const session = sessions.get(sessionId);
+    if (!session || !session.queue || session.queue.state === 'STOPPED') {
+        return res.status(400).json({ error: 'No active campaign to pause.' });
+    }
 
-        session.queue.state = 'PAUSED';
-        session.queue.isRunning = false;
-        setWeeklyPendingMetric(sessionId, session.queue.remaining || 0);
-        saveActiveCampaignState(sessionId, { sessionId, queue: session.queue });
-        touchSessionActivity(sessionId);
-
-        const quotaState = getTenantDailyQuotaState(sessionId);
-        res.json({
-            status: 'PAUSED',
-            campaignId: session.queue.campaignId,
-            queue: session.queue,
-            deliveredTodayCount: quotaState.deliveredTodayCount,
-            remainingQuota: quotaState.remainingQuota
-        });
-    });
+    session.queue.state = 'PAUSED';
+    session.queue.isRunning = false;
+    saveActiveCampaignState(sessionId, { sessionId, queue: session.queue });
+    touchSessionActivity(sessionId);
+    res.json({ status: 'PAUSED', campaignId: session.queue.campaignId, queue: session.queue, quota: getDailyQuotaInfo(sessionId) });
 });
 
 app.post('/api/campaign/resume', authenticate, async (req, res) => {
     const sessionId = req.body.sessionId || 'unpaired_user';
-    await withTenantLock(sessionId, async () => {
-        const quotaState = getTenantDailyQuotaState(sessionId);
-        if (quotaState.remainingQuota <= 0) {
-            return res.status(400).json({ error: 'Daily 300 message quota reached. Resets at 12:00 AM.' });
-        }
+    const quota = getDailyQuotaInfo(sessionId);
+    if (quota.remainingQuota <= 0) {
+        return res.status(429).json({ error: 'Daily 300 outbound quota reached. Resets at 12:00 AM.', quota });
+    }
 
-        await ensureActiveSocket(sessionId);
-        const session = sessions.get(sessionId);
-        if (!session || !session.queue || session.queue.isWelcome || session.queue.state !== 'PAUSED') {
-            return res.status(400).json({ error: 'No paused campaign available to resume.' });
-        }
+    await ensureActiveSocket(sessionId);
+    const session = sessions.get(sessionId);
+    if (!session || !session.queue || session.queue.state !== 'PAUSED') {
+        return res.status(400).json({ error: 'No paused campaign available to resume.' });
+    }
 
-        session.queue.state = 'RUNNING';
-        session.queue.isRunning = true;
-        saveActiveCampaignState(sessionId, { sessionId, queue: session.queue });
-        touchSessionActivity(sessionId);
-        res.json({ status: 'RUNNING', campaignId: session.queue.campaignId, queue: session.queue });
+    session.queue.state = 'RUNNING';
+    session.queue.isRunning = true;
+    saveActiveCampaignState(sessionId, { sessionId, queue: session.queue });
+    touchSessionActivity(sessionId);
+    res.json({ status: 'RUNNING', campaignId: session.queue.campaignId, queue: session.queue, quota });
 
-        executeDispatchQueue(sessionId);
-    });
+    executeDispatchQueue(sessionId);
 });
 
-// Stop / Close Campaign: Deduct ONLY actually delivered messages; never refund delivered counts; purge media/state
-app.post('/api/campaign/stop', authenticate, async (req, res) => {
+app.post('/api/campaign/stop', authenticate, (req, res) => {
     const sessionId = req.body.sessionId || 'unpaired_user';
-    await withTenantLock(sessionId, async () => {
-        const session = sessions.get(sessionId);
-        if (!session || !session.queue || session.queue.isWelcome) {
-            return res.status(400).json({ error: 'No active campaign found.' });
-        }
+    const session = sessions.get(sessionId);
+    if (!session || !session.queue) {
+        return res.status(400).json({ error: 'No active campaign found.' });
+    }
 
-        const q = session.queue;
-        q.state = 'STOPPED';
-        q.isRunning = false;
-        q.remaining = Math.max(0, (q.total || 0) - (q.sent || 0) - (q.failed || 0));
+    session.queue.state = 'STOPPED';
+    session.queue.isRunning = false;
+    purgeCampaignMediaItems(session.queue.sequence || session.queue.mediaItems);
+    session.queue.sequence = [];
+    session.queue.mediaItems = [];
+    upsertCampaignHistory(sessionId, session.queue);
+    clearActiveCampaignState(sessionId);
+    cleanOrphanedMediaVaultFiles(sessionId);
+    touchSessionActivity(sessionId);
 
-        setWeeklyPendingMetric(sessionId, 0);
-        upsertCampaignHistory(sessionId, q);
-        cleanupCampaignArtifacts(sessionId, q);
-        touchSessionActivity(sessionId);
-
-        const quotaState = getTenantDailyQuotaState(sessionId);
-        res.json({
-            status: 'STOPPED',
-            campaignId: q.campaignId,
-            deliveredInCampaign: q.sent || 0,
-            deliveredTodayCount: quotaState.deliveredTodayCount,
-            remainingQuota: quotaState.remainingQuota,
-            queue: {
-                campaignId: q.campaignId,
-                state: q.state,
-                isRunning: false,
-                total: q.total,
-                sent: q.sent,
-                failed: q.failed,
-                remaining: q.remaining
-            }
-        });
-    });
+    res.json({ status: 'STOPPED', campaignId: session.queue.campaignId, queue: session.queue, quota: getDailyQuotaInfo(sessionId) });
 });
 
 app.get('/api/queue-status/:sessionId', authenticate, (req, res) => {
@@ -2505,20 +2101,10 @@ app.get('/api/queue-status/:sessionId', authenticate, (req, res) => {
     touchSessionActivity(sessionId);
     const session = sessions.get(sessionId);
     const history = loadCampaignHistory(sessionId);
-    const quotaState = getTenantDailyQuotaState(sessionId);
+    const quota = getDailyQuotaInfo(sessionId);
 
-    if (!session || !session.queue || !session.queue.campaignId || session.queue.isWelcome) {
-        return res.json({
-            isRunning: false,
-            state: 'STOPPED',
-            total: 0,
-            sent: 0,
-            failed: 0,
-            remaining: 0,
-            history,
-            deliveredTodayCount: quotaState.deliveredTodayCount,
-            remainingQuota: quotaState.remainingQuota
-        });
+    if (!session || !session.queue || !session.queue.campaignId) {
+        return res.json({ isRunning: false, state: 'STOPPED', total: 0, sent: 0, failed: 0, remaining: 0, history, quota });
     }
     res.json({
         isRunning: session.queue.isRunning,
@@ -2530,8 +2116,7 @@ app.get('/api/queue-status/:sessionId', authenticate, (req, res) => {
         remaining: session.queue.remaining,
         recipients: session.queue.recipients,
         history,
-        deliveredTodayCount: quotaState.deliveredTodayCount,
-        remainingQuota: quotaState.remainingQuota
+        quota
     });
 });
 
@@ -2569,11 +2154,10 @@ app.get('/master-admin/backup-db', (req, res) => {
     res.download(DB_FILE, `engine_data_backup_${Date.now()}.sqlite`);
 });
 
+// Background Auto-Refresh JSON Polling API (Zero-Flicker + Weekly Metrics & Quota Status)
 app.get('/master-admin/live-metrics', (req, res) => {
     const pin = req.query.pin;
     if (pin !== ADMIN_MASTER_PIN) return res.status(401).json({ error: 'Forbidden' });
-
-    purgeExpiredOrOverWindowSchedules();
 
     const licenses = stmtGetAllLicensesSorted.all();
     const memory = process.memoryUsage();
@@ -2593,6 +2177,7 @@ app.get('/master-admin/live-metrics', (req, res) => {
     let totalQueuedSchedules = 0;
     let totalActiveWelcomes = 0;
 
+    const weeklyMetrics = getWeeklyMetricsSummary();
     const tenantsData = {};
 
     for (const lic of licenses) {
@@ -2600,8 +2185,8 @@ app.get('/master-admin/live-metrics', (req, res) => {
         const session = sessions.get(sid);
         const daysLeft = Math.ceil((lic.validUntil - Date.now()) / (1000 * 60 * 60 * 24));
         const isExpired = daysLeft <= 0;
-        const quotaState = getTenantDailyQuotaState(sid);
-        const weekly = getTenantWeeklySummary(sid);
+        const quota = getDailyQuotaInfo(sid);
+        const tenantWeekly = getWeeklyMetricsSummary(sid);
 
         let socketStatus = 'OFFLINE';
         let socketColor = '#ef4444';
@@ -2618,25 +2203,26 @@ app.get('/master-admin/live-metrics', (req, res) => {
         }
 
         let dispatchHtml = '<span style="color:#8696a0;font-size:0.75rem;">Idle ⚪</span>';
-        if (session && session.queue && session.queue.isRunning && !session.queue.isWelcome) {
+        if (session && session.queue && session.queue.isRunning) {
             activeCampaignsCount++;
             const sent = session.queue.sent || 0;
             const total = session.queue.total || 0;
             const remaining = Math.max(0, total - sent - (session.queue.failed || 0));
             dispatchHtml = `<span style="color:#00a884;font-weight:bold;font-size:0.75rem;">⚡ Sending: ${sent}/${total} (${remaining} pending)</span>`;
-        } else if (session && session.queue && session.queue.state === 'PAUSED' && !session.queue.isWelcome) {
+        } else if (session && session.queue && session.queue.state === 'PAUSED') {
             const sent = session.queue.sent || 0;
             const total = session.queue.total || 0;
-            dispatchHtml = `<span style="color:#f59e0b;font-weight:bold;font-size:0.75rem;">⏸️ Paused: ${sent}/${total}</span>`;
+            const pauseTag = session.queue.pauseReason === 'DAILY_QUOTA_REACHED_300' ? ' [Quota Cap]' : '';
+            dispatchHtml = `<span style="color:#f59e0b;font-weight:bold;font-size:0.75rem;">⏸️ Paused${pauseTag}: ${sent}/${total}</span>`;
         }
 
         let schedHtml = '';
         try {
             const schedRows = stmtGetScheduledJobs.all(sid);
-            const activeScheds = schedRows.filter((r) => r.status === 'SCHEDULED');
+            const activeScheds = schedRows.filter(r => r.status === 'SCHEDULED');
             if (activeScheds.length > 0) {
                 totalQueuedSchedules += activeScheds.length;
-                schedHtml = `<div style="font-size:0.72rem;color:#38bdf8;font-weight:600;margin-top:2px;">⏰ Sched: ${activeScheds.length}/1 queued</div>`;
+                schedHtml = `<div style="font-size:0.72rem;color:#38bdf8;font-weight:600;margin-top:2px;">⏰ Sched: ${activeScheds.length}/1</div>`;
             }
         } catch (e) {}
 
@@ -2662,10 +2248,8 @@ app.get('/master-admin/live-metrics', (req, res) => {
             daysLeft,
             isExpired,
             plan: lic.plan || 'Standard',
-            dailyCap: DAILY_OUTBOUND_CAP,
-            deliveredTodayCount: quotaState.deliveredTodayCount,
-            remainingQuota: quotaState.remainingQuota,
-            weekly
+            quota,
+            weeklyMetrics: tenantWeekly
         };
     }
 
@@ -2680,6 +2264,7 @@ app.get('/master-admin/live-metrics', (req, res) => {
         totalOnline,
         totalSleeping,
         totalOffline,
+        weeklyMetrics,
         tenants: tenantsData
     });
 });
@@ -2735,7 +2320,6 @@ app.get('/master-admin', (req, res) => {
     }
 
     clearAdminAttempt(clientIp);
-    purgeExpiredOrOverWindowSchedules();
 
     const licenses = stmtGetAllLicensesSorted.all();
     const memory = process.memoryUsage();
@@ -2756,13 +2340,15 @@ app.get('/master-admin', (req, res) => {
     let totalQueuedSchedules = 0;
     let totalActiveWelcomes = 0;
 
+    const weeklyMetrics = getWeeklyMetricsSummary();
+
     const rows = licenses.map((data) => {
         const sid = data.sessionId;
         const daysLeft = Math.ceil((data.validUntil - Date.now()) / (1000 * 60 * 60 * 24));
         const isExpired = daysLeft <= 0;
         const session = sessions.get(sid);
-        const quotaState = getTenantDailyQuotaState(sid);
-        const weekly = getTenantWeeklySummary(sid);
+        const quota = getDailyQuotaInfo(sid);
+        const tenantWeekly = getWeeklyMetricsSummary(sid);
 
         let socketStatus = 'OFFLINE';
         let socketColor = '#ef4444';
@@ -2779,25 +2365,26 @@ app.get('/master-admin', (req, res) => {
         }
 
         let dispatchBadge = '<span style="color:#8696a0;font-size:0.75rem;">Idle ⚪</span>';
-        if (session && session.queue && session.queue.isRunning && !session.queue.isWelcome) {
+        if (session && session.queue && session.queue.isRunning) {
             activeCampaignsCount++;
             const sent = session.queue.sent || 0;
             const total = session.queue.total || 0;
             const remaining = Math.max(0, total - sent - (session.queue.failed || 0));
             dispatchBadge = `<span style="color:#00a884;font-weight:bold;font-size:0.75rem;">⚡ Sending: ${sent}/${total} (${remaining} pending)</span>`;
-        } else if (session && session.queue && session.queue.state === 'PAUSED' && !session.queue.isWelcome) {
+        } else if (session && session.queue && session.queue.state === 'PAUSED') {
             const sent = session.queue.sent || 0;
             const total = session.queue.total || 0;
-            dispatchBadge = `<span style="color:#f59e0b;font-weight:bold;font-size:0.75rem;">⏸️ Paused: ${sent}/${total}</span>`;
+            const pauseTag = session.queue.pauseReason === 'DAILY_QUOTA_REACHED_300' ? ' [Quota Cap]' : '';
+            dispatchBadge = `<span style="color:#f59e0b;font-weight:bold;font-size:0.75rem;">⏸️ Paused${pauseTag}: ${sent}/${total}</span>`;
         }
 
         let schedBadge = '';
         try {
             const schedRows = stmtGetScheduledJobs.all(sid);
-            const activeScheds = schedRows.filter((r) => r.status === 'SCHEDULED');
+            const activeScheds = schedRows.filter(r => r.status === 'SCHEDULED');
             if (activeScheds.length > 0) {
                 totalQueuedSchedules += activeScheds.length;
-                schedBadge = `<div style="font-size:0.72rem;color:#38bdf8;font-weight:600;margin-top:2px;">⏰ Sched: ${activeScheds.length}/1 queued</div>`;
+                schedBadge = `<div style="font-size:0.72rem;color:#38bdf8;font-weight:600;margin-top:2px;">⏰ Sched: ${activeScheds.length}/1</div>`;
             }
         } catch (e) {}
 
@@ -2841,7 +2428,14 @@ app.get('/master-admin', (req, res) => {
                     <div id="dispatch_badge_${sid}" style="margin-top:2px;">${dispatchBadge}</div>
                     <div id="sched_badge_${sid}">${schedBadge}</div>
                     <div id="wel_badge_${sid}">${welBadge}</div>
-                    <div id="quota_badge_${sid}" style="font-size:0.72rem;color:#38bdf8;margin-top:2px;">Quota: ${quotaState.deliveredTodayCount}/${DAILY_OUTBOUND_CAP} (${quotaState.remainingQuota} left) • Wk S:${weekly.totalSent} F:${weekly.totalFailed} P:${weekly.totalPending}</div>
+                </td>
+                <td style="padding:10px;font-size:0.78rem;" id="quota_col_${sid}">
+                    <div style="font-weight:700;color:${quota.remainingQuota > 0 ? '#00a884' : '#ef4444'};">
+                        Today: ${quota.deliveredToday}/${quota.limit} (${quota.remainingQuota} left)
+                    </div>
+                    <div style="font-size:0.7rem;color:#8696a0;margin-top:2px;" id="weekly_col_${sid}">
+                        7d: S:${tenantWeekly.sent} • F:${tenantWeekly.failed} • P:${tenantWeekly.pending}
+                    </div>
                 </td>
                 <td style="padding:10px;font-size:0.82rem;" id="sub_col_${sid}">
                     <div>${data.plan || 'Standard'}</div>
@@ -2881,13 +2475,13 @@ app.get('/master-admin', (req, res) => {
             <style>
                 * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
                 body { background: #0b141a; color: #e9edef; padding: 14px; padding-bottom: 80px; }
-                .container { max-width: 1100px; margin: 0 auto; }
+                .container { max-width: 1180px; margin: 0 auto; }
                 .top-bar { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 16px; }
                 .brand { font-size: 1.2rem; font-weight: 700; color: #00a884; }
-                .vitals-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 16px; }
+                .vitals-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 16px; }
                 .vital-card { background: #111b21; border: 1px solid #202c33; border-radius: 10px; padding: 10px 12px; }
                 .vital-title { font-size: 0.72rem; color: #8696a0; text-transform: uppercase; margin-bottom: 4px; font-weight: 600; }
-                .vital-val { font-size: 1.05rem; font-weight: 700; color: #e9edef; }
+                .vital-val { font-size: 1.02rem; font-weight: 700; color: #e9edef; }
                 .notice-box { background: #111b21; border: 1px solid #202c33; border-radius: 10px; padding: 10px 12px; margin-bottom: 14px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
                 .search-box { width: 100%; padding: 11px 14px; background: #111b21; border: 1px solid #202c33; border-radius: 8px; color: #fff; font-size: 0.9rem; margin-bottom: 14px; outline: none; }
                 .search-box:focus { border-color: #00a884; }
@@ -2898,6 +2492,7 @@ app.get('/master-admin', (req, res) => {
                 .btn-restart { padding: 7px 12px; border-radius: 6px; background: #dc2626; color: #fff; border: none; font-weight: 700; font-size: 0.82rem; cursor: pointer; }
                 .btn-backup { padding: 7px 12px; border-radius: 6px; background: #0284c7; color: #fff; border: none; font-weight: 700; font-size: 0.82rem; cursor: pointer; }
                 .btn-merge { padding: 7px 12px; border-radius: 6px; background: #6366f1; color: #fff; border: none; font-weight: 700; font-size: 0.82rem; cursor: pointer; }
+
                 [data-tooltip] { position: relative; }
                 [data-tooltip]:hover::after {
                     content: attr(data-tooltip); position: absolute; bottom: 125%; left: 50%;
@@ -2905,6 +2500,7 @@ app.get('/master-admin', (req, res) => {
                     padding: 4px 8px; border-radius: 6px; border: 1px solid #00a884; white-space: nowrap;
                     z-index: 1000; box-shadow: 0 4px 12px rgba(0,0,0,0.5); pointer-events: none;
                 }
+
                 .floating-bar {
                     position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%);
                     background: #182229; border: 1px solid #00a884; box-shadow: 0 10px 30px rgba(0,0,0,0.8);
@@ -2916,7 +2512,7 @@ app.get('/master-admin', (req, res) => {
         <body>
             <div class="container">
                 <div class="top-bar">
-                    <div class="brand">⚡ WA Campaign Master Control</div>
+                    <div class="brand">⚡ WA Campaign Master Control (1+1+1 • 300/Day Quota)</div>
                     <div style="display:flex;gap:8px;flex-wrap:wrap;">
                         <button class="btn-refresh" onclick="location.reload()">🔄 Refresh</button>
                         <button class="btn-merge" onclick="mergeDuplicates()">🧹 Merge Duplicates</button>
@@ -2933,6 +2529,10 @@ app.get('/master-admin', (req, res) => {
                     <div class="vital-card">
                         <div class="vital-title">Node Process RAM</div>
                         <div class="vital-val" id="vitalNodeRam" style="color:#a78bfa;">${nodeRamMB} MB</div>
+                    </div>
+                    <div class="vital-card">
+                        <div class="vital-title">Weekly Counts (7d)</div>
+                        <div class="vital-val" id="vitalWeeklyMetrics" style="color:#00a884;font-size:0.88rem;">S:${weeklyMetrics.sent} • F:${weeklyMetrics.failed} • P:${weeklyMetrics.pending}</div>
                     </div>
                     <div class="vital-card">
                         <div class="vital-title">Active Dispatches</div>
@@ -2978,13 +2578,14 @@ app.get('/master-admin', (req, res) => {
                                 <th style="width:36px;text-align:center;"><input type="checkbox" id="chkSelectAll" onclick="toggleSelectAllTenants(this)" style="cursor:pointer;width:18px;height:18px;"></th>
                                 <th>User / Tenant (Newest First)</th>
                                 <th>Socket & Activity</th>
+                                <th>Quota & 7d Counts</th>
                                 <th>Subscription</th>
                                 <th>Disk</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody id="tenantBody">
-                            ${rows || '<tr><td colspan="6" style="padding:24px;text-align:center;color:#8696a0;">No tenants registered yet.</td></tr>'}
+                            ${rows || '<tr><td colspan="7" style="padding:24px;text-align:center;color:#8696a0;">No tenants registered yet.</td></tr>'}
                         </tbody>
                     </table>
                 </div>
@@ -3002,7 +2603,7 @@ app.get('/master-admin', (req, res) => {
                 function filterTenants() {
                     const q = document.getElementById('searchInput').value.toLowerCase().trim();
                     const rows = document.querySelectorAll('#tenantBody tr');
-                    rows.forEach((r) => {
+                    rows.forEach(r => {
                         const phone = r.getAttribute('data-phone') || '';
                         r.style.display = phone.toLowerCase().includes(q) ? '' : 'none';
                     });
@@ -3010,7 +2611,7 @@ app.get('/master-admin', (req, res) => {
 
                 function toggleSelectAllTenants(master) {
                     const checkboxes = document.querySelectorAll('.tenant-chk');
-                    checkboxes.forEach((c) => {
+                    checkboxes.forEach(c => {
                         if (c.closest('tr').style.display !== 'none') c.checked = master.checked;
                     });
                     updateFloatingBar();
@@ -3029,7 +2630,7 @@ app.get('/master-admin', (req, res) => {
                 }
 
                 function getSelectedSessionIds() {
-                    return Array.from(document.querySelectorAll('.tenant-chk:checked')).map((c) => c.value);
+                    return Array.from(document.querySelectorAll('.tenant-chk:checked')).map(c => c.value);
                 }
 
                 async function extendLicense(sessionId, days, plan) {
@@ -3043,7 +2644,7 @@ app.get('/master-admin', (req, res) => {
                 }
 
                 async function cancelSubscription(sessionId) {
-                    if (!confirm('CANCEL SUBSCRIPTION for this tenant?\\n\\n- Subscription will expire immediately.\\n- Upcoming scheduled campaign and media will be PURGED.\\n- Active campaign will be STOPPED.\\n- Welcome bot rules will be safely preserved but PAUSED.\\n\\nProceed?')) return;
+                    if (!confirm('CANCEL SUBSCRIPTION for this tenant?\\n\\n- Subscription will expire immediately.\\n- All upcoming scheduled campaigns and media will be PURGED.\\n- Active campaign will be STOPPED.\\n- Welcome bot rules will be safely preserved but PAUSED.\\n\\nProceed?')) return;
                     const res = await fetch('/master-admin/cancel-sub', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -3207,6 +2808,9 @@ app.get('/master-admin', (req, res) => {
 
                         document.getElementById('vitalSysRam').innerText = data.sysUsedRAMGB + ' / ' + data.sysTotalRAMGB + ' GB (' + data.sysRamPercent + '%)';
                         document.getElementById('vitalNodeRam').innerText = data.nodeRamMB + ' MB';
+                        if (data.weeklyMetrics) {
+                            document.getElementById('vitalWeeklyMetrics').innerText = 'S:' + data.weeklyMetrics.sent + ' • F:' + data.weeklyMetrics.failed + ' • P:' + data.weeklyMetrics.pending;
+                        }
 
                         const actEl = document.getElementById('vitalActiveDispatches');
                         actEl.innerText = data.activeCampaignsCount + ' Running';
@@ -3233,9 +2837,11 @@ app.get('/master-admin', (req, res) => {
                                 const welBadge = document.getElementById('wel_badge_' + sid);
                                 if (welBadge) welBadge.innerHTML = t.welHtml;
 
-                                const quotaBadge = document.getElementById('quota_badge_' + sid);
-                                if (quotaBadge && t.weekly) {
-                                    quotaBadge.innerText = 'Quota: ' + t.deliveredTodayCount + '/${DAILY_OUTBOUND_CAP} (' + t.remainingQuota + ' left) • Wk S:' + t.weekly.totalSent + ' F:' + t.weekly.totalFailed + ' P:' + t.weekly.totalPending;
+                                const quotaCol = document.getElementById('quota_col_' + sid);
+                                if (quotaCol && t.quota) {
+                                    const qColor = t.quota.remainingQuota > 0 ? '#00a884' : '#ef4444';
+                                    const wm = t.weeklyMetrics || { sent: 0, failed: 0, pending: 0 };
+                                    quotaCol.innerHTML = '<div style="font-weight:700;color:' + qColor + ';">Today: ' + t.quota.deliveredToday + '/' + t.quota.limit + ' (' + t.quota.remainingQuota + ' left)</div><div style="font-size:0.7rem;color:#8696a0;margin-top:2px;">7d: S:' + wm.sent + ' • F:' + wm.failed + ' • P:' + wm.pending + '</div>';
                                 }
 
                                 const subCol = document.getElementById('sub_col_' + sid);
@@ -3274,7 +2880,7 @@ app.post('/master-admin/merge-duplicates', (req, res) => {
         const allLicenses = stmtGetAllLicensesSorted.all();
         const phoneGroups = new Map();
 
-        allLicenses.forEach((lic) => {
+        allLicenses.forEach(lic => {
             const clean = sanitizeToValidWhatsAppJid(lic.phone || lic.sessionId);
             if (!clean) return;
             if (!phoneGroups.has(clean)) phoneGroups.set(clean, []);
@@ -3304,13 +2910,13 @@ app.post('/master-admin/merge-duplicates', (req, res) => {
                     try { primaryGroups = JSON.parse(pRow.groupsJson); } catch (e) {}
                 }
 
-                duplicates.forEach((dup) => {
+                duplicates.forEach(dup => {
                     const dRow = stmtGetGroups.get(dup.sessionId);
                     if (dRow && dRow.groupsJson) {
                         try {
                             const dGroups = JSON.parse(dRow.groupsJson);
-                            dGroups.forEach((dg) => {
-                                const exists = primaryGroups.find((pg) => pg.name === dg.name);
+                            dGroups.forEach(dg => {
+                                const exists = primaryGroups.find(pg => pg.name === dg.name);
                                 if (!exists) primaryGroups.push(dg);
                             });
                         } catch (e) {}
@@ -3391,19 +2997,18 @@ app.post('/master-admin/cancel-sub', (req, res) => {
         if (session && session.queue) {
             session.queue.state = 'STOPPED';
             session.queue.isRunning = false;
+            purgeCampaignMediaItems(session.queue.sequence || session.queue.mediaItems);
+            session.queue.sequence = [];
+            session.queue.mediaItems = [];
             upsertCampaignHistory(sessionId, session.queue);
-            cleanupCampaignArtifacts(sessionId, session.queue);
+            clearActiveCampaignState(sessionId);
         }
 
         const scheduledRows = stmtGetScheduledJobs.all(sessionId);
-        scheduledRows.forEach((row) => {
+        scheduledRows.forEach(row => {
             try {
                 const j = JSON.parse(row.jobDataJson);
-                purgeCampaignMediaItems(j.mediaItems);
-                purgeFilesList(j.mediaPool);
-                if (j.sourceMediaPath && fs.existsSync(j.sourceMediaPath)) {
-                    try { fs.unlinkSync(j.sourceMediaPath); } catch (e) {}
-                }
+                purgeCampaignMediaItems(j.sequence || j.mediaItems);
             } catch (e) {}
         });
         stmtDeleteAllScheduledJobsForSession.run(sessionId);
@@ -3439,7 +3044,7 @@ app.post('/master-admin/toggle-status', (req, res) => {
         stmtUpsertLicense.run({
             sessionId,
             phone: lic.phone,
-            status,
+            status: status,
             plan: lic.plan,
             tenantToken: lic.tenantToken,
             validUntil: lic.validUntil,
@@ -3472,33 +3077,41 @@ app.post('/master-admin/restart-server', (req, res) => {
     if (pin !== ADMIN_MASTER_PIN) return res.status(401).json({ error: 'Forbidden' });
     res.json({ success: true, message: 'Restarting engine...' });
     setTimeout(() => {
-        process.exit(0);
+        gracefulShutdown('ADMIN_RESTART');
     }, 1000);
 });
 
-// Graceful shutdown handling for PM2 / process managers
+const serverInstance = app.listen(PORT, '0.0.0.0', () => {
+    console.log(`[SERVER] Ultra-Optimized Enterprise Engine (1+1+1 • 300/Day Quota) Online on port ${PORT}`);
+});
+
+let isShuttingDown = false;
 function gracefulShutdown(signal) {
-    console.log(`[SHUTDOWN] Received ${signal}. Persisting active states and closing sockets...`);
-    for (const [sid, sess] of sessions.entries()) {
-        if (sess?.queue && (sess.queue.isRunning || sess.queue.state === 'RUNNING')) {
-            sess.queue.state = 'PAUSED';
-            sess.queue.isRunning = false;
-            saveActiveCampaignState(sid, { sessionId: sid, queue: sess.queue });
-        }
-        try {
-            if (sess?.sock) {
-                sess.sock.end(undefined);
-            }
-        } catch (e) {}
-    }
+    if (isShuttingDown) return;
+    isShuttingDown = true;
+    console.log(`[SHUTDOWN ${signal}] Persisting state and closing SQLite cleanly...`);
+
     try {
-        db.pragma('wal_checkpoint(PASSIVE)');
-        db.close();
+        for (const [sid, session] of sessions.entries()) {
+            if (session && session.queue && session.queue.isRunning) {
+                session.queue.state = 'PAUSED';
+                session.queue.isRunning = false;
+                saveActiveCampaignState(sid, { sessionId: sid, queue: session.queue });
+            }
+            if (session && session.sock) {
+                try { session.sock.end(undefined); } catch (e) {}
+            }
+        }
     } catch (e) {}
-    process.exit(0);
+
+    try { db.pragma('wal_checkpoint(TRUNCATE)'); } catch (e) {}
+    try { db.close(); } catch (e) {}
+
+    serverInstance.close(() => {
+        process.exit(0);
+    });
+    setTimeout(() => process.exit(0), 3000);
 }
 
 process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 process.on('SIGINT', () => gracefulShutdown('SIGINT'));
-
-app.listen(PORT, '0.0.0.0', () => console.log(`[SERVER] Ultra-Optimized Enterprise Engine Online on port ${PORT}`));
