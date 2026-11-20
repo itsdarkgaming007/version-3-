@@ -21,14 +21,16 @@ const ADMIN_MASTER_PIN = process.env.ADMIN_MASTER_PIN || 'adminpass2026';
 const DAILY_OUTBOUND_LIMIT = 300;
 const MAX_SCHEDULE_SLOTS = 1;
 const MAX_SCHEDULE_WINDOW_MS = 72 * 60 * 60 * 1000; // 72 Hours (3 Days)
-const BOUNDED_VARIATION_POOL_SIZE = 8; // Bounded 5-10 varied copies per campaign
+const BOUNDED_VARIATION_POOL_SIZE = 8; // Bounded 5-10 varied copies for images
 
 const BASE_TENANTS_DIR = path.join(__dirname, 'tenants');
 const LICENSES_FILE = path.join(__dirname, 'admin_licenses.json');
 const DB_FILE = path.join(__dirname, 'engine_data.sqlite');
-const SHARE_BANNER_DEFAULT_FILE = path.join(__dirname, 'www', 'share_banner.jpg');
+const WWW_DIR = path.join(__dirname, 'www');
+const SHARE_BANNER_DEFAULT_FILE = path.join(WWW_DIR, 'share_banner.jpg');
 
 if (!fs.existsSync(BASE_TENANTS_DIR)) fs.mkdirSync(BASE_TENANTS_DIR, { recursive: true });
+if (!fs.existsSync(WWW_DIR)) fs.mkdirSync(WWW_DIR, { recursive: true });
 
 // Zero-Crash Process Guard
 process.on('uncaughtException', (err) => {
@@ -295,14 +297,17 @@ function resolveExistingLicense(sessionId) {
     return lic || null;
 }
 
+function resolveQuotaSessionKey(sessionId) {
+    const lic = resolveExistingLicense(sessionId);
+    return (lic && lic.sessionId) ? lic.sessionId : sessionId;
+}
+
 function getDailyQuotaInfo(sessionId) {
     const dateKey = getLocalDateKey();
-    let row = stmtGetDailyQuota.get(sessionId, dateKey);
-    if (!row && sessionId) {
-        const cleanPhone = String(sessionId).replace(/[^0-9]/g, '');
-        if (cleanPhone && cleanPhone !== sessionId) {
-            row = stmtGetDailyQuota.get(cleanPhone, dateKey);
-        }
+    const quotaKey = resolveQuotaSessionKey(sessionId);
+    let row = stmtGetDailyQuota.get(quotaKey, dateKey);
+    if (!row && quotaKey !== sessionId) {
+        row = stmtGetDailyQuota.get(sessionId, dateKey);
     }
     const deliveredToday = row ? (row.deliveredCount || 0) : 0;
     const remainingQuota = Math.max(0, DAILY_OUTBOUND_LIMIT - deliveredToday);
@@ -317,26 +322,30 @@ function getDailyQuotaInfo(sessionId) {
 function recordDeliveredOutbound(sessionId) {
     const now = Date.now();
     const dateKey = getLocalDateKey(now);
-    stmtIncrementDailyQuota.run(sessionId, dateKey, now);
-    stmtAddWeeklySent.run(sessionId, dateKey, now);
+    const quotaKey = resolveQuotaSessionKey(sessionId);
+    stmtIncrementDailyQuota.run(quotaKey, dateKey, now);
+    stmtAddWeeklySent.run(quotaKey, dateKey, now);
 }
 
 function recordFailedOutbound(sessionId) {
     const now = Date.now();
     const dateKey = getLocalDateKey(now);
-    stmtAddWeeklyFailed.run(sessionId, dateKey, now);
+    const quotaKey = resolveQuotaSessionKey(sessionId);
+    stmtAddWeeklyFailed.run(quotaKey, dateKey, now);
 }
 
 function syncTenantPendingMetric(sessionId, pendingCount) {
     const now = Date.now();
     const dateKey = getLocalDateKey(now);
-    stmtSetWeeklyPending.run(sessionId, dateKey, Math.max(0, parseInt(pendingCount || 0, 10)), now);
+    const quotaKey = resolveQuotaSessionKey(sessionId);
+    stmtSetWeeklyPending.run(quotaKey, dateKey, Math.max(0, parseInt(pendingCount || 0, 10)), now);
 }
 
 function getWeeklyMetricsSummary(sessionId = null) {
     const cutoffKey = getDateKeyDaysAgo(7);
     if (sessionId) {
-        return stmtGetWeeklyMetricsForSession.get(sessionId, cutoffKey) || { sent: 0, failed: 0, pending: 0 };
+        const quotaKey = resolveQuotaSessionKey(sessionId);
+        return stmtGetWeeklyMetricsForSession.get(quotaKey, cutoffKey) || { sent: 0, failed: 0, pending: 0 };
     }
     return stmtGetGlobalWeeklyMetrics.get(cutoffKey) || { sent: 0, failed: 0, pending: 0 };
 }
@@ -490,19 +499,11 @@ migrateLegacyJsonFiles();
 
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
-        if (req.body?.uploadPurpose === 'share_banner') {
-            const bannerDir = path.join(__dirname, 'www');
-            if (!fs.existsSync(bannerDir)) fs.mkdirSync(bannerDir, { recursive: true });
-            return cb(null, bannerDir);
-        }
         const tenantId = req.body?.sessionId || req.query?.sessionId || 'unpaired_user';
         const { mediaVaultDir } = getTenantPaths(tenantId);
         cb(null, mediaVaultDir);
     },
     filename: (req, file, cb) => {
-        if (req.body?.uploadPurpose === 'share_banner') {
-            return cb(null, 'share_banner.jpg');
-        }
         const ext = path.extname(file.originalname).toLowerCase() || '';
         cb(null, `vault_${Date.now()}_${crypto.randomBytes(4).toString('hex')}${ext}`);
     }
@@ -523,9 +524,35 @@ const upload = multer({
     }
 });
 
+const bannerStorage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        if (!fs.existsSync(WWW_DIR)) fs.mkdirSync(WWW_DIR, { recursive: true });
+        cb(null, WWW_DIR);
+    },
+    filename: (req, file, cb) => {
+        const ext = path.extname(file.originalname).toLowerCase() || '.jpg';
+        cb(null, `share_banner${ext}`);
+    }
+});
+
+const bannerUpload = multer({
+    storage: bannerStorage,
+    limits: { fileSize: 8 * 1024 * 1024, files: 1 },
+    fileFilter: (req, file, cb) => {
+        const allowedMimes = ['image/jpeg', 'image/png', 'image/webp'];
+        const ext = path.extname(file.originalname).toLowerCase();
+        const allowedExts = ['.jpg', '.jpeg', '.png', '.webp'];
+        if (allowedMimes.includes(file.mimetype) && allowedExts.includes(ext)) {
+            cb(null, true);
+        } else {
+            cb(new Error('INVALID_BANNER_IMAGE'));
+        }
+    }
+});
+
 app.use(express.json({ limit: '25mb' }));
 app.use(express.urlencoded({ extended: true, limit: '25mb' }));
-app.use(express.static(path.join(__dirname, 'www')));
+app.use(express.static(WWW_DIR));
 
 app.use((req, res, next) => {
     res.header('Access-Control-Allow-Origin', '*');
@@ -548,10 +575,13 @@ const authenticate = (req, res, next) => {
     const sessionId = req.body?.sessionId || req.params?.sessionId || req.query?.sessionId || 'unpaired_user';
     const lic = resolveExistingLicense(sessionId);
 
-    const isMasterToken = (token === API_SECRET_TOKEN || token === 'marketing_engine_secret_2026');
-    const isTenantToken = lic && lic.tenantToken && token === lic.tenantToken;
+    const isMasterSecret = (token === API_SECRET_TOKEN || token === 'marketing_engine_secret_2026');
+    const isTenantToken = Boolean(lic && lic.tenantToken && token === lic.tenantToken);
 
-    if (!isMasterToken && !isTenantToken) {
+    // For unpaired/bootstrap calls without a registered license yet, allow master secret; once a license exists, require matching tenantToken or master secret
+    const isAllowedToken = isTenantToken || (isMasterSecret && (!lic || !lic.tenantToken));
+
+    if (!isAllowedToken && !isMasterSecret) {
         return res.status(401).json({ error: 'Unauthorized: Invalid token.' });
     }
 
@@ -568,7 +598,7 @@ const authenticate = (req, res, next) => {
 };
 
 const sessions = new Map();
-let isVideoProcessingBusy = false; // Concurrency = 1 lock for video variation/stream prep
+const socketInitLocks = new Map(); // Per-session serialization lock to avoid concurrent socket races
 
 function sanitizeToValidWhatsAppJid(rawInput) {
     let clean = String(rawInput || '').replace(/[^0-9]/g, '');
@@ -598,25 +628,21 @@ function injectZeroWidthRandomizers(text) {
     return randomizedLines.join('\n');
 }
 
-// Bounded Variation Pool (5-10 varied copies) with disk streaming instead of per-recipient buffer bloat
-function createBoundedVariationPool(sourceFilePath, mimeType, vaultDir, poolSize = BOUNDED_VARIATION_POOL_SIZE) {
+// Bounded Variation Pool (5-10 copies) for Images only; Videos stream directly without duplicating large files on disk
+function createBoundedImageVariationPool(sourceFilePath, vaultDir, poolSize = BOUNDED_VARIATION_POOL_SIZE) {
     const safePoolSize = Math.max(5, Math.min(10, poolSize));
     const poolPaths = [];
     if (!sourceFilePath || !fs.existsSync(sourceFilePath)) return poolPaths;
 
-    const ext = path.extname(sourceFilePath) || (mimeType && mimeType.startsWith('video/') ? '.mp4' : '.jpg');
-    const baseName = `pool_${Date.now()}_${crypto.randomBytes(3).toString('hex')}`;
+    const ext = path.extname(sourceFilePath) || '.jpg';
+    const baseName = `imgpool_${Date.now()}_${crypto.randomBytes(3).toString('hex')}`;
 
     try {
         const rawBuf = fs.readFileSync(sourceFilePath);
         for (let i = 0; i < safePoolSize; i++) {
             const varPath = path.join(vaultDir, `${baseName}_v${i}${ext}`);
-            if (mimeType && mimeType.startsWith('image/')) {
-                const tail = crypto.randomBytes(4 + (i % 6));
-                fs.writeFileSync(varPath, Buffer.concat([rawBuf, tail]));
-            } else {
-                fs.writeFileSync(varPath, rawBuf);
-            }
+            const tail = crypto.randomBytes(4 + (i % 6));
+            fs.writeFileSync(varPath, Buffer.concat([rawBuf, tail]));
             poolPaths.push(varPath);
         }
     } catch (e) {
@@ -1142,178 +1168,190 @@ function safeResetTenantSession(sessionId) {
 }
 
 async function initSessionSocket(sessionId) {
-    const { sessionDir } = getTenantPaths(sessionId);
-    const session = getOrCreateSession(sessionId);
-
-    if (session.sock) {
-        try {
-            session.sock.ev.removeAllListeners('connection.update');
-            session.sock.ev.removeAllListeners('creds.update');
-            session.sock.ev.removeAllListeners('messages.upsert');
-            session.sock.end(undefined);
-        } catch (e) {}
-        session.sock = null;
+    if (socketInitLocks.has(sessionId)) {
+        return socketInitLocks.get(sessionId);
     }
 
-    const { state, saveCreds } = await useMultiFileAuthState(sessionDir);
-    const sock = makeWASocket({
-        auth: state,
-        logger: pino({ level: 'silent' }),
-        printQRInTerminal: false,
-        syncFullHistory: false,
-        markOnlineOnConnect: false,
-        getMessage: undefined,
-        connectTimeoutMs: 30000,
-        defaultQueryTimeoutMs: 60000,
-        keepAliveIntervalMs: 30000,
-        browser: ['Ubuntu', 'Chrome', '20.0.04']
-    });
+    const initPromise = (async () => {
+        const { sessionDir } = getTenantPaths(sessionId);
+        const session = getOrCreateSession(sessionId);
 
-    session.sock = sock;
-    session.lastActive = Date.now();
-    sock.ev.on('creds.update', saveCreds);
+        if (session.sock) {
+            try {
+                session.sock.ev.removeAllListeners('connection.update');
+                session.sock.ev.removeAllListeners('creds.update');
+                session.sock.ev.removeAllListeners('messages.upsert');
+                session.sock.end(undefined);
+            } catch (e) {}
+            session.sock = null;
+        }
 
-    // Autonomous Welcome Bot Listener (Exempt from 300/day campaign quota & never saved to campaign history)
-    sock.ev.on('messages.upsert', async (m) => {
-        try {
-            if (m.type !== 'notify') return;
-            const msgs = m.messages || [];
-            const nowSec = Math.floor(Date.now() / 1000);
+        const { state, saveCreds } = await useMultiFileAuthState(sessionDir);
+        const sock = makeWASocket({
+            auth: state,
+            logger: pino({ level: 'silent' }),
+            printQRInTerminal: false,
+            syncFullHistory: false,
+            markOnlineOnConnect: false,
+            getMessage: undefined,
+            connectTimeoutMs: 30000,
+            defaultQueryTimeoutMs: 60000,
+            keepAliveIntervalMs: 30000,
+            browser: ['Ubuntu', 'Chrome', '20.0.04']
+        });
 
-            const licCheck = resolveExistingLicense(sessionId);
-            if (licCheck) {
-                if (licCheck.status !== 'ACTIVE' || Date.now() > licCheck.validUntil) {
-                    return;
-                }
-            }
+        session.sock = sock;
+        session.lastActive = Date.now();
+        sock.ev.on('creds.update', saveCreds);
 
-            const welcomeRow = stmtGetWelcome.get(sessionId);
-            if (!welcomeRow || !welcomeRow.configJson) return;
+        // Autonomous Welcome Bot Listener (Exempt from 300/day campaign quota & never saved to campaign history)
+        sock.ev.on('messages.upsert', async (m) => {
+            try {
+                if (m.type !== 'notify') return;
+                const msgs = m.messages || [];
+                const nowSec = Math.floor(Date.now() / 1000);
 
-            let rules = null;
-            try { rules = JSON.parse(welcomeRow.configJson); } catch (e) { rules = null; }
-            if (!rules || !rules.enabled || !Array.isArray(rules.sequence) || rules.sequence.length === 0) return;
-
-            const step = rules.sequence[0]; // Strict 1 welcome item
-            const cooldownPeriod = (rules.cooldownHours || 24) * 60 * 60 * 1000;
-
-            for (const msg of msgs) {
-                if (!msg || !msg.message || msg.key.fromMe) continue;
-
-                const msgTimestamp = msg.messageTimestamp || nowSec;
-                if (nowSec - msgTimestamp > 120) continue;
-
-                const remoteJid = msg.key.remoteJid || '';
-                if (!remoteJid || remoteJid === 'status@broadcast' || remoteJid.endsWith('@broadcast') || remoteJid.endsWith('@g.us')) {
-                    continue;
-                }
-                if (!remoteJid.endsWith('@s.whatsapp.net') && !remoteJid.endsWith('@lid')) continue;
-
-                if (msg.message.reactionMessage || msg.message.protocolMessage || msg.message.stickerMessage) continue;
-
-                const dedupKeyJid = remoteJid;
-                const existingDedup = stmtGetWelcomeDedup.get(sessionId, dedupKeyJid);
-                const nowMs = Date.now();
-
-                if (existingDedup && (nowMs - existingDedup.sentAt) < cooldownPeriod) {
-                    continue;
-                }
-
-                // Insert before sending to prevent race conditions; rollback on failure
-                stmtInsertWelcomeDedup.run(sessionId, dedupKeyJid, nowMs);
-
-                session.isExecutingPriorityTask = true;
-                touchSessionActivity(sessionId);
-
-                try {
-                    await delay(1500);
-                    try { await sock.sendPresenceUpdate('composing', remoteJid); } catch (e) {}
-                    await delay(800);
-
-                    if (step.type === 'text' && step.content) {
-                        await sock.sendMessage(remoteJid, { text: injectZeroWidthRandomizers(step.content) });
-                    } else if (step.type === 'image' && step.filePath && fs.existsSync(step.filePath)) {
-                        const caption = step.caption ? injectZeroWidthRandomizers(step.caption) : '';
-                        await sock.sendMessage(remoteJid, {
-                            image: { url: step.filePath },
-                            caption
-                        });
+                const licCheck = resolveExistingLicense(sessionId);
+                if (licCheck) {
+                    if (licCheck.status !== 'ACTIVE' || Date.now() > licCheck.validUntil) {
+                        return;
                     }
-                    try { await sock.sendPresenceUpdate('paused', remoteJid); } catch (e) {}
-                } catch (sendErr) {
-                    stmtDeleteWelcomeDedup.run(sessionId, dedupKeyJid);
-                    console.error('[WELCOME SEND ERROR - ROLLED BACK]:', sendErr.message);
-                } finally {
-                    session.isExecutingPriorityTask = false;
-                    touchSessionActivity(sessionId);
                 }
+
+                const welcomeRow = stmtGetWelcome.get(sessionId);
+                if (!welcomeRow || !welcomeRow.configJson) return;
+
+                let rules = null;
+                try { rules = JSON.parse(welcomeRow.configJson); } catch (e) { rules = null; }
+                if (!rules || !rules.enabled || !Array.isArray(rules.sequence) || rules.sequence.length === 0) return;
+
+                const step = rules.sequence[0]; // Strict 1 welcome item
+                const cooldownPeriod = (rules.cooldownHours || 24) * 60 * 60 * 1000;
+
+                for (const msg of msgs) {
+                    if (!msg || !msg.message || msg.key.fromMe) continue;
+
+                    const msgTimestamp = msg.messageTimestamp || nowSec;
+                    if (nowSec - msgTimestamp > 120) continue;
+
+                    const remoteJid = msg.key.remoteJid || '';
+                    if (!remoteJid || remoteJid === 'status@broadcast' || remoteJid.endsWith('@broadcast') || remoteJid.endsWith('@g.us')) {
+                        continue;
+                    }
+                    if (!remoteJid.endsWith('@s.whatsapp.net') && !remoteJid.endsWith('@lid')) continue;
+
+                    if (msg.message.reactionMessage || msg.message.protocolMessage || msg.message.stickerMessage) continue;
+
+                    const dedupKeyJid = remoteJid;
+                    const existingDedup = stmtGetWelcomeDedup.get(sessionId, dedupKeyJid);
+                    const nowMs = Date.now();
+
+                    if (existingDedup && (nowMs - existingDedup.sentAt) < cooldownPeriod) {
+                        continue;
+                    }
+
+                    // Insert before sending to prevent race conditions; rollback on failure
+                    stmtInsertWelcomeDedup.run(sessionId, dedupKeyJid, nowMs);
+
+                    session.isExecutingPriorityTask = true;
+                    touchSessionActivity(sessionId);
+
+                    try {
+                        await delay(1500);
+                        try { await sock.sendPresenceUpdate('composing', remoteJid); } catch (e) {}
+                        await delay(800);
+
+                        if (step.type === 'text' && step.content) {
+                            await sock.sendMessage(remoteJid, { text: injectZeroWidthRandomizers(step.content) });
+                        } else if (step.type === 'image' && step.filePath && fs.existsSync(step.filePath)) {
+                            const caption = step.caption ? injectZeroWidthRandomizers(step.caption) : '';
+                            await sock.sendMessage(remoteJid, {
+                                image: { url: step.filePath },
+                                caption
+                            });
+                        }
+                        try { await sock.sendPresenceUpdate('paused', remoteJid); } catch (e) {}
+                    } catch (sendErr) {
+                        stmtDeleteWelcomeDedup.run(sessionId, dedupKeyJid);
+                        console.error('[WELCOME SEND ERROR - ROLLED BACK]:', sendErr.message);
+                    } finally {
+                        session.isExecutingPriorityTask = false;
+                        touchSessionActivity(sessionId);
+                    }
+                }
+            } catch (err) {
+                session.isExecutingPriorityTask = false;
+                console.error('[WELCOME ERROR]', err);
             }
-        } catch (err) {
-            session.isExecutingPriorityTask = false;
-            console.error('[WELCOME ERROR]', err);
-        }
-    });
+        });
 
-    sock.ev.on('connection.update', async (update) => {
-        const { connection, lastDisconnect } = update;
-        touchSessionActivity(sessionId);
+        sock.ev.on('connection.update', async (update) => {
+            const { connection, lastDisconnect } = update;
+            touchSessionActivity(sessionId);
 
-        if (connection === 'close') {
-            const statusCode = lastDisconnect?.error?.output?.statusCode;
-            const isLoggedOut = statusCode === DisconnectReason.loggedOut || statusCode === 401 || statusCode === 403;
-            session.status = 'DISCONNECTED';
+            if (connection === 'close') {
+                const statusCode = lastDisconnect?.error?.output?.statusCode;
+                const isLoggedOut = statusCode === DisconnectReason.loggedOut || statusCode === 401 || statusCode === 403;
+                session.status = 'DISCONNECTED';
 
-            if (session.queue && session.queue.isRunning) {
-                session.queue.state = 'PAUSED';
-                session.queue.isRunning = false;
-                saveActiveCampaignState(sessionId, { sessionId, queue: session.queue });
+                if (session.queue && session.queue.isRunning) {
+                    session.queue.state = 'PAUSED';
+                    session.queue.isRunning = false;
+                    saveActiveCampaignState(sessionId, { sessionId, queue: session.queue });
+                }
+
+                if (isLoggedOut) {
+                    session.phone = null;
+                    wipeSessionData(sessionId);
+                } else {
+                    setTimeout(() => { if (sessions.has(sessionId)) initSessionSocket(sessionId); }, 3000);
+                }
+            } else if (connection === 'open') {
+                session.status = 'CONNECTED';
+                const rawId = sock.user?.id || '';
+                session.phone = rawId.split(':')[0] || rawId.split('@')[0];
+
+                const existingLic = resolveExistingLicense(sessionId) || resolveExistingLicense(session.phone);
+                const nowTime = Date.now();
+                if (!existingLic) {
+                    const tenantToken = crypto.randomBytes(16).toString('hex');
+                    stmtUpsertLicense.run({
+                        sessionId,
+                        phone: session.phone,
+                        status: 'ACTIVE',
+                        plan: 'Monthly (₹150)',
+                        tenantToken,
+                        validUntil: nowTime + (30 * 24 * 60 * 60 * 1000),
+                        notes: 'Registered Device',
+                        createdAt: nowTime,
+                        purchasedAt: nowTime
+                    });
+                } else {
+                    stmtUpsertLicense.run({
+                        sessionId: existingLic.sessionId,
+                        phone: session.phone || existingLic.phone,
+                        status: existingLic.status,
+                        plan: existingLic.plan,
+                        tenantToken: existingLic.tenantToken || crypto.randomBytes(16).toString('hex'),
+                        validUntil: existingLic.validUntil,
+                        notes: existingLic.notes || '',
+                        createdAt: existingLic.createdAt || nowTime,
+                        purchasedAt: existingLic.purchasedAt || nowTime
+                    });
+                }
+                resumeInFlightCrashCampaign(sessionId);
             }
+        });
 
-            if (isLoggedOut) {
-                session.phone = null;
-                wipeSessionData(sessionId);
-            } else {
-                setTimeout(() => { if (sessions.has(sessionId)) initSessionSocket(sessionId); }, 3000);
-            }
-        } else if (connection === 'open') {
-            session.status = 'CONNECTED';
-            const rawId = sock.user?.id || '';
-            session.phone = rawId.split(':')[0] || rawId.split('@')[0];
+        return session;
+    })();
 
-            // Preserve existing license validity across reinstalls/reconnects; never reset validUntil if already present
-            const existingLic = resolveExistingLicense(sessionId) || resolveExistingLicense(session.phone);
-            const nowTime = Date.now();
-            if (!existingLic) {
-                const tenantToken = crypto.randomBytes(16).toString('hex');
-                stmtUpsertLicense.run({
-                    sessionId,
-                    phone: session.phone,
-                    status: 'ACTIVE',
-                    plan: 'Monthly (₹150)',
-                    tenantToken,
-                    validUntil: nowTime + (30 * 24 * 60 * 60 * 1000),
-                    notes: 'Registered Device',
-                    createdAt: nowTime,
-                    purchasedAt: nowTime
-                });
-            } else {
-                stmtUpsertLicense.run({
-                    sessionId,
-                    phone: session.phone || existingLic.phone,
-                    status: existingLic.status,
-                    plan: existingLic.plan,
-                    tenantToken: existingLic.tenantToken || crypto.randomBytes(16).toString('hex'),
-                    validUntil: existingLic.validUntil,
-                    notes: existingLic.notes || '',
-                    createdAt: existingLic.createdAt || nowTime,
-                    purchasedAt: existingLic.purchasedAt || nowTime
-                });
-            }
-            resumeInFlightCrashCampaign(sessionId);
-        }
-    });
-
-    return session;
+    socketInitLocks.set(sessionId, initPromise);
+    try {
+        return await initPromise;
+    } finally {
+        socketInitLocks.delete(sessionId);
+    }
 }
 
 async function ensureActiveSocket(sessionId) {
@@ -1324,7 +1362,7 @@ async function ensureActiveSocket(sessionId) {
         if (fs.existsSync(path.join(sessionDir, 'creds.json'))) {
             await initSessionSocket(sessionId);
             let attempts = 0;
-            while (session.status !== 'CONNECTED' && attempts < 15) {
+            while (session.status !== 'CONNECTED' && attempts < 20) {
                 await delay(500);
                 attempts++;
             }
@@ -1351,7 +1389,7 @@ function resumeInFlightCrashCampaign(sessionId) {
     } catch (e) {}
 }
 
-function pickMediaSourceFromStep(step, recipientIdx) {
+function pickImageSourceFromStep(step, recipientIdx) {
     if (Array.isArray(step.variationPool) && step.variationPool.length > 0) {
         const candidate = step.variationPool[recipientIdx % step.variationPool.length];
         if (candidate && fs.existsSync(candidate)) {
@@ -1370,23 +1408,11 @@ async function executeDispatchQueue(sessionId) {
     const q = session.queue;
     const { mediaVaultDir } = getTenantPaths(sessionId);
 
-    // Prepare bounded variation pool (5-10 copies) once per campaign for disk streaming
+    // Prepare bounded variation pool (5-10 copies) for images only; videos use source file directly
     if (Array.isArray(q.sequence) && q.sequence.length > 0) {
         for (const step of q.sequence) {
-            if ((step.type === 'image' || step.type === 'video') && step.filePath && fs.existsSync(step.filePath) && !step.variationPool) {
-                if (step.type === 'video') {
-                    while (isVideoProcessingBusy) {
-                        await delay(250);
-                    }
-                    isVideoProcessingBusy = true;
-                    try {
-                        step.variationPool = createBoundedVariationPool(step.filePath, step.mimetype || 'video/mp4', mediaVaultDir, BOUNDED_VARIATION_POOL_SIZE);
-                    } finally {
-                        isVideoProcessingBusy = false;
-                    }
-                } else {
-                    step.variationPool = createBoundedVariationPool(step.filePath, step.mimetype || 'image/jpeg', mediaVaultDir, BOUNDED_VARIATION_POOL_SIZE);
-                }
+            if (step.type === 'image' && step.filePath && fs.existsSync(step.filePath) && !step.variationPool) {
+                step.variationPool = createBoundedImageVariationPool(step.filePath, mediaVaultDir, BOUNDED_VARIATION_POOL_SIZE);
             }
         }
     }
@@ -1449,56 +1475,60 @@ async function executeDispatchQueue(sessionId) {
             const targetJid = clean + '@s.whatsapp.net';
 
             try {
-                const [lookup] = await session.sock.onWhatsApp(targetJid);
-                if (!lookup?.exists) {
-                    throw new Error('NOT_ON_WHATSAPP');
+                if (!session.sock || session.status !== 'CONNECTED') {
+                    await ensureActiveSocket(sessionId);
+                }
+                if (!session.sock || session.status !== 'CONNECTED') {
+                    throw new Error('SOCKET_NOT_CONNECTED');
                 }
 
                 if (q.state === 'PAUSED' || q.state === 'STOPPED') continue;
 
                 const step = (Array.isArray(q.sequence) && q.sequence.length > 0) ? q.sequence[0] : null;
 
-                await session.sock.sendPresenceUpdate('composing', lookup.jid);
+                try { await session.sock.sendPresenceUpdate('composing', targetJid); } catch (e) {}
                 await delay(Math.floor(Math.random() * (900 - 500 + 1)) + 500);
 
                 if (step) {
                     if (step.type === 'text' && step.content) {
-                        await session.sock.sendMessage(lookup.jid, { text: injectZeroWidthRandomizers(step.content) });
-                    } else if (step.type === 'image' || step.type === 'video') {
-                        const streamPath = pickMediaSourceFromStep(step, q.currentIndex);
+                        await session.sock.sendMessage(targetJid, { text: injectZeroWidthRandomizers(step.content) });
+                    } else if (step.type === 'image') {
+                        const streamPath = pickImageSourceFromStep(step, q.currentIndex);
                         if (streamPath && fs.existsSync(streamPath)) {
                             const caption = step.caption ? injectZeroWidthRandomizers(step.caption) : '';
-                            if (step.type === 'image') {
-                                await session.sock.sendMessage(lookup.jid, { image: { url: streamPath }, caption });
-                            } else {
-                                await session.sock.sendMessage(lookup.jid, { video: { url: streamPath }, caption });
-                            }
+                            await session.sock.sendMessage(targetJid, { image: { url: streamPath }, caption });
+                        }
+                    } else if (step.type === 'video') {
+                        const streamPath = step.filePath;
+                        if (streamPath && fs.existsSync(streamPath)) {
+                            const caption = step.caption ? injectZeroWidthRandomizers(step.caption) : '';
+                            await session.sock.sendMessage(targetJid, { video: { url: streamPath }, caption });
                         }
                     }
                 } else {
                     const resolvedMessage = q.message ? injectZeroWidthRandomizers(q.message) : '';
                     if (q.mediaItems && q.mediaItems.length > 0) {
                         const media = q.mediaItems[0];
-                        const streamPath = (Array.isArray(media.variationPool) && media.variationPool.length > 0)
+                        const mime = media.mimetype || '';
+                        const streamPath = (mime.startsWith('image/') && Array.isArray(media.variationPool) && media.variationPool.length > 0)
                             ? media.variationPool[q.currentIndex % media.variationPool.length]
                             : media.path;
                         if (streamPath && fs.existsSync(streamPath)) {
-                            const mime = media.mimetype || '';
                             const captionText = media.caption
                                 ? injectZeroWidthRandomizers(media.caption)
                                 : resolvedMessage;
                             if (mime.startsWith('image/')) {
-                                await session.sock.sendMessage(lookup.jid, { image: { url: streamPath }, caption: captionText });
+                                await session.sock.sendMessage(targetJid, { image: { url: streamPath }, caption: captionText });
                             } else if (mime.startsWith('video/')) {
-                                await session.sock.sendMessage(lookup.jid, { video: { url: streamPath }, caption: captionText });
+                                await session.sock.sendMessage(targetJid, { video: { url: streamPath }, caption: captionText });
                             }
                         }
                     } else if (resolvedMessage) {
-                        await session.sock.sendMessage(lookup.jid, { text: resolvedMessage });
+                        await session.sock.sendMessage(targetJid, { text: resolvedMessage });
                     }
                 }
 
-                await session.sock.sendPresenceUpdate('paused', lookup.jid);
+                try { await session.sock.sendPresenceUpdate('paused', targetJid); } catch (e) {}
                 q.sent++;
                 q.remaining = Math.max(0, q.total - q.sent - q.failed);
                 if (typeof q.recipients[q.currentIndex] === 'object') {
@@ -1660,14 +1690,19 @@ if (fs.existsSync(BASE_TENANTS_DIR)) {
 }
 
 // ============================================================================
-// DYNAMIC SHARE BANNER & DOWNLOAD LANDING PAGE ROUTES (DASHBOARD CONTROLLED)
+// DYNAMIC SHARE BANNER & LANDING PAGE ROUTES (DASHBOARD CONTROLLED)
 // ============================================================================
-function getShareBannerPath() {
+function getShareBannerInfo() {
     const customRow = stmtGetSetting.get('share_banner_path');
     if (customRow && customRow.value && fs.existsSync(customRow.value)) {
-        return customRow.value;
+        const ext = path.extname(customRow.value).toLowerCase();
+        const mime = ext === '.png' ? 'image/png' : (ext === '.webp' ? 'image/webp' : 'image/jpeg');
+        return { filePath: customRow.value, mime, isCustom: true };
     }
-    return SHARE_BANNER_DEFAULT_FILE;
+    if (fs.existsSync(SHARE_BANNER_DEFAULT_FILE)) {
+        return { filePath: SHARE_BANNER_DEFAULT_FILE, mime: 'image/jpeg', isCustom: false };
+    }
+    return { filePath: null, mime: 'image/jpeg', isCustom: false };
 }
 
 function getApkDownloadUrl() {
@@ -1679,20 +1714,22 @@ function getApkDownloadUrl() {
 }
 
 app.get('/api/share-banner', (req, res) => {
-    const bannerPath = getShareBannerPath();
-    if (!fs.existsSync(bannerPath)) {
+    const info = getShareBannerInfo();
+    if (!info.filePath || !fs.existsSync(info.filePath)) {
         return res.status(404).send('Banner not configured');
     }
     res.setHeader('Cache-Control', 'no-cache, must-revalidate');
-    res.type('image/jpeg');
-    fs.createReadStream(bannerPath).pipe(res);
+    res.type(info.mime);
+    fs.createReadStream(info.filePath).pipe(res);
 });
 
 app.get('/share', (req, res) => {
     const proto = req.headers['x-forwarded-proto'] || req.protocol || 'https';
     const host = req.headers['x-forwarded-host'] || req.headers.host;
     const baseUrl = `${proto}://${host}`;
-    const bannerUrl = `${baseUrl}/api/share-banner?v=${Date.now()}`;
+    const bannerRow = stmtGetSetting.get('share_banner_path');
+    const verTag = bannerRow?.value ? path.basename(bannerRow.value) : 'default';
+    const bannerUrl = `${baseUrl}/api/share-banner?v=${encodeURIComponent(verTag)}`;
     const apkUrl = getApkDownloadUrl();
 
     res.send(`
@@ -1759,7 +1796,7 @@ app.get('/api/status/:sessionId', async (req, res) => {
 
     const isMasterToken = (token === API_SECRET_TOKEN || token === 'marketing_engine_secret_2026');
     const lic = resolveExistingLicense(req.params.sessionId);
-    const isTenantToken = lic && lic.tenantToken && token === lic.tenantToken;
+    const isTenantToken = Boolean(lic && lic.tenantToken && token === lic.tenantToken);
 
     if (!isMasterToken && !isTenantToken) {
         return res.status(401).json({ error: 'Unauthorized: Invalid token.' });
@@ -2249,6 +2286,9 @@ app.post('/api/logout', authenticate, async (req, res) => {
 app.use((err, req, res, next) => {
     if (err instanceof multer.MulterError || err) {
         if (req.files) purgeCampaignMediaItems(req.files);
+        if (req.file && req.file.path && fs.existsSync(req.file.path)) {
+            try { fs.unlinkSync(req.file.path); } catch (e) {}
+        }
         return res.status(400).json({ error: err.message || 'File upload error.' });
     }
     next();
@@ -2265,7 +2305,7 @@ app.get('/master-admin/backup-db', (req, res) => {
     res.download(DB_FILE, `engine_data_backup_${Date.now()}.sqlite`);
 });
 
-app.post('/master-admin/upload-banner', upload.single('bannerFile'), (req, res) => {
+app.post('/master-admin/upload-banner', bannerUpload.single('bannerFile'), (req, res) => {
     const pin = req.body?.pin || req.query?.pin;
     if (pin !== ADMIN_MASTER_PIN) {
         if (req.file && fs.existsSync(req.file.path)) {
@@ -2273,14 +2313,21 @@ app.post('/master-admin/upload-banner', upload.single('bannerFile'), (req, res) 
         }
         return res.status(401).json({ error: 'Forbidden' });
     }
-    if (!req.file) {
-        return res.status(400).json({ error: 'No banner image uploaded.' });
-    }
-    stmtSaveSetting.run('share_banner_path', req.file.path, Date.now());
+
     if (req.body?.apkUrl && req.body.apkUrl.trim()) {
         stmtSaveSetting.run('share_apk_url', req.body.apkUrl.trim(), Date.now());
     }
-    res.json({ success: true, message: 'Share banner updated for /share link.' });
+
+    if (req.file) {
+        const prevBanner = stmtGetSetting.get('share_banner_path');
+        if (prevBanner && prevBanner.value && prevBanner.value !== req.file.path && fs.existsSync(prevBanner.value)) {
+            try { fs.unlinkSync(prevBanner.value); } catch (e) {}
+        }
+        stmtSaveSetting.run('share_banner_path', req.file.path, Date.now());
+        return res.json({ success: true, message: 'Share banner & APK link updated for /share.' });
+    }
+
+    res.json({ success: true, message: 'APK link updated for /share.' });
 });
 
 // Background Auto-Refresh JSON Polling API (Zero-Flicker + Weekly Metrics & Quota Status)
@@ -2307,6 +2354,7 @@ app.get('/master-admin/live-metrics', (req, res) => {
     let totalActiveWelcomes = 0;
 
     const weeklyMetrics = getWeeklyMetricsSummary();
+    const bannerInfo = getShareBannerInfo();
     const tenantsData = {};
 
     for (const lic of licenses) {
@@ -2394,6 +2442,8 @@ app.get('/master-admin/live-metrics', (req, res) => {
         totalSleeping,
         totalOffline,
         weeklyMetrics,
+        bannerActive: Boolean(bannerInfo.filePath),
+        bannerFile: bannerInfo.filePath ? path.basename(bannerInfo.filePath) : 'None',
         tenants: tenantsData
     });
 });
@@ -2471,6 +2521,7 @@ app.get('/master-admin', (req, res) => {
 
     const weeklyMetrics = getWeeklyMetricsSummary();
     const currentApkUrl = getApkDownloadUrl();
+    const bannerInfo = getShareBannerInfo();
 
     const rows = licenses.map((data) => {
         const sid = data.sessionId;
@@ -2688,8 +2739,10 @@ app.get('/master-admin', (req, res) => {
 
                 <div class="notice-box">
                     <span style="font-size:0.82rem;font-weight:bold;color:#00a884;white-space:nowrap;">🖼️ Share Banner:</span>
-                    <input type="file" id="shareBannerInput" accept="image/jpeg,image/png,image/webp" style="font-size:0.8rem;color:#8696a0;max-width:210px;">
-                    <input type="text" id="txtShareApkUrl" value="${currentApkUrl.replace(/"/g, '&quot;')}" placeholder="APK download URL..." style="flex:1;min-width:180px;padding:7px 10px;border-radius:6px;border:1px solid #202c33;background:#0b141a;color:#fff;font-size:0.82rem;outline:none;">
+                    <img id="activeBannerPreview" src="/api/share-banner?v=${Date.now()}" alt="Active Banner" style="height:36px;width:auto;border-radius:4px;border:1px solid #2a3942;${bannerInfo.filePath ? '' : 'display:none;'}" onerror="this.style.display='none'">
+                    <span id="lblActiveBannerName" style="font-size:0.75rem;color:#8696a0;">Active: ${bannerInfo.filePath ? path.basename(bannerInfo.filePath) : 'None'}</span>
+                    <input type="file" id="shareBannerInput" accept="image/jpeg,image/png,image/webp" style="font-size:0.8rem;color:#8696a0;max-width:200px;">
+                    <input type="text" id="txtShareApkUrl" value="${currentApkUrl.replace(/"/g, '&quot;')}" placeholder="APK download URL..." style="flex:1;min-width:170px;padding:7px 10px;border-radius:6px;border:1px solid #202c33;background:#0b141a;color:#fff;font-size:0.82rem;outline:none;">
                     <button onclick="uploadShareBanner()" style="padding:7px 12px;border-radius:6px;background:#0284c7;color:#fff;border:none;font-weight:700;font-size:0.8rem;cursor:pointer;">Update Share Image</button>
                 </div>
 
@@ -2742,7 +2795,6 @@ app.get('/master-admin', (req, res) => {
                     const apkUrl = document.getElementById('txtShareApkUrl').value.trim();
                     const fd = new FormData();
                     fd.append('pin', '${ADMIN_MASTER_PIN}');
-                    fd.append('uploadPurpose', 'share_banner');
                     if (apkUrl) fd.append('apkUrl', apkUrl);
                     if (fileInput.files && fileInput.files[0]) {
                         fd.append('bannerFile', fileInput.files[0]);
@@ -2750,6 +2802,15 @@ app.get('/master-admin', (req, res) => {
                     const res = await fetch('/master-admin/upload-banner', { method: 'POST', body: fd });
                     const d = await res.json();
                     alert(d.message || d.error || 'Updated');
+                    if (d.success) {
+                        const imgEl = document.getElementById('activeBannerPreview');
+                        if (imgEl) {
+                            imgEl.style.display = 'inline-block';
+                            imgEl.src = '/api/share-banner?v=' + Date.now();
+                        }
+                        fileInput.value = '';
+                        pollMetrics();
+                    }
                 }
 
                 function filterTenants() {
@@ -2971,6 +3032,11 @@ app.get('/master-admin', (req, res) => {
                         document.getElementById('vitalQueuedSchedules').innerText = data.totalQueuedSchedules + ' Jobs';
                         document.getElementById('vitalActiveWelcomes').innerText = data.totalActiveWelcomes + ' Tenants';
                         document.getElementById('vitalSockets').innerHTML = '<span style="color:#00a884;">' + data.totalOnline + '</span> / <span style="color:#eab308;">' + data.totalSleeping + '</span>';
+
+                        const bannerLbl = document.getElementById('lblActiveBannerName');
+                        if (bannerLbl) {
+                            bannerLbl.innerText = 'Active: ' + (data.bannerFile || 'None');
+                        }
 
                         if (data.tenants) {
                             for (const [sid, t] of Object.entries(data.tenants)) {
