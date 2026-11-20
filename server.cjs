@@ -2684,9 +2684,9 @@ app.get('/master-admin', (req, res) => {
                 .floating-bar {
                     position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%);
                     background: #182229; border: 1px solid #00a884; box-shadow: 0 10px 30px rgba(0,0,0,0.8);
-                    border-radius: 30px; padding: 10px 18px; display: none; align-items: center; gap: 10px; z-index: 1000;
+                    border-radius: 30px; padding: 10px 16px; display: none; align-items: center; gap: 8px; z-index: 1000; max-width: 96vw; flex-wrap: wrap; justify-content: center;
                 }
-                .floating-btn { padding: 6px 12px; border-radius: 20px; font-weight: 700; font-size: 0.78rem; border: none; cursor: pointer; }
+                .floating-btn { padding: 6px 10px; border-radius: 20px; font-weight: 700; font-size: 0.74rem; border: none; cursor: pointer; }
             </style>
         </head>
         <body>
@@ -2783,9 +2783,12 @@ app.get('/master-admin', (req, res) => {
             <div class="floating-bar" id="floatingBar">
                 <span id="lblSelectedCount" style="font-size:0.82rem;font-weight:bold;color:#00a884;">0 Selected</span>
                 <button class="floating-btn" style="background:#00a884;color:#111b21;" onclick="bulkExtend(30)">+30D</button>
+                <button class="floating-btn" style="background:#0284c7;color:#fff;" onclick="bulkExtend(365)">+365D</button>
+                <button class="floating-btn" style="background:#dc2626;color:#fff;" onclick="bulkCancelSub()">Cancel Sub</button>
                 <button class="floating-btn" style="background:#f59e0b;color:#111b21;" onclick="bulkSafeReset()">Safe Reset</button>
                 <button class="floating-btn" style="background:#374151;color:#fff;" onclick="bulkPurgeMedia()">Purge Media</button>
-                <button class="floating-btn" style="background:#dc2626;color:#fff;" onclick="bulkKill()">Kill / Freeze</button>
+                <button class="floating-btn" style="background:#4b5563;color:#fff;" onclick="bulkKill()">Kill / Freeze</button>
+                <button class="floating-btn" style="background:#ef4444;color:#fff;" onclick="bulkDeleteTenant()">Wipe</button>
             </div>
 
             <script>
@@ -2963,11 +2966,25 @@ app.get('/master-admin', (req, res) => {
                 async function bulkExtend(days) {
                     const sids = getSelectedSessionIds();
                     if (!confirm('Extend subscription by ' + days + ' days for ' + sids.length + ' selected tenants?')) return;
+                    const plan = days === 365 ? 'Yearly (₹1200)' : 'Monthly (₹150)';
                     for (const sid of sids) {
                         await fetch('/master-admin/extend', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ pin: '${ADMIN_MASTER_PIN}', sessionId: sid, days })
+                            body: JSON.stringify({ pin: '${ADMIN_MASTER_PIN}', sessionId: sid, days, plan })
+                        });
+                    }
+                    pollMetrics();
+                }
+
+                async function bulkCancelSub() {
+                    const sids = getSelectedSessionIds();
+                    if (!confirm('CANCEL SUBSCRIPTION for ' + sids.length + ' selected tenants?')) return;
+                    for (const sid of sids) {
+                        await fetch('/master-admin/cancel-sub', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ pin: '${ADMIN_MASTER_PIN}', sessionId: sid })
                         });
                     }
                     pollMetrics();
@@ -3010,6 +3027,19 @@ app.get('/master-admin', (req, res) => {
                         });
                     }
                     pollMetrics();
+                }
+
+                async function bulkDeleteTenant() {
+                    const sids = getSelectedSessionIds();
+                    if (!confirm('CRITICAL ACTION: Permanently WIPE ' + sids.length + ' selected tenants? This CANNOT be undone.')) return;
+                    for (const sid of sids) {
+                        await fetch('/master-admin/delete-tenant', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ pin: '${ADMIN_MASTER_PIN}', sessionId: sid })
+                        });
+                    }
+                    location.reload();
                 }
 
                 async function pollMetrics() {
