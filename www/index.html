@@ -420,7 +420,7 @@
             <button class="btn btn-outline" style="width: auto; padding: 10px 14px;" id="btnToggleGroupSelect" onclick="toggleGroupSelectMode()">Select</button>
         </div>
 
-        <div id="groupBatchActionBar" style="display: none; margin-bottom: 12px; gap: 8px;">
+        <div id="groupBatchActionBar" style="display: none; margin-bottom: 12px; gap: 8px; align-items: center;">
             <button class="btn btn-danger" style="margin-top: 0;" onclick="deleteSelectedGroups()">🗑️ Delete Selected Groups (<span id="selectedGroupCount">0</span>)</button>
         </div>
 
@@ -1607,7 +1607,7 @@
 
         function updateScheduleMinMaxGuards() {
             const input = document.getElementById('campScheduleTime');
-            const now = new Date(Date.now() + 5 * 60 * 1000);
+            const now = new Date(Date.now() + 2 * 60 * 1000);
             const maxDate = new Date(Date.now() + MAX_SCHEDULE_HOURS * 60 * 60 * 1000);
             input.min = toLocalDateTimeInputString(now);
             input.max = toLocalDateTimeInputString(maxDate);
@@ -1649,8 +1649,19 @@
             updateScheduleMinMaxGuards();
             const target = new Date();
             if (presetType === '1h') target.setHours(target.getHours() + 1);
-            else if (presetType === 'tom9') { target.setDate(target.getDate() + 1); target.setHours(9, 0, 0, 0); }
-            else if (presetType === 'tom18') { target.setDate(target.getDate() + 1); target.setHours(18, 0, 0, 0); }
+            else if (presetType === 'tom9') {
+                target.setDate(target.getDate() + 1);
+                target.setHours(9, 0, 0, 0);
+                if (target.getTime() > Date.now() + MAX_SCHEDULE_HOURS * 60 * 60 * 1000) {
+                    target.setTime(Date.now() + 24 * 60 * 60 * 1000);
+                }
+            } else if (presetType === 'tom18') {
+                target.setDate(target.getDate() + 1);
+                target.setHours(18, 0, 0, 0);
+                if (target.getTime() > Date.now() + MAX_SCHEDULE_HOURS * 60 * 60 * 1000) {
+                    target.setTime(Date.now() + 36 * 60 * 60 * 1000);
+                }
+            }
 
             const input = document.getElementById('campScheduleTime');
             input.value = toLocalDateTimeInputString(target);
@@ -2230,9 +2241,13 @@
             if (isSubscriptionExpiredGlobal) {
                 return showCustomDialog({ title: 'Access Denied', message: 'Your subscription has expired. Please contact admin to recharge before launching campaigns.', type: 'danger' });
             }
+            if (!SESSION_ID || SESSION_ID === 'unpaired_user') {
+                return showCustomDialog({ title: 'Not Connected', message: 'Please pair WhatsApp in Settings first before launching or scheduling campaigns.', type: 'warning' });
+            }
             await syncRemainingQuotaFromServer();
             await loadScheduledCampaignsList();
-            if (remainingDailyQuotaGlobal <= 0) {
+            const isScheduleEnabled = document.getElementById('chkEnableSchedule').checked;
+            if (!isScheduleEnabled && remainingDailyQuotaGlobal <= 0) {
                 return showCustomDialog({
                     title: 'Daily Limit Reached',
                     message: '300 messages/day outbound limit reached. Quota resets at 12:00 AM.',
@@ -2285,6 +2300,10 @@
         async function confirmDispatchMultiGroup() {
             if (selectedTargetGroupIds.size === 0) return showCustomDialog({ title: 'Select Target', message: 'Please select at least one group.', type: 'warning' });
 
+            if (!SESSION_ID || SESSION_ID === 'unpaired_user') {
+                return showCustomDialog({ title: 'Not Connected', message: 'Please pair WhatsApp in Settings first.', type: 'warning' });
+            }
+
             await loadScheduledCampaignsList();
 
             const combinedMap = new Map();
@@ -2319,7 +2338,7 @@
                 if (!scheduleTime) return showCustomDialog({ title: 'Schedule Time Missing', message: 'Please select a schedule date and time.', type: 'warning' });
                 scheduleEpoch = new Date(scheduleTime).getTime();
                 const now = Date.now();
-                if (scheduleEpoch <= now) return showCustomDialog({ title: 'Invalid Time', message: 'Schedule time must be in the future.', type: 'warning' });
+                if (isNaN(scheduleEpoch) || scheduleEpoch <= now) return showCustomDialog({ title: 'Invalid Time', message: 'Schedule time must be in the future.', type: 'warning' });
                 if (scheduleEpoch > now + (MAX_SCHEDULE_HOURS * 60 * 60 * 1000)) {
                     return showCustomDialog({ title: 'Out of Range', message: 'Schedule window cannot exceed 72 hours (3 days).', type: 'warning' });
                 }
@@ -2364,8 +2383,11 @@
                     persistRemainingQuotaCache(d.quota, SESSION_ID);
                 }
                 if (d.status === 'SCHEDULED') {
+                    campaignDraft = { text: '', file: null, fileName: '', caption: '' };
+                    renderBulkSequence();
                     resetScheduleFormInUI();
-                    loadScheduledCampaignsList();
+                    await loadScheduledCampaignsList();
+                    navigateTab('viewDashboard', document.querySelectorAll('.nav-tab')[2]);
                     showReadinessReady(`Scheduled for ${d.scheduledForDate || new Date(scheduleEpoch).toLocaleString()}. Done — Running on Cloud.`);
                 } else if (d.status === 'QUEUED') {
                     currentActiveCampaignId = d.campaignId;
@@ -2739,6 +2761,13 @@
         }
 
         function renderGroups() {
+            const batchBar = document.getElementById('groupBatchActionBar');
+            const toggleBtn = document.getElementById('btnToggleGroupSelect');
+            const countSpan = document.getElementById('selectedGroupCount');
+            if (batchBar) batchBar.style.display = isGroupSelectMode ? 'flex' : 'none';
+            if (toggleBtn) toggleBtn.innerText = isGroupSelectMode ? 'Cancel' : 'Select';
+            if (countSpan) countSpan.innerText = String(selectedGroupsForDelete.size);
+
             const container = document.getElementById('groupsListContainer');
             if (groups.length === 0) {
                 container.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 40px;">No groups yet. Tap "+" below to create one.</div>';
@@ -2916,6 +2945,31 @@
         }
 
         // --- FULLSCREEN PHONEBOOK SELECTOR ---
+        function isContactsPermissionGranted(permObj) {
+            if (!permObj) return false;
+            return (
+                permObj.contacts === 'granted' ||
+                permObj.readContacts === 'granted' ||
+                permObj.status === 'granted'
+            );
+        }
+
+        async function loadCapacitorDeviceContacts(ContactsPlugin) {
+            const res = await ContactsPlugin.getContacts({ projection: { name: true, phones: true } });
+            const extracted = [];
+            (res.contacts || []).forEach(c => {
+                const name = c.name?.display || c.name?.given || c.displayName || '';
+                (c.phones || c.phoneNumbers || []).forEach(p => {
+                    const rawNum = typeof p === 'string' ? p : (p?.number || p?.value || '');
+                    const clean = normalizeNumber(rawNum);
+                    if (clean && clean.length >= 10) extracted.push({ name, phone: clean });
+                });
+            });
+            const map = new Map();
+            extracted.forEach(item => map.set(item.phone, item));
+            return Array.from(map.values());
+        }
+
         async function openPhonebookSelector(mode) {
             pbTargetMode = mode;
             selectedPbContacts.clear();
@@ -2938,36 +2992,56 @@
 
             const ContactsPlugin = window.Capacitor?.Plugins?.Contacts;
             if (ContactsPlugin) {
+                let permGranted = false;
                 try {
-                    const perm = await ContactsPlugin.requestPermissions();
-                    const granted = perm?.contacts === 'granted' || perm?.readContacts === 'granted';
-                    if (granted) {
-                        const res = await ContactsPlugin.getContacts({ projection: { name: true, phones: true } });
-                        cachedDeviceContacts = [];
-                        (res.contacts || []).forEach(c => {
-                            const name = c.name?.display || c.name?.given || '';
-                            (c.phones || []).forEach(p => {
-                                const clean = normalizeNumber(p.number);
-                                if (clean && clean.length >= 10) cachedDeviceContacts.push({ name, phone: clean });
-                            });
-                        });
-                        const map = new Map();
-                        cachedDeviceContacts.forEach(item => map.set(item.phone, item));
-                        cachedDeviceContacts = Array.from(map.values());
+                    if (typeof ContactsPlugin.checkPermissions === 'function') {
+                        const cur = await ContactsPlugin.checkPermissions();
+                        permGranted = isContactsPermissionGranted(cur);
+                    }
+                    if (!permGranted && typeof ContactsPlugin.requestPermissions === 'function') {
+                        const reqPerm = await ContactsPlugin.requestPermissions();
+                        permGranted = isContactsPermissionGranted(reqPerm);
+                    }
+                } catch (permErr) {
+                    permGranted = false;
+                }
+
+                if (permGranted) {
+                    try {
+                        cachedDeviceContacts = await loadCapacitorDeviceContacts(ContactsPlugin);
                         currentlyFilteredContacts = [...cachedDeviceContacts];
                         renderPhonebook(currentlyFilteredContacts);
                         updatePbSelectionCounter();
                         showPhonebookOverlay();
                         return;
-                    } else {
+                    } catch (readErr) {
                         showCustomDialog({
-                            title: 'Contacts Access Needed',
-                            message: 'Please allow Contacts permission in Android App Settings -> Permissions -> Contacts, then tap Pick Contacts again.',
+                            title: 'Contacts Load Error',
+                            message: 'Contacts permission is granted, but reading contacts failed. Please retry or check device contacts.',
                             type: 'warning'
                         });
                         return;
                     }
-                } catch(e) {}
+                }
+
+                // Fallback attempt in case a plugin version grants access without reporting standard status fields
+                try {
+                    cachedDeviceContacts = await loadCapacitorDeviceContacts(ContactsPlugin);
+                    if (cachedDeviceContacts.length > 0) {
+                        currentlyFilteredContacts = [...cachedDeviceContacts];
+                        renderPhonebook(currentlyFilteredContacts);
+                        updatePbSelectionCounter();
+                        showPhonebookOverlay();
+                        return;
+                    }
+                } catch (e) {}
+
+                showCustomDialog({
+                    title: 'Contacts Access Needed',
+                    message: 'Please allow Contacts permission in Android App Settings -> Permissions -> Contacts, then tap Pick Contacts again.',
+                    type: 'warning'
+                });
+                return;
             }
 
             if ('contacts' in navigator && 'select' in navigator.contacts) {
