@@ -190,4 +190,3 @@ jobs:
             android/app/build/outputs/apk/debug/WA_Campaign_Latest.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-```[cite: 22]
