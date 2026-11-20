@@ -367,7 +367,7 @@
 </head>
 <body>
 
-    <div class="modal modal-high" id="disclaimerModal" style="display: none; z-index: 9999; background: rgba(0,0,0,0.92);">
+    <div class="modal modal-high" id="disclaimerModal" style="display: none; z-index: 999999; background: rgba(0,0,0,0.94);">
         <div class="modal-content" style="max-height: 85vh;">
             <div class="modal-title" style="color: var(--warning); display: flex; align-items: center; gap: 8px;">
                 ⚠️ <span>Usage Terms & Anti-Spam Policy</span>
@@ -766,14 +766,14 @@
         </div>
     </div>
 
-    <!-- Blocking Readiness Modal ("Please Wait..." -> "OK") -->
+    <!-- Blocking Readiness Modal ("Please Wait..." -> "Safe to Close") -->
     <div class="modal modal-high" id="readinessModal" style="z-index: 99990;">
         <div class="custom-dialog-card">
             <div class="dialog-icon-badge dialog-icon-info" id="readyIconBadge">⏳</div>
             <div class="dialog-title-text" id="readyTitleText">Please Wait...</div>
-            <div class="dialog-desc-text" id="readyDescText">Syncing configuration with server. Do not close the app or turn off data yet.</div>
+            <div class="dialog-desc-text" id="readyDescText">Syncing configuration with server. Do not close the app yet.</div>
             <div class="dialog-btn-group" id="readyBtnGroup" style="display: none;">
-                <button class="btn btn-primary" id="btnReadyOk" onclick="acknowledgeReadinessPopup()">OK — Safe to Close / Net Off</button>
+                <button class="btn btn-primary" id="btnReadyOk" onclick="acknowledgeReadinessPopup()">Safe to Close</button>
             </div>
         </div>
     </div>
@@ -837,7 +837,15 @@
             return clean;
         }
 
-        // --- Readiness Popup ("Please Wait..." -> "OK") ---
+        function clearStaleSessionLocalCache() {
+            groups = [];
+            globalCampaigns = [];
+            cachedScheduledJobs = [];
+            localStorage.removeItem('app_groups');
+            localStorage.removeItem('app_campaigns');
+        }
+
+        // --- Readiness Popup ("Please Wait..." -> "Safe to Close") ---
         function showReadinessWaiting(message = 'Syncing configuration with server. Please wait...') {
             const modal = document.getElementById('readinessModal');
             document.getElementById('readyIconBadge').className = 'dialog-icon-badge dialog-icon-info';
@@ -848,12 +856,13 @@
             modal.style.display = 'flex';
         }
 
-        function showReadinessReady(message = 'Synced with server. You can now close the app or turn off mobile data.') {
+        function showReadinessReady(message = 'Done — Running on Cloud. Safe to close the app.') {
             const modal = document.getElementById('readinessModal');
             document.getElementById('readyIconBadge').className = 'dialog-icon-badge dialog-icon-info';
             document.getElementById('readyIconBadge').innerText = '✅';
-            document.getElementById('readyTitleText').innerText = 'Ready';
+            document.getElementById('readyTitleText').innerText = 'Done — Running on Cloud';
             document.getElementById('readyDescText').innerText = message;
+            document.getElementById('btnReadyOk').innerText = 'Safe to Close';
             document.getElementById('readyBtnGroup').style.display = 'flex';
             modal.style.display = 'flex';
         }
@@ -1252,11 +1261,16 @@
             const accepted = localStorage.getItem('terms_accepted_permanent');
             if (!accepted) {
                 document.getElementById('disclaimerModal').style.display = 'flex';
-                document.getElementById('chkAcceptTerms').addEventListener('change', function() {
-                    const btn = document.getElementById('btnAcceptDisclaimer');
-                    btn.disabled = !this.checked;
-                    btn.style.opacity = this.checked ? '1' : '0.5';
-                });
+                const chk = document.getElementById('chkAcceptTerms');
+                const btn = document.getElementById('btnAcceptDisclaimer');
+                if (chk && btn) {
+                    btn.disabled = !chk.checked;
+                    btn.style.opacity = chk.checked ? '1' : '0.5';
+                    chk.onchange = function() {
+                        btn.disabled = !this.checked;
+                        btn.style.opacity = this.checked ? '1' : '0.5';
+                    };
+                }
             }
         }
 
@@ -1339,6 +1353,7 @@
             document.getElementById('fabAddGroup').style.display = (tabId === 'viewGroups') ? 'flex' : 'none';
             if (tabId === 'viewCampaign') {
                 await syncRemainingQuotaFromServer();
+                await loadScheduledCampaignsList();
             }
             if (tabId === 'viewDashboard') {
                 await hydrateCampaignStateFromServer();
@@ -1367,6 +1382,7 @@
                 panelWelcome.style.display = 'none';
                 panelBlast.style.display = 'block';
                 syncRemainingQuotaFromServer();
+                loadScheduledCampaignsList();
             }
         }
 
@@ -1834,7 +1850,7 @@
                 fd.append(`file_${blockId}`, welcomeDraft.file);
             }
 
-            showReadinessWaiting('Saving welcome rule to server. Do not close the app or turn off data yet...');
+            showReadinessWaiting('Saving welcome rule to server. Do not close the app yet...');
             try {
                 const res = await fetch(`${FIXED_BACKEND_URL}/api/welcome/setup`, {
                     method: 'POST',
@@ -1845,7 +1861,7 @@
                 document.getElementById('readinessModal').style.display = 'none';
                 if (d.success) {
                     await loadWelcomeRulesFromServer();
-                    showReadinessReady(enabled ? 'Welcome rule synced with server! You can close the app or turn off data now.' : 'Welcome rule disabled and synced with server!');
+                    showReadinessReady(enabled ? 'Welcome rule synced with server. Done — Running on Cloud.' : 'Welcome rule disabled and synced with server.');
                 } else showCustomDialog({ title: 'Error', message: d.error || 'Failed to save', type: 'danger' });
             } catch(e) {
                 document.getElementById('readinessModal').style.display = 'none';
@@ -1946,6 +1962,9 @@
                 }
 
                 if (d.status === 'CONNECTED' && d.phone) {
+                    if (SESSION_ID !== 'unpaired_user' && SESSION_ID !== d.phone) {
+                        clearStaleSessionLocalCache();
+                    }
                     SESSION_ID = d.phone;
                     localStorage.setItem('connected_phone_permanent', d.phone);
                     localStorage.setItem('tenant_session_id', d.phone);
@@ -1966,6 +1985,7 @@
                     await restoreGroupsFromServer(true);
                     await hydrateCampaignStateFromServer();
                     await loadWelcomeRulesFromServer();
+                    await loadScheduledCampaignsList();
                 } else {
                     document.getElementById('statusConnectedBox').style.display = 'none';
                     document.getElementById('statusPairingBox').style.display = 'block';
@@ -2063,6 +2083,10 @@
             const cleanPhone = normalizeNumber(phone);
             if (!cleanPhone || cleanPhone.length < 10) return showCustomDialog({ title: 'Invalid Number', message: 'Enter a valid 10-digit phone number', type: 'warning' });
 
+            if (SESSION_ID && SESSION_ID !== 'unpaired_user' && SESSION_ID !== cleanPhone) {
+                clearStaleSessionLocalCache();
+            }
+
             const disp = document.getElementById('pairCodeDisplay');
             disp.style.display = 'block';
             disp.innerText = 'Requesting code...';
@@ -2129,8 +2153,10 @@
                     body: JSON.stringify({ sessionId: SESSION_ID })
                 });
             } catch(e) {}
+            const keepTerms = localStorage.getItem('terms_accepted_permanent');
             localStorage.clear();
             sessionStorage.clear();
+            if (keepTerms) localStorage.setItem('terms_accepted_permanent', keepTerms);
             await showCustomDialog({
                 title: 'Logged Out',
                 message: 'WhatsApp account unlinked. Login again anytime to restore groups.',
@@ -2181,6 +2207,7 @@
                 return showCustomDialog({ title: 'Access Denied', message: 'Your subscription has expired. Please contact admin to recharge before launching campaigns.', type: 'danger' });
             }
             await syncRemainingQuotaFromServer();
+            await loadScheduledCampaignsList();
             if (remainingDailyQuotaGlobal <= 0) {
                 return showCustomDialog({
                     title: 'Daily Limit Reached',
@@ -2234,6 +2261,8 @@
         async function confirmDispatchMultiGroup() {
             if (selectedTargetGroupIds.size === 0) return showCustomDialog({ title: 'Select Target', message: 'Please select at least one group.', type: 'warning' });
 
+            await loadScheduledCampaignsList();
+
             const combinedMap = new Map();
             selectedTargetGroupIds.forEach(id => {
                 const g = groups.find(x => x.id === id);
@@ -2257,7 +2286,7 @@
                 });
             }
 
-            if (isScheduleEnabled && cachedScheduledJobs.length >= 1) {
+            if (isScheduleEnabled && cachedScheduledJobs.length >= MAX_SCHEDULE_SLOTS) {
                 return showCustomDialog({ title: 'Schedule Slot Occupied', message: 'Only 1 scheduled slot allowed at a time! Cancel the active schedule first.', type: 'warning' });
             }
 
@@ -2313,7 +2342,7 @@
                 if (d.status === 'SCHEDULED') {
                     resetScheduleFormInUI();
                     loadScheduledCampaignsList();
-                    showReadinessReady(`Scheduled for ${d.scheduledForDate || new Date(scheduleEpoch).toLocaleString()}. You can close the app or turn off data now.`);
+                    showReadinessReady(`Scheduled for ${d.scheduledForDate || new Date(scheduleEpoch).toLocaleString()}. Done — Running on Cloud.`);
                 } else if (d.status === 'QUEUED') {
                     currentActiveCampaignId = d.campaignId;
                     campaignDraft = { text: '', file: null, fileName: '', caption: '' };
@@ -2322,7 +2351,7 @@
                     await hydrateCampaignStateFromServer();
                     navigateTab('viewDashboard', document.querySelectorAll('.nav-tab')[2]);
                     pollCampaignLive(d.campaignId);
-                    showReadinessReady(`Campaign running on server for ${uniqueRecipients.length} contacts! You can close the app or turn off data now.`);
+                    showReadinessReady(`Campaign running on server for ${uniqueRecipients.length} contacts! Done — Running on Cloud.`);
                 } else showCustomDialog({ title: 'Dispatch Error', message: d.error || 'Failed to dispatch', type: 'danger' });
             } catch(e) {
                 document.getElementById('readinessModal').style.display = 'none';
@@ -2887,7 +2916,8 @@
             if (ContactsPlugin) {
                 try {
                     const perm = await ContactsPlugin.requestPermissions();
-                    if (perm.contacts === 'granted') {
+                    const granted = perm?.contacts === 'granted' || perm?.readContacts === 'granted';
+                    if (granted) {
                         const res = await ContactsPlugin.getContacts({ projection: { name: true, phones: true } });
                         cachedDeviceContacts = [];
                         (res.contacts || []).forEach(c => {
@@ -2904,6 +2934,13 @@
                         renderPhonebook(currentlyFilteredContacts);
                         updatePbSelectionCounter();
                         showPhonebookOverlay();
+                        return;
+                    } else {
+                        showCustomDialog({
+                            title: 'Contacts Access Needed',
+                            message: 'Please allow Contacts permission in Android App Settings -> Permissions -> Contacts, then tap Pick Contacts again.',
+                            type: 'warning'
+                        });
                         return;
                     }
                 } catch(e) {}
@@ -2923,7 +2960,11 @@
                     return;
                 } catch(e) {}
             }
-            showCustomDialog({ title: 'Permission Required', message: 'Contacts permission not granted.', type: 'warning' });
+            showCustomDialog({
+                title: 'Contacts Access Needed',
+                message: 'Contacts permission was not granted. Enable Contacts access in your device settings and retry.',
+                type: 'warning'
+            });
         }
 
         function showPhonebookOverlay() { document.getElementById('phonebookOverlay').style.display = 'flex'; }
@@ -3052,6 +3093,9 @@
             }
         }
 
+        // Trigger Disclaimer immediately on script execution for first-time launches
+        checkDisclaimerAcceptance();
+
         window.onload = async () => {
             switchTheme(localStorage.getItem('app_theme') || 'dark');
             loadCachedRemainingQuota(SESSION_ID);
@@ -3065,6 +3109,7 @@
             renderWelcomeSequence();
             await syncWhatsAppAccountStatus();
             await syncRemainingQuotaFromServer();
+            await loadScheduledCampaignsList();
             checkForAppUpdatesBackground();
         };
     </script>
