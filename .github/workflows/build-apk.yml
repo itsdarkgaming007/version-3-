@@ -34,6 +34,7 @@ jobs:
         with:
           distribution: 'zulu'
           java-version: '17'
+          cache: 'gradle'
 
       - name: Install Dependencies
         run: npm install
@@ -127,7 +128,18 @@ jobs:
         run: |
           cd android
           chmod +x gradlew
-          ./gradlew assembleDebug
+          ATTEMPT=1
+          MAX_ATTEMPTS=3
+          until ./gradlew assembleDebug --no-daemon --stacktrace; do
+            if [ "$ATTEMPT" -ge "$MAX_ATTEMPTS" ]; then
+              echo "Gradle build failed after $MAX_ATTEMPTS attempts."
+              exit 1
+            fi
+            SLEEP_SEC=$((ATTEMPT * 15))
+            echo "Gradle hit transient issue (attempt $ATTEMPT/$MAX_ATTEMPTS). Waiting ${SLEEP_SEC}s before retry..."
+            sleep "$SLEEP_SEC"
+            ATTEMPT=$((ATTEMPT + 1))
+          done
 
       - name: Rename and Prepare APK Deliverables
         run: |
