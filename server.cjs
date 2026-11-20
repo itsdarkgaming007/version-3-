@@ -18,6 +18,13 @@ const PORT = process.env.PORT || 3000;
 const API_SECRET_TOKEN = process.env.API_SECRET_TOKEN || 'marketing_engine_secret_2026';
 const ADMIN_MASTER_PIN = process.env.ADMIN_MASTER_PIN || 'adminpass2026';
 
+const DAILY_OUTBOUND_CAP = 300;
+const MAX_SCHEDULE_SLOTS = 1;
+const MAX_SCHEDULE_WINDOW_MS = 3 * 24 * 60 * 60 * 1000; // 72 hours (3 days)
+const MEDIA_POOL_MIN = 5;
+const MEDIA_POOL_MAX = 10;
+const VIDEO_POOL_CONCURRENCY = 1;
+
 const BASE_TENANTS_DIR = path.join(__dirname, 'tenants');
 const LICENSES_FILE = path.join(__dirname, 'admin_licenses.json');
 const DB_FILE = path.join(__dirname, 'engine_data.sqlite');
@@ -28,12 +35,14 @@ if (!fs.existsSync(BASE_TENANTS_DIR)) fs.mkdirSync(BASE_TENANTS_DIR, { recursive
 process.on('uncaughtException', (err) => {
     console.error('[CRITICAL UNCAUGHT EXCEPTION]:', err);
 });
-process.on('unhandledRejection', (reason, promise) => {
+process.on('unhandledRejection', (reason) => {
     console.error('[CRITICAL UNHANDLED REJECTION]:', reason);
 });
 
-// In-Memory Brute-Force Rate Limiter for Master Admin
+// In-Memory Brute-Force Rate Limiter for Master Admin (Bounded)
 const adminLoginAttempts = new Map();
+const MAX_ADMIN_ATTEMPT_ENTRIES = 2000;
+
 function checkAdminBruteForce(clientIp) {
     const record = adminLoginAttempts.get(clientIp);
     if (!record) return true;
@@ -44,7 +53,12 @@ function checkAdminBruteForce(clientIp) {
     }
     return record.count < 5;
 }
+
 function recordFailedAdminAttempt(clientIp) {
+    if (!adminLoginAttempts.has(clientIp) && adminLoginAttempts.size >= MAX_ADMIN_ATTEMPT_ENTRIES) {
+        const oldestKey = adminLoginAttempts.keys().next().value;
+        if (oldestKey) adminLoginAttempts.delete(oldestKey);
+    }
     const record = adminLoginAttempts.get(clientIp) || { count: 0, firstAttempt: Date.now(), lockedUntil: 0 };
     record.count++;
     if (record.count >= 5) {
@@ -52,6 +66,7 @@ function recordFailedAdminAttempt(clientIp) {
     }
     adminLoginAttempts.set(clientIp, record);
 }
+
 function clearAdminAttempt(clientIp) {
     adminLoginAttempts.delete(clientIp);
 }
@@ -109,6 +124,31 @@ db.exec(`
         value TEXT,
         updatedAt INTEGER
     );
+
+    CREATE TABLE IF NOT EXISTS daily_outbound_quota (
+        tenantId TEXT PRIMARY KEY,
+        dayKey TEXT NOT NULL,
+        deliveredTodayCount INTEGER NOT NULL DEFAULT 0,
+        updatedAt INTEGER NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS welcome_dedup (
+        tenantId TEXT NOT NULL,
+        remoteJid TEXT NOT NULL,
+        sentAt INTEGER NOT NULL,
+        PRIMARY KEY (tenantId, remoteJid)
+    );
+
+    CREATE TABLE IF NOT EXISTS weekly_metrics (
+        tenantId TEXT NOT NULL,
+        weekKey TEXT NOT NULL,
+        dayKey TEXT NOT NULL,
+        sentCount INTEGER NOT NULL DEFAULT 0,
+        failedCount INTEGER NOT NULL DEFAULT 0,
+        pendingCount INTEGER NOT NULL DEFAULT 0,
+        updatedAt INTEGER NOT NULL,
+        PRIMARY KEY (tenantId, weekKey, dayKey)
+    );
 `);
 
 // Safe Zero-Loss Schema Migration
@@ -153,6 +193,7 @@ const stmtSaveWelcome = db.prepare(`
 
 const stmtGetScheduledJobs = db.prepare('SELECT * FROM scheduled_jobs WHERE sessionId = ?');
 const stmtGetAllDueJobs = db.prepare('SELECT * FROM scheduled_jobs WHERE status = ? AND scheduledForEpoch <= ?');
+const stmtGetAllScheduledJobs = db.prepare('SELECT * FROM scheduled_jobs WHERE status = ?');
 const stmtUpsertScheduledJob = db.prepare(`
     INSERT INTO scheduled_jobs (jobId, sessionId, status, scheduledForEpoch, jobDataJson)
     VALUES (@jobId, @sessionId, @status, @scheduledForEpoch, @jobDataJson)
@@ -170,6 +211,13 @@ const stmtUpsertCampaignHistory = db.prepare(`
     ON CONFLICT(campaignId) DO UPDATE SET
         dataJson = excluded.dataJson
 `);
+const stmtPruneCampaignHistory = db.prepare(`
+    DELETE FROM campaign_history
+    WHERE sessionId = ?
+      AND campaignId NOT IN (
+          SELECT campaignId FROM campaign_history WHERE sessionId = ? ORDER BY createdAt DESC LIMIT 3
+      )
+`);
 
 const stmtGetSetting = db.prepare('SELECT value FROM global_settings WHERE key = ?');
 const stmtSaveSetting = db.prepare(`
@@ -179,6 +227,246 @@ const stmtSaveSetting = db.prepare(`
         value = excluded.value,
         updatedAt = excluded.updatedAt
 `);
+
+const stmtGetDailyQuota = db.prepare('SELECT * FROM daily_outbound_quota WHERE tenantId = ?');
+const stmtUpsertDailyQuota = db.prepare(`
+    INSERT INTO daily_outbound_quota (tenantId, dayKey, deliveredTodayCount, updatedAt)
+    VALUES (?, ?, ?, ?)
+    ON CONFLICT(tenantId) DO UPDATE SET
+        dayKey = excluded.dayKey,
+        deliveredTodayCount = excluded.deliveredTodayCount,
+        updatedAt = excluded.updatedAt
+`);
+
+const stmtGetWelcomeDedup = db.prepare('SELECT * FROM welcome_dedup WHERE tenantId = ? AND remoteJid = ?');
+const stmtInsertWelcomeDedup = db.prepare(`
+    INSERT INTO welcome_dedup (tenantId, remoteJid, sentAt)
+    VALUES (?, ?, ?)
+    ON CONFLICT(tenantId, remoteJid) DO NOTHING
+`);
+const stmtDeleteWelcomeDedup = db.prepare('DELETE FROM welcome_dedup WHERE tenantId = ? AND remoteJid = ?');
+const stmtPruneOldWelcomeDedup = db.prepare('DELETE FROM welcome_dedup WHERE sentAt < ?');
+
+const stmtGetWeeklyMetricDay = db.prepare('SELECT * FROM weekly_metrics WHERE tenantId = ? AND weekKey = ? AND dayKey = ?');
+const stmtUpsertWeeklyMetricDay = db.prepare(`
+    INSERT INTO weekly_metrics (tenantId, weekKey, dayKey, sentCount, failedCount, pendingCount, updatedAt)
+    VALUES (@tenantId, @weekKey, @dayKey, @sentCount, @failedCount, @pendingCount, @updatedAt)
+    ON CONFLICT(tenantId, weekKey, dayKey) DO UPDATE SET
+        sentCount = excluded.sentCount,
+        failedCount = excluded.failedCount,
+        pendingCount = excluded.pendingCount,
+        updatedAt = excluded.updatedAt
+`);
+const stmtGetWeeklyMetricForWeek = db.prepare('SELECT * FROM weekly_metrics WHERE tenantId = ? AND weekKey = ? ORDER BY dayKey ASC');
+const stmtPruneOldWeeklyMetrics = db.prepare('DELETE FROM weekly_metrics WHERE weekKey != ?');
+
+// ============================================================================
+// DATE / TIME KEYS, DAILY 300 QUOTA & WEEKLY METRICS HELPERS
+// ============================================================================
+function getLocalDayKey(dateObj = new Date()) {
+    const y = dateObj.getFullYear();
+    const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+    const d = String(dateObj.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+}
+
+function getLocalWeekKey(dateObj = new Date()) {
+    // ISO-like Monday-anchored week key: YYYY-Www
+    const copy = new Date(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate());
+    const dayNum = copy.getDay() || 7; // Monday = 1 .. Sunday = 7
+    copy.setDate(copy.getDate() + 4 - dayNum);
+    const yearStart = new Date(copy.getFullYear(), 0, 1);
+    const weekNo = Math.ceil((((copy - yearStart) / 86400000) + 1) / 7);
+    return `${copy.getFullYear()}-W${String(weekNo).padStart(2, '0')}`;
+}
+
+function getMsUntilNextMidnight() {
+    const now = new Date();
+    const nextMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 0, 0);
+    return Math.max(1000, nextMidnight.getTime() - now.getTime());
+}
+
+function getTenantDailyQuotaState(tenantId) {
+    const todayKey = getLocalDayKey();
+    const now = Date.now();
+    const row = stmtGetDailyQuota.get(tenantId);
+
+    if (!row || row.dayKey !== todayKey) {
+        stmtUpsertDailyQuota.run(tenantId, todayKey, 0, now);
+        return {
+            tenantId,
+            dayKey: todayKey,
+            deliveredTodayCount: 0,
+            remainingQuota: DAILY_OUTBOUND_CAP
+        };
+    }
+
+    const delivered = Math.max(0, Number(row.deliveredTodayCount) || 0);
+    return {
+        tenantId,
+        dayKey: todayKey,
+        deliveredTodayCount: delivered,
+        remainingQuota: Math.max(0, DAILY_OUTBOUND_CAP - delivered)
+    };
+}
+
+function recordDeliveredCampaignMessage(tenantId) {
+    const todayKey = getLocalDayKey();
+    const now = Date.now();
+    const current = getTenantDailyQuotaState(tenantId);
+    const nextDelivered = Math.min(DAILY_OUTBOUND_CAP, current.deliveredTodayCount + 1);
+    stmtUpsertDailyQuota.run(tenantId, todayKey, nextDelivered, now);
+    return {
+        deliveredTodayCount: nextDelivered,
+        remainingQuota: Math.max(0, DAILY_OUTBOUND_CAP - nextDelivered)
+    };
+}
+
+function resetAllDailyQuotasAtMidnight() {
+    const todayKey = getLocalDayKey();
+    const now = Date.now();
+    const licenses = stmtGetAllLicensesSorted.all();
+    const tx = db.transaction((items) => {
+        for (const lic of items) {
+            stmtUpsertDailyQuota.run(lic.sessionId, todayKey, 0, now);
+        }
+    });
+    tx(licenses);
+    console.log(`[QUOTA MIDNIGHT RESET] Reset deliveredTodayCount to 0 for dayKey=${todayKey}`);
+}
+
+let midnightResetTimeout = null;
+function scheduleDailyMidnightReset() {
+    if (midnightResetTimeout) clearTimeout(midnightResetTimeout);
+    const msLeft = getMsUntilNextMidnight();
+    midnightResetTimeout = setTimeout(() => {
+        try {
+            resetAllDailyQuotasAtMidnight();
+        } catch (e) {
+            console.error('[MIDNIGHT RESET ERROR]:', e);
+        }
+        scheduleDailyMidnightReset();
+    }, msLeft);
+}
+scheduleDailyMidnightReset();
+
+function incrementWeeklyMetric(tenantId, field, delta = 1) {
+    const nowDate = new Date();
+    const dayKey = getLocalDayKey(nowDate);
+    const weekKey = getLocalWeekKey(nowDate);
+    const now = Date.now();
+
+    const existing = stmtGetWeeklyMetricDay.get(tenantId, weekKey, dayKey) || {
+        sentCount: 0,
+        failedCount: 0,
+        pendingCount: 0
+    };
+
+    const next = {
+        tenantId,
+        weekKey,
+        dayKey,
+        sentCount: Math.max(0, existing.sentCount + (field === 'sent' ? delta : 0)),
+        failedCount: Math.max(0, existing.failedCount + (field === 'failed' ? delta : 0)),
+        pendingCount: Math.max(0, existing.pendingCount + (field === 'pending' ? delta : 0)),
+        updatedAt: now
+    };
+    stmtUpsertWeeklyMetricDay.run(next);
+}
+
+function setWeeklyPendingMetric(tenantId, pendingVal) {
+    const nowDate = new Date();
+    const dayKey = getLocalDayKey(nowDate);
+    const weekKey = getLocalWeekKey(nowDate);
+    const now = Date.now();
+
+    const existing = stmtGetWeeklyMetricDay.get(tenantId, weekKey, dayKey) || {
+        sentCount: 0,
+        failedCount: 0,
+        pendingCount: 0
+    };
+
+    stmtUpsertWeeklyMetricDay.run({
+        tenantId,
+        weekKey,
+        dayKey,
+        sentCount: existing.sentCount,
+        failedCount: existing.failedCount,
+        pendingCount: Math.max(0, Number(pendingVal) || 0),
+        updatedAt: now
+    });
+}
+
+function getTenantWeeklySummary(tenantId) {
+    const weekKey = getLocalWeekKey();
+    const days = stmtGetWeeklyMetricForWeek.all(tenantId, weekKey);
+    let totalSent = 0;
+    let totalFailed = 0;
+    let totalPending = 0;
+
+    const perDay = days.map(d => {
+        totalSent += d.sentCount || 0;
+        totalFailed += d.failedCount || 0;
+        totalPending += d.pendingCount || 0;
+        return {
+            dayKey: d.dayKey,
+            sent: d.sentCount || 0,
+            failed: d.failedCount || 0,
+            pending: d.pendingCount || 0
+        };
+    });
+
+    return {
+        weekKey,
+        totalSent,
+        totalFailed,
+        totalPending,
+        perDay
+    };
+}
+
+// ============================================================================
+// PER-TENANT CONCURRENCY LOCKS & VIDEO POOL SEMAPHORE
+// ============================================================================
+const tenantOperationLocks = new Map();
+
+async function withTenantLock(sessionId, fn) {
+    const prev = tenantOperationLocks.get(sessionId) || Promise.resolve();
+    let releaseCurrent;
+    const current = new Promise((resolve) => {
+        releaseCurrent = resolve;
+    });
+    const chained = prev.then(() => current);
+    tenantOperationLocks.set(sessionId, chained);
+
+    await prev;
+    try {
+        return await fn();
+    } finally {
+        releaseCurrent();
+        if (tenantOperationLocks.get(sessionId) === chained) {
+            tenantOperationLocks.delete(sessionId);
+        }
+    }
+}
+
+let activeVideoPoolJobs = 0;
+const videoPoolWaiters = [];
+
+async function acquireVideoSlot() {
+    if (activeVideoPoolJobs < VIDEO_POOL_CONCURRENCY) {
+        activeVideoPoolJobs++;
+        return;
+    }
+    await new Promise((resolve) => videoPoolWaiters.push(resolve));
+    activeVideoPoolJobs++;
+}
+
+function releaseVideoSlot() {
+    activeVideoPoolJobs = Math.max(0, activeVideoPoolJobs - 1);
+    const next = videoPoolWaiters.shift();
+    if (next) next();
+}
 
 // ============================================================================
 // TENANT DISK PATHS & ATOMIC FILE RECOVERY
@@ -240,7 +528,7 @@ function migrateLegacyJsonFiles() {
     try {
         const migrationCheck = stmtGetSetting.get('legacy_json_migrated');
         if (migrationCheck && migrationCheck.value === 'true') {
-            return; // Migration already complete. Never re-import old JSON duplicates on restart!
+            return;
         }
 
         if (fs.existsSync(LICENSES_FILE)) {
@@ -273,7 +561,7 @@ function migrateLegacyJsonFiles() {
                 if (d.startsWith('tenant_')) {
                     const sid = d.replace('tenant_', '');
                     const tenantDir = path.join(BASE_TENANTS_DIR, d);
-                    
+
                     const grpFile = path.join(tenantDir, 'customer_groups.json');
                     if (fs.existsSync(grpFile)) {
                         const rawGrp = fs.readFileSync(grpFile, 'utf8');
@@ -289,7 +577,8 @@ function migrateLegacyJsonFiles() {
                             try {
                                 const parsedHist = JSON.parse(rawHist);
                                 if (Array.isArray(parsedHist)) {
-                                    parsedHist.forEach(item => {
+                                    parsedHist.forEach((item) => {
+                                        if (item && item.isWelcome) return; // Welcome messages never stored in campaign history
                                         stmtUpsertCampaignHistory.run({
                                             campaignId: item.id || ('mig_' + Date.now()),
                                             sessionId: sid,
@@ -298,6 +587,7 @@ function migrateLegacyJsonFiles() {
                                             createdAt: Date.now()
                                         });
                                     });
+                                    stmtPruneCampaignHistory.run(sid, sid);
                                 }
                             } catch (e) {}
                         }
@@ -335,11 +625,11 @@ const storage = multer.diskStorage({
 
 const upload = multer({
     storage,
-    limits: { fileSize: 15 * 1024 * 1024, files: 12 },
+    limits: { fileSize: 15 * 1024 * 1024, files: 4 },
     fileFilter: (req, file, cb) => {
-        const allowedMimes = ['image/jpeg', 'image/png', 'image/webp', 'video/mp4', 'application/pdf'];
+        const allowedMimes = ['image/jpeg', 'image/png', 'image/webp', 'video/mp4'];
         const ext = path.extname(file.originalname).toLowerCase();
-        const allowedExts = ['.jpg', '.jpeg', '.png', '.webp', '.mp4', '.pdf'];
+        const allowedExts = ['.jpg', '.jpeg', '.png', '.webp', '.mp4'];
         if (allowedMimes.includes(file.mimetype) && allowedExts.includes(ext)) {
             cb(null, true);
         } else {
@@ -348,8 +638,8 @@ const upload = multer({
     }
 });
 
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+app.use(express.json({ limit: '5mb' }));
+app.use(express.urlencoded({ extended: true, limit: '5mb' }));
 app.use(express.static(path.join(__dirname, 'www')));
 
 app.use((req, res, next) => {
@@ -393,16 +683,6 @@ const authenticate = (req, res, next) => {
 };
 
 const sessions = new Map();
-const welcomeCooldownCache = new Map();
-
-setInterval(() => {
-    const now = Date.now();
-    for (const [key, timestamp] of welcomeCooldownCache.entries()) {
-        if (now - timestamp > 24 * 60 * 60 * 1000) {
-            welcomeCooldownCache.delete(key);
-        }
-    }
-}, 60 * 60 * 1000);
 
 function sanitizeToValidWhatsAppJid(rawInput) {
     let clean = String(rawInput || '').replace(/[^0-9]/g, '');
@@ -413,12 +693,22 @@ function sanitizeToValidWhatsAppJid(rawInput) {
     return clean;
 }
 
+function normalizeRecipientJid(rawJidOrPhone) {
+    const str = String(rawJidOrPhone || '').trim();
+    if (!str) return null;
+    if (str.endsWith('@s.whatsapp.net') || str.endsWith('@lid')) {
+        return str;
+    }
+    const clean = sanitizeToValidWhatsAppJid(str);
+    return clean ? `${clean}@s.whatsapp.net` : null;
+}
+
 function injectZeroWidthRandomizers(text) {
     if (!text || typeof text !== 'string') return text || '';
     const lines = text.split('\n');
-    const randomizedLines = lines.map(line => {
+    const randomizedLines = lines.map((line) => {
         const words = line.split(' ');
-        const randomizedWords = words.map(word => {
+        const randomizedWords = words.map((word) => {
             const hasProtectedPattern = /[0-9+\@]|http|www|\.com/i.test(word);
             if (!hasProtectedPattern && Math.random() > 0.45) {
                 const padCount = Math.floor(Math.random() * 2) + 1;
@@ -432,24 +722,87 @@ function injectZeroWidthRandomizers(text) {
     return randomizedLines.join('\n');
 }
 
-function buildRandomizedMediaBuffer(filePath, mimeType) {
-    const rawBuffer = fs.readFileSync(filePath);
-    if (mimeType && mimeType.startsWith('image/')) {
-        const randomByteLength = Math.floor(Math.random() * 9) + 4;
-        const randomTail = crypto.randomBytes(randomByteLength);
-        return Buffer.concat([rawBuffer, randomTail]);
+// Bounded media variation pool (5-10 varied copies per campaign) to avoid per-recipient re-generation
+async function buildBoundedMediaPool(tenantId, sourceFilePath, mimeType) {
+    const { mediaVaultDir } = getTenantPaths(tenantId);
+    const isVideo = (mimeType || '').startsWith('video/');
+    const poolSize = Math.floor(Math.random() * (MEDIA_POOL_MAX - MEDIA_POOL_MIN + 1)) + MEDIA_POOL_MIN;
+    const poolPaths = [];
+
+    if (!sourceFilePath || !fs.existsSync(sourceFilePath)) return poolPaths;
+
+    if (isVideo) {
+        await acquireVideoSlot();
     }
-    return rawBuffer;
+
+    try {
+        const ext = path.extname(sourceFilePath) || (isVideo ? '.mp4' : '.jpg');
+        for (let i = 0; i < poolSize; i++) {
+            const variantName = `pool_${Date.now()}_${i}_${crypto.randomBytes(3).toString('hex')}${ext}`;
+            const variantPath = path.join(mediaVaultDir, variantName);
+            const padBytes = crypto.randomBytes(Math.floor(Math.random() * 12) + 4);
+
+            // Stream/copy from disk with bounded variant marker without keeping huge buffers long-term
+            await new Promise((resolve, reject) => {
+                const readStream = fs.createReadStream(sourceFilePath);
+                const writeStream = fs.createWriteStream(variantPath);
+                readStream.on('error', reject);
+                writeStream.on('error', reject);
+                writeStream.on('finish', () => {
+                    try {
+                        fs.appendFileSync(variantPath, padBytes);
+                        resolve();
+                    } catch (err) {
+                        reject(err);
+                    }
+                });
+                readStream.pipe(writeStream);
+            });
+
+            poolPaths.push(variantPath);
+        }
+    } finally {
+        if (isVideo) {
+            releaseVideoSlot();
+        }
+    }
+
+    return poolPaths;
+}
+
+function purgeFilesList(filePaths) {
+    if (!Array.isArray(filePaths)) return;
+    for (const fp of filePaths) {
+        if (fp && fs.existsSync(fp)) {
+            try { fs.unlinkSync(fp); } catch (e) {}
+        }
+    }
 }
 
 function purgeCampaignMediaItems(mediaItems) {
     if (!Array.isArray(mediaItems)) return;
-    mediaItems.forEach(item => {
-        const targetPath = item?.path || item?.filePath;
+    mediaItems.forEach((item) => {
+        const targetPath = typeof item === 'string' ? item : (item?.path || item?.filePath);
         if (targetPath && fs.existsSync(targetPath)) {
             try { fs.unlinkSync(targetPath); } catch (e) {}
         }
     });
+}
+
+function cleanupCampaignArtifacts(tenantId, queueObj) {
+    if (queueObj) {
+        purgeCampaignMediaItems(queueObj.mediaItems);
+        purgeFilesList(queueObj.mediaPool);
+        if (queueObj.sourceMediaPath && fs.existsSync(queueObj.sourceMediaPath)) {
+            try { fs.unlinkSync(queueObj.sourceMediaPath); } catch (e) {}
+        }
+        queueObj.mediaItems = [];
+        queueObj.mediaPool = [];
+        queueObj.sourceMediaPath = null;
+        queueObj.recipients = [];
+    }
+    clearActiveCampaignState(tenantId);
+    cleanOrphanedMediaVaultFiles(tenantId);
 }
 
 function cleanOrphanedMediaVaultFiles(tenantId) {
@@ -472,31 +825,42 @@ function cleanOrphanedMediaVaultFiles(tenantId) {
         if (welcomeRow && welcomeRow.configJson) {
             try {
                 const rules = JSON.parse(welcomeRow.configJson);
-                (rules.sequence || []).forEach(s => protectPath(s.filePath));
+                if (rules.enabled) {
+                    protectPath(rules.filePath);
+                    (rules.sequence || []).forEach((s) => protectPath(s.filePath));
+                }
             } catch (e) {}
         }
 
         const scheduledRows = stmtGetScheduledJobs.all(tenantId);
-        scheduledRows.forEach(r => {
+        scheduledRows.forEach((r) => {
             try {
                 const j = JSON.parse(r.jobDataJson);
-                (j.sequence || []).forEach(s => protectPath(s.filePath));
-                (j.mediaItems || []).forEach(m => protectPath(m.path));
+                protectPath(j.sourceMediaPath);
+                (j.mediaPool || []).forEach((p) => protectPath(p));
+                (j.sequence || []).forEach((s) => protectPath(s.filePath));
+                (j.mediaItems || []).forEach((m) => protectPath(m.path || m.filePath));
             } catch (e) {}
         });
 
         const active = safeReadJsonSync(campaignStateFile, {});
-        (active.queue?.sequence || []).forEach(s => protectPath(s.filePath));
-        (active.queue?.mediaItems || []).forEach(m => protectPath(m.path));
+        if (active.queue && (active.queue.isRunning || active.queue.state === 'PAUSED' || active.queue.state === 'RUNNING')) {
+            protectPath(active.queue.sourceMediaPath);
+            (active.queue.mediaPool || []).forEach((p) => protectPath(p));
+            (active.queue.sequence || []).forEach((s) => protectPath(s.filePath));
+            (active.queue.mediaItems || []).forEach((m) => protectPath(m.path || m.filePath));
+        }
 
         const session = sessions.get(tenantId);
-        if (session && session.queue) {
-            (session.queue.sequence || []).forEach(s => protectPath(s.filePath));
-            (session.queue.mediaItems || []).forEach(m => protectPath(m.path));
+        if (session && session.queue && (session.queue.isRunning || session.queue.state === 'PAUSED' || session.queue.state === 'RUNNING')) {
+            protectPath(session.queue.sourceMediaPath);
+            (session.queue.mediaPool || []).forEach((p) => protectPath(p));
+            (session.queue.sequence || []).forEach((s) => protectPath(s.filePath));
+            (session.queue.mediaItems || []).forEach((m) => protectPath(m.path || m.filePath));
         }
 
         const vaultFiles = fs.readdirSync(mediaVaultDir);
-        vaultFiles.forEach(file => {
+        vaultFiles.forEach((file) => {
             const fullPath = path.resolve(path.join(mediaVaultDir, file));
             if (fullPath.startsWith(resolvedVault) && !protectedFiles.has(fullPath)) {
                 try { fs.unlinkSync(fullPath); } catch (e) {}
@@ -513,7 +877,7 @@ function pruneStaleSessionKeys(tenantId) {
         const now = Date.now();
         const maxAgeMs = 7 * 24 * 60 * 60 * 1000;
 
-        files.forEach(file => {
+        files.forEach((file) => {
             if (file === 'creds.json') return;
             if (file.startsWith('sender-key-') || file.startsWith('pre-key-')) {
                 const fullPath = path.join(sessionDir, file);
@@ -552,22 +916,22 @@ function loadCampaignHistory(tenantId) {
     try {
         const rows = stmtGetCampaignHistory.all(tenantId);
         if (rows && rows.length > 0) {
-            return rows.map(r => JSON.parse(r.dataJson));
+            return rows.map((r) => JSON.parse(r.dataJson)).filter((item) => !item.isWelcome);
         }
     } catch (e) {}
 
     const { campaignHistoryFile } = getTenantPaths(tenantId);
-    return safeReadJsonSync(campaignHistoryFile, []);
+    return safeReadJsonSync(campaignHistoryFile, []).filter((item) => !item.isWelcome);
 }
 
 function upsertCampaignHistory(tenantId, queueObj) {
-    if (!queueObj || !queueObj.campaignId) return;
+    if (!queueObj || !queueObj.campaignId || queueObj.isWelcome) return;
     const { logsFile, campaignHistoryFile } = getTenantPaths(tenantId);
     const isFinished = queueObj.state === 'STOPPED' && !queueObj.isRunning;
 
     const filteredRecipients = (queueObj.recipients || [])
-        .filter(r => r.status === 'FAILED' || r.status === 'PENDING')
-        .map(r => ({
+        .filter((r) => r.status === 'FAILED' || r.status === 'PENDING')
+        .map((r) => ({
             name: r.name || 'Unsaved',
             phone: r.phone,
             status: r.status
@@ -582,7 +946,7 @@ function upsertCampaignHistory(tenantId, queueObj) {
         sent: queueObj.sent || 0,
         failed: queueObj.failed || 0,
         pending: queueObj.remaining || 0,
-        recipients: isFinished ? filteredRecipients : (queueObj.recipients || []).map(r => ({
+        recipients: isFinished ? filteredRecipients : (queueObj.recipients || []).map((r) => ({
             name: r.name || 'Unsaved',
             phone: r.phone,
             status: r.status || 'PENDING'
@@ -596,9 +960,10 @@ function upsertCampaignHistory(tenantId, queueObj) {
         dataJson: JSON.stringify(snapshot),
         createdAt: Date.now()
     });
+    stmtPruneCampaignHistory.run(tenantId, tenantId);
 
-    let diskHist = safeReadJsonSync(campaignHistoryFile, []);
-    const existingIdx = diskHist.findIndex(h => h.id === snapshot.id);
+    let diskHist = safeReadJsonSync(campaignHistoryFile, []).filter((h) => !h.isWelcome);
+    const existingIdx = diskHist.findIndex((h) => h.id === snapshot.id);
     if (existingIdx >= 0) diskHist[existingIdx] = snapshot;
     else diskHist.unshift(snapshot);
     if (diskHist.length > 3) diskHist = diskHist.slice(0, 3);
@@ -610,6 +975,7 @@ function upsertCampaignHistory(tenantId, queueObj) {
 }
 
 function saveActiveCampaignState(tenantId, state) {
+    if (state?.queue?.isWelcome) return;
     const { campaignStateFile } = getTenantPaths(tenantId);
     safeWriteJsonSync(campaignStateFile, state);
     if (state && state.queue) {
@@ -625,7 +991,217 @@ function clearActiveCampaignState(tenantId) {
 }
 
 // ============================================================================
-// LAZY-SOCKET SESSION & IDLE SLEEP MANAGER
+// 1+1+1 PAYLOAD NORMALIZATION & VALIDATION
+// ============================================================================
+function normalizeSingle111Payload(body, files) {
+    const uploadedFiles = Array.isArray(files) ? files : [];
+    const primaryFile = uploadedFiles[0] || null;
+
+    let blocksMeta = [];
+    if (body?.blocksMeta) {
+        try {
+            blocksMeta = JSON.parse(body.blocksMeta);
+        } catch (e) {
+            blocksMeta = [];
+        }
+    }
+
+    const metaFirst = Array.isArray(blocksMeta) && blocksMeta.length > 0 ? blocksMeta[0] : null;
+    const explicitMode = String(body?.mode || body?.itemType || metaFirst?.type || '').toLowerCase();
+
+    const textContent = String(
+        body?.text !== undefined ? body.text :
+        body?.message !== undefined ? body.message :
+        (metaFirst?.type === 'text' ? metaFirst?.content : '') || ''
+    ).trim();
+
+    const captionContent = String(
+        body?.caption !== undefined ? body.caption :
+        (metaFirst?.caption || '')
+    ).trim();
+
+    const existingFilePath = metaFirst?.existingFilePath ? String(metaFirst.existingFilePath).trim() : '';
+    const existingMime = metaFirst?.mimetype ? String(metaFirst.mimetype).trim() : '';
+    const existingFileName = metaFirst?.fileName ? String(metaFirst.fileName).trim() : '';
+
+    if (primaryFile) {
+        const isVid = primaryFile.mimetype === 'video/mp4' || path.extname(primaryFile.originalname).toLowerCase() === '.mp4';
+        if (explicitMode === 'video' || isVid) {
+            return {
+                valid: true,
+                kind: 'video',
+                text: '',
+                caption: captionContent,
+                filePath: primaryFile.path,
+                fileName: primaryFile.originalname,
+                mimetype: primaryFile.mimetype || 'video/mp4',
+                allUploadedFiles: uploadedFiles
+            };
+        }
+        return {
+            valid: true,
+            kind: 'image',
+            text: '',
+            caption: captionContent,
+            filePath: primaryFile.path,
+            fileName: primaryFile.originalname,
+            mimetype: primaryFile.mimetype || 'image/jpeg',
+            allUploadedFiles: uploadedFiles
+        };
+    }
+
+    if (existingFilePath && (explicitMode === 'image' || explicitMode === 'video')) {
+        return {
+            valid: true,
+            kind: explicitMode,
+            text: '',
+            caption: captionContent,
+            filePath: existingFilePath,
+            fileName: existingFileName || path.basename(existingFilePath),
+            mimetype: existingMime || (explicitMode === 'video' ? 'video/mp4' : 'image/jpeg'),
+            allUploadedFiles: uploadedFiles
+        };
+    }
+
+    if (textContent.length > 0) {
+        return {
+            valid: true,
+            kind: 'text',
+            text: textContent,
+            caption: '',
+            filePath: null,
+            fileName: '',
+            mimetype: '',
+            allUploadedFiles: uploadedFiles
+        };
+    }
+
+    return {
+        valid: false,
+        error: '1+1+1 rule requires either Text Only, 1 Image + Caption, or 1 Video + Caption.',
+        allUploadedFiles: uploadedFiles
+    };
+}
+
+function normalizeWelcome11Payload(body, files, existingConfig = null) {
+    const uploadedFiles = Array.isArray(files) ? files : [];
+    const primaryFile = uploadedFiles[0] || null;
+
+    let blocksMeta = [];
+    if (body?.blocksMeta) {
+        try {
+            blocksMeta = JSON.parse(body.blocksMeta);
+        } catch (e) {
+            blocksMeta = [];
+        }
+    }
+
+    const metaFirst = Array.isArray(blocksMeta) && blocksMeta.length > 0 ? blocksMeta[0] : null;
+    const requestedType = String(body?.type || metaFirst?.type || '').toLowerCase();
+
+    if (requestedType === 'video' || (primaryFile && primaryFile.mimetype && primaryFile.mimetype.startsWith('video/'))) {
+        return {
+            valid: false,
+            error: 'Video is not allowed in Welcome Bot. Use Text Only or 1 compressed Image + Caption.',
+            allUploadedFiles: uploadedFiles
+        };
+    }
+
+    const textContent = String(
+        body?.text !== undefined ? body.text :
+        body?.content !== undefined ? body.content :
+        (metaFirst?.type === 'text' ? metaFirst?.content : '') || ''
+    ).trim();
+
+    const captionContent = String(
+        body?.caption !== undefined ? body.caption :
+        (metaFirst?.caption || '')
+    ).trim();
+
+    if (primaryFile) {
+        return {
+            valid: true,
+            type: 'image',
+            content: '',
+            caption: captionContent,
+            filePath: primaryFile.path,
+            fileName: primaryFile.originalname,
+            mimetype: primaryFile.mimetype || 'image/jpeg',
+            allUploadedFiles: uploadedFiles
+        };
+    }
+
+    const candidateExistingPath = metaFirst?.existingFilePath ||
+        (existingConfig?.type === 'image' ? existingConfig?.filePath : '');
+
+    if (candidateExistingPath && (requestedType === 'image' || !textContent)) {
+        return {
+            valid: true,
+            type: 'image',
+            content: '',
+            caption: captionContent || existingConfig?.caption || '',
+            filePath: candidateExistingPath,
+            fileName: metaFirst?.fileName || existingConfig?.fileName || path.basename(candidateExistingPath),
+            mimetype: metaFirst?.mimetype || existingConfig?.mimetype || 'image/jpeg',
+            allUploadedFiles: uploadedFiles
+        };
+    }
+
+    if (textContent.length > 0) {
+        return {
+            valid: true,
+            type: 'text',
+            content: textContent,
+            caption: '',
+            filePath: null,
+            fileName: '',
+            mimetype: '',
+            allUploadedFiles: uploadedFiles
+        };
+    }
+
+    return {
+        valid: false,
+        error: 'Welcome Bot requires either Text Only or 1 compressed Image + Caption.',
+        allUploadedFiles: uploadedFiles
+    };
+}
+
+// ============================================================================
+// SCHEDULE EXPIRY & PURGE (MAX 1 SLOT, MAX 3 DAYS / 72 HOURS)
+// ============================================================================
+function purgeExpiredOrOverWindowSchedules(tenantId = null) {
+    const now = Date.now();
+    const rows = tenantId
+        ? stmtGetScheduledJobs.all(tenantId)
+        : stmtGetAllScheduledJobs.all('SCHEDULED');
+
+    for (const row of rows) {
+        let parsedJob = null;
+        try {
+            parsedJob = JSON.parse(row.jobDataJson);
+        } catch (e) {}
+
+        const createdEpoch = parsedJob?.createdAt || parsedJob?.scheduledForEpoch || row.scheduledForEpoch || now;
+        const isPast3DaysWindow = (now - createdEpoch) > MAX_SCHEDULE_WINDOW_MS;
+        const isPastScheduleWindow = row.scheduledForEpoch && (now - row.scheduledForEpoch) > MAX_SCHEDULE_WINDOW_MS;
+
+        if (isPast3DaysWindow || isPastScheduleWindow) {
+            if (parsedJob) {
+                purgeCampaignMediaItems(parsedJob.mediaItems);
+                purgeFilesList(parsedJob.mediaPool);
+                if (parsedJob.sourceMediaPath && fs.existsSync(parsedJob.sourceMediaPath)) {
+                    try { fs.unlinkSync(parsedJob.sourceMediaPath); } catch (e) {}
+                }
+            }
+            stmtDeleteScheduledJob.run(row.jobId);
+            cleanOrphanedMediaVaultFiles(row.sessionId);
+        }
+    }
+}
+
+// ============================================================================
+// LOW-RAM BAILEYS SOCKET & AUTONOMOUS WELCOME BOT
 // ============================================================================
 function touchSessionActivity(sessionId) {
     const session = sessions.get(sessionId);
@@ -640,7 +1216,7 @@ function getOrCreateSession(sessionId) {
             sock: null,
             status: 'DISCONNECTED',
             phone: null,
-            sessionId: sessionId,
+            sessionId,
             isExecutingPriorityTask: false,
             isDispatchLoopActive: false,
             lastActive: Date.now(),
@@ -655,8 +1231,11 @@ function getOrCreateSession(sessionId) {
                 remaining: 0,
                 currentIndex: 0,
                 recipients: [],
-                sequence: [],
+                mode: 'text',
                 message: '',
+                caption: '',
+                sourceMediaPath: null,
+                mediaPool: [],
                 mediaItems: []
             }
         });
@@ -666,11 +1245,37 @@ function getOrCreateSession(sessionId) {
     return sess;
 }
 
+function hasActiveWelcomeBot(sessionId) {
+    try {
+        const row = stmtGetWelcome.get(sessionId);
+        if (!row || !row.configJson) return false;
+        const cfg = JSON.parse(row.configJson);
+        return !!cfg.enabled;
+    } catch (e) {
+        return false;
+    }
+}
+
+function hasPendingOrActiveWork(sessionId) {
+    const session = sessions.get(sessionId);
+    if (session && (session.queue?.isRunning || session.queue?.state === 'PAUSED' || session.isDispatchLoopActive || session.isExecutingPriorityTask)) {
+        return true;
+    }
+    try {
+        const scheds = stmtGetScheduledJobs.all(sessionId);
+        if (scheds.some((s) => s.status === 'SCHEDULED' || s.status === 'DISPATCHING')) {
+            return true;
+        }
+    } catch (e) {}
+    return false;
+}
+
 function putSocketToSleep(sessionId) {
     const session = sessions.get(sessionId);
     if (!session || !session.sock) return;
 
-    if (session.queue?.isRunning || session.isDispatchLoopActive || session.isExecutingPriorityTask) {
+    // Never sleep sockets that have active welcome bot or active/pending campaign/schedule work
+    if (hasActiveWelcomeBot(sessionId) || hasPendingOrActiveWork(sessionId)) {
         return;
     }
 
@@ -722,10 +1327,61 @@ function safeResetTenantSession(sessionId) {
     if (fs.existsSync(sessionDir)) {
         try {
             const files = fs.readdirSync(sessionDir);
-            files.forEach(f => {
+            files.forEach((f) => {
                 try { fs.unlinkSync(path.join(sessionDir, f)); } catch (err) {}
             });
         } catch (e) {}
+    }
+}
+
+async function sendWelcomeBotMessage(sock, sessionId, remoteJid, rules) {
+    const cooldownHours = Math.max(1, Number(rules.cooldownHours) || 24);
+    const cooldownMs = cooldownHours * 60 * 60 * 1000;
+    const now = Date.now();
+
+    // Atomic SQLite deduplication check + pre-insert to prevent concurrent duplicate replies
+    const existingDedup = stmtGetWelcomeDedup.get(sessionId, remoteJid);
+    if (existingDedup && (now - existingDedup.sentAt) < cooldownMs) {
+        return;
+    }
+
+    if (existingDedup && (now - existingDedup.sentAt) >= cooldownMs) {
+        stmtDeleteWelcomeDedup.run(sessionId, remoteJid);
+    }
+
+    const insertRes = stmtInsertWelcomeDedup.run(sessionId, remoteJid, now);
+    if (!insertRes || insertRes.changes === 0) {
+        // Another concurrent event already claimed this recipient
+        const recheck = stmtGetWelcomeDedup.get(sessionId, remoteJid);
+        if (!recheck || (now - recheck.sentAt) < cooldownMs) {
+            return;
+        }
+    }
+
+    try {
+        await delay(1200);
+        try { await sock.sendPresenceUpdate('composing', remoteJid); } catch (e) {}
+        await delay(800);
+
+        if (rules.type === 'image' && rules.filePath && fs.existsSync(rules.filePath)) {
+            const caption = rules.caption ? injectZeroWidthRandomizers(rules.caption) : '';
+            await sock.sendMessage(remoteJid, {
+                image: { url: rules.filePath },
+                caption
+            });
+        } else if (rules.content) {
+            await sock.sendMessage(remoteJid, {
+                text: injectZeroWidthRandomizers(rules.content)
+            });
+        } else {
+            throw new Error('EMPTY_WELCOME_CONFIG');
+        }
+
+        try { await sock.sendPresenceUpdate('paused', remoteJid); } catch (e) {}
+    } catch (err) {
+        // Roll back deduplication entry if sending genuinely failed
+        stmtDeleteWelcomeDedup.run(sessionId, remoteJid);
+        throw err;
     }
 }
 
@@ -748,6 +1404,9 @@ async function initSessionSocket(sessionId) {
         auth: state,
         logger: pino({ level: 'silent' }),
         printQRInTerminal: false,
+        syncFullHistory: false,
+        markOnlineOnConnect: false,
+        getMessage: undefined,
         keepAliveIntervalMs: 30000,
         browser: ['Ubuntu', 'Chrome', '20.0.04']
     });
@@ -762,66 +1421,41 @@ async function initSessionSocket(sessionId) {
             const msgs = m.messages || [];
             const nowSec = Math.floor(Date.now() / 1000);
 
-            // Guard: Safe-Pause Auto-Responder if Subscription Expired
-            const licCheck = stmtGetLicense.get(sessionId);
-            if (licCheck) {
-                if (licCheck.status !== 'ACTIVE' || Date.now() > licCheck.validUntil) {
-                    return; // Silent bypass: no welcome message sent when expired
-                }
-            }
-
             for (const msg of msgs) {
-                if (!msg || !msg.message || msg.key.fromMe) continue;
+                // Immediate noise & self-message filters
+                if (!msg || !msg.message || msg.key?.fromMe) continue;
 
-                const msgTimestamp = msg.messageTimestamp || nowSec;
-                if (nowSec - msgTimestamp > 60) continue;
+                const remoteJid = msg.key?.remoteJid || '';
+                if (!remoteJid || remoteJid === 'status@broadcast' || remoteJid.endsWith('@broadcast') || remoteJid.endsWith('@g.us')) {
+                    continue;
+                }
+                if (!remoteJid.endsWith('@s.whatsapp.net') && !remoteJid.endsWith('@lid')) {
+                    continue;
+                }
 
-                const remoteJid = msg.key.remoteJid || '';
-                if (remoteJid === 'status@broadcast' || remoteJid.endsWith('@g.us')) continue;
-                if (!remoteJid.endsWith('@s.whatsapp.net') && !remoteJid.endsWith('@lid')) continue;
+                const msgTimestamp = Number(msg.messageTimestamp || nowSec);
+                if (nowSec - msgTimestamp > 120) continue;
 
-                if (msg.message.reactionMessage || msg.message.protocolMessage || msg.message.stickerMessage) continue;
+                if (msg.message.reactionMessage || msg.message.protocolMessage || msg.message.stickerMessage) {
+                    continue;
+                }
 
                 const welcomeRow = stmtGetWelcome.get(sessionId);
                 if (!welcomeRow || !welcomeRow.configJson) continue;
 
-                const rules = JSON.parse(welcomeRow.configJson);
-                if (!rules.enabled || !rules.sequence || rules.sequence.length === 0) continue;
-
-                const senderKey = remoteJid.split('@')[0];
-                const cacheKey = `${sessionId}:${senderKey}`;
-                const lastSent = welcomeCooldownCache.get(cacheKey) || 0;
-                const cooldownPeriod = (rules.cooldownHours || 24) * 60 * 60 * 1000;
-
-                if (Date.now() - lastSent < cooldownPeriod) continue;
-                welcomeCooldownCache.set(cacheKey, Date.now());
+                let rules = null;
+                try {
+                    rules = JSON.parse(welcomeRow.configJson);
+                } catch (e) {
+                    continue;
+                }
+                if (!rules || !rules.enabled) continue;
 
                 session.isExecutingPriorityTask = true;
                 touchSessionActivity(sessionId);
 
                 try {
-                    for (const step of rules.sequence) {
-                        await delay(1800);
-                        try { await sock.sendPresenceUpdate('composing', remoteJid); } catch (e) {}
-                        await delay(1000);
-
-                        if (step.type === 'text' && step.content) {
-                            await sock.sendMessage(remoteJid, { text: injectZeroWidthRandomizers(step.content) });
-                        } else if ((step.type === 'image' || step.type === 'video' || step.type === 'media') && step.filePath && fs.existsSync(step.filePath)) {
-                            const mime = step.mimetype || '';
-                            const caption = step.caption ? injectZeroWidthRandomizers(step.caption) : '';
-                            const randomizedBuffer = buildRandomizedMediaBuffer(step.filePath, mime);
-
-                            if (mime.startsWith('image/') || step.type === 'image') {
-                                await sock.sendMessage(remoteJid, { image: randomizedBuffer, caption });
-                            } else if (mime.startsWith('video/') || step.type === 'video') {
-                                await sock.sendMessage(remoteJid, { video: randomizedBuffer, caption });
-                            } else {
-                                await sock.sendMessage(remoteJid, { document: randomizedBuffer, mimetype: mime, fileName: path.basename(step.filePath), caption });
-                            }
-                        }
-                        try { await sock.sendPresenceUpdate('paused', remoteJid); } catch (e) {}
-                    }
+                    await sendWelcomeBotMessage(sock, sessionId, remoteJid, rules);
                 } finally {
                     session.isExecutingPriorityTask = false;
                     touchSessionActivity(sessionId);
@@ -829,7 +1463,7 @@ async function initSessionSocket(sessionId) {
             }
         } catch (err) {
             session.isExecutingPriorityTask = false;
-            console.error('[WELCOME ERROR]', err);
+            console.error('[WELCOME ERROR]:', err.message || err);
         }
     });
 
@@ -852,14 +1486,19 @@ async function initSessionSocket(sessionId) {
                 session.phone = null;
                 wipeSessionData(sessionId);
             } else {
-                setTimeout(() => { if (sessions.has(sessionId)) initSessionSocket(sessionId); }, 3000);
+                // Autonomous reconnect even if customer phone is offline
+                setTimeout(() => {
+                    if (sessions.has(sessionId)) {
+                        initSessionSocket(sessionId).catch(() => {});
+                    }
+                }, 3000);
             }
         } else if (connection === 'open') {
             session.status = 'CONNECTED';
             const rawId = sock.user?.id || '';
             session.phone = rawId.split(':')[0] || rawId.split('@')[0];
 
-            let lic = stmtGetLicense.get(sessionId);
+            const lic = stmtGetLicense.get(sessionId);
             const nowTime = Date.now();
             if (!lic) {
                 const tenantToken = crypto.randomBytes(16).toString('hex');
@@ -887,6 +1526,8 @@ async function initSessionSocket(sessionId) {
                     purchasedAt: lic.purchasedAt || nowTime
                 });
             }
+
+            getTenantDailyQuotaState(sessionId);
             resumeInFlightCrashCampaign(sessionId);
         }
     });
@@ -902,7 +1543,7 @@ async function ensureActiveSocket(sessionId) {
         if (fs.existsSync(path.join(sessionDir, 'creds.json'))) {
             await initSessionSocket(sessionId);
             let attempts = 0;
-            while (session.status !== 'CONNECTED' && attempts < 15) {
+            while (session.status !== 'CONNECTED' && attempts < 20) {
                 await delay(500);
                 attempts++;
             }
@@ -920,6 +1561,13 @@ function resumeInFlightCrashCampaign(sessionId) {
             const session = sessions.get(sessionId);
             session.queue = saved.queue;
             if (saved.queue.state === 'RUNNING') {
+                const quotaState = getTenantDailyQuotaState(sessionId);
+                if (quotaState.remainingQuota <= 0) {
+                    session.queue.isRunning = false;
+                    session.queue.state = 'PAUSED';
+                    saveActiveCampaignState(sessionId, { sessionId, queue: session.queue });
+                    return;
+                }
                 session.queue.isRunning = true;
                 executeDispatchQueue(sessionId);
             } else {
@@ -929,32 +1577,55 @@ function resumeInFlightCrashCampaign(sessionId) {
     } catch (e) {}
 }
 
+// ============================================================================
+// CAMPAIGN & SCHEDULE DISPATCH ENGINE (DAILY 300 CAP + BOUNDED POOL + PACING)
+// ============================================================================
 async function executeDispatchQueue(sessionId) {
     const session = sessions.get(sessionId);
-    if (!session || !session.queue) return;
+    if (!session || !session.queue || session.queue.isWelcome) return;
     if (session.isDispatchLoopActive) return;
 
     session.isDispatchLoopActive = true;
     const q = session.queue;
 
     try {
+        // Ensure bounded 5-10 variation pool exists if this is a media campaign
+        if ((q.mode === 'image' || q.mode === 'video') && q.sourceMediaPath && (!Array.isArray(q.mediaPool) || q.mediaPool.length === 0)) {
+            q.mediaPool = await buildBoundedMediaPool(sessionId, q.sourceMediaPath, q.mimetype);
+            saveActiveCampaignState(sessionId, { sessionId, queue: q });
+        }
+
+        let poolCursor = 0;
+
         while (q.currentIndex < q.recipients.length) {
             touchSessionActivity(sessionId);
 
             if (q.state === 'STOPPED') {
                 q.isRunning = false;
-                purgeCampaignMediaItems(q.sequence || q.mediaItems);
-                q.sequence = [];
-                q.mediaItems = [];
+                const remainingCount = Math.max(0, (q.total || q.recipients.length) - (q.sent || 0) - (q.failed || 0));
+                q.remaining = remainingCount;
+                setWeeklyPendingMetric(sessionId, 0);
                 upsertCampaignHistory(sessionId, q);
-                clearActiveCampaignState(sessionId);
-                cleanOrphanedMediaVaultFiles(sessionId);
+                cleanupCampaignArtifacts(sessionId, q);
                 session.isDispatchLoopActive = false;
                 return;
             }
 
             if (q.state === 'PAUSED') {
                 q.isRunning = false;
+                setWeeklyPendingMetric(sessionId, q.remaining || 0);
+                saveActiveCampaignState(sessionId, { sessionId, queue: q });
+                session.isDispatchLoopActive = false;
+                return;
+            }
+
+            // Enforce Daily 300 Outbound Cap across campaigns and schedules
+            const quotaState = getTenantDailyQuotaState(sessionId);
+            if (quotaState.remainingQuota <= 0) {
+                q.isRunning = false;
+                q.state = 'PAUSED';
+                q.remaining = Math.max(0, q.total - q.sent - q.failed);
+                setWeeklyPendingMetric(sessionId, q.remaining);
                 saveActiveCampaignState(sessionId, { sessionId, queue: q });
                 session.isDispatchLoopActive = false;
                 return;
@@ -974,14 +1645,20 @@ async function executeDispatchQueue(sessionId) {
                 if (typeof q.recipients[q.currentIndex] === 'object') {
                     q.recipients[q.currentIndex].status = 'FAILED';
                 }
+                incrementWeeklyMetric(sessionId, 'failed', 1);
+                setWeeklyPendingMetric(sessionId, q.remaining);
                 q.currentIndex++;
                 saveActiveCampaignState(sessionId, { sessionId, queue: q });
                 continue;
             }
 
-            const targetJid = clean + '@s.whatsapp.net';
+            const targetJid = `${clean}@s.whatsapp.net`;
 
             try {
+                if (!session.sock || session.status !== 'CONNECTED') {
+                    await ensureActiveSocket(sessionId);
+                }
+
                 const [lookup] = await session.sock.onWhatsApp(targetJid);
                 if (!lookup?.exists) {
                     throw new Error('NOT_ON_WHATSAPP');
@@ -989,109 +1666,93 @@ async function executeDispatchQueue(sessionId) {
 
                 if (q.state === 'PAUSED' || q.state === 'STOPPED') continue;
 
-                if (Array.isArray(q.sequence) && q.sequence.length > 0) {
-                    for (const step of q.sequence) {
-                        if (q.state === 'PAUSED' || q.state === 'STOPPED') break;
+                const jidToSend = lookup.jid || targetJid;
+                await session.sock.sendPresenceUpdate('composing', jidToSend);
+                await delay(Math.floor(Math.random() * (900 - 500 + 1)) + 500);
 
-                        await session.sock.sendPresenceUpdate('composing', lookup.jid);
-                        await delay(Math.floor(Math.random() * (900 - 500 + 1)) + 500);
-
-                        if (step.type === 'text' && step.content) {
-                            await session.sock.sendMessage(lookup.jid, { text: injectZeroWidthRandomizers(step.content) });
-                        } else if ((step.type === 'image' || step.type === 'video') && step.filePath && fs.existsSync(step.filePath)) {
-                            const mime = step.mimetype || '';
-                            const caption = step.caption ? injectZeroWidthRandomizers(step.caption) : '';
-                            const randomizedBuffer = buildRandomizedMediaBuffer(step.filePath, mime);
-
-                            if (mime.startsWith('image/') || step.type === 'image') {
-                                await session.sock.sendMessage(lookup.jid, { image: randomizedBuffer, caption });
-                            } else if (mime.startsWith('video/') || step.type === 'video') {
-                                await session.sock.sendMessage(lookup.jid, { video: randomizedBuffer, caption });
-                            }
-                        }
-                    }
+                if (q.mode === 'image' && Array.isArray(q.mediaPool) && q.mediaPool.length > 0) {
+                    const variantPath = q.mediaPool[poolCursor % q.mediaPool.length];
+                    poolCursor++;
+                    const caption = q.caption ? injectZeroWidthRandomizers(q.caption) : '';
+                    await session.sock.sendMessage(jidToSend, {
+                        image: { url: variantPath },
+                        caption
+                    });
+                } else if (q.mode === 'video' && Array.isArray(q.mediaPool) && q.mediaPool.length > 0) {
+                    const variantPath = q.mediaPool[poolCursor % q.mediaPool.length];
+                    poolCursor++;
+                    const caption = q.caption ? injectZeroWidthRandomizers(q.caption) : '';
+                    await session.sock.sendMessage(jidToSend, {
+                        video: { url: variantPath },
+                        caption
+                    });
                 } else {
-                    await session.sock.sendPresenceUpdate('composing', lookup.jid);
-                    await delay(Math.floor(Math.random() * (900 - 500 + 1)) + 500);
-
                     const resolvedMessage = q.message ? injectZeroWidthRandomizers(q.message) : '';
-
-                    if (q.mediaItems && q.mediaItems.length > 0) {
-                        for (let mIdx = 0; mIdx < q.mediaItems.length; mIdx++) {
-                            const media = q.mediaItems[mIdx];
-                            if (fs.existsSync(media.path)) {
-                                const randomizedBuffer = buildRandomizedMediaBuffer(media.path, media.mimetype);
-                                const mime = media.mimetype || '';
-                                const captionText = media.caption
-                                    ? injectZeroWidthRandomizers(media.caption)
-                                    : (mIdx === 0 ? resolvedMessage : '');
-
-                                if (mime.startsWith('image/')) {
-                                    await session.sock.sendMessage(lookup.jid, { image: randomizedBuffer, caption: captionText });
-                                } else if (mime.startsWith('video/')) {
-                                    await session.sock.sendMessage(lookup.jid, { video: randomizedBuffer, caption: captionText });
-                                } else {
-                                    await session.sock.sendMessage(lookup.jid, { document: randomizedBuffer, mimetype: mime, fileName: media.originalname, caption: captionText });
-                                }
-                            }
-                        }
-                    } else if (resolvedMessage) {
-                        await session.sock.sendMessage(lookup.jid, { text: resolvedMessage });
-                    }
+                    await session.sock.sendMessage(jidToSend, { text: resolvedMessage });
                 }
 
-                await session.sock.sendPresenceUpdate('paused', lookup.jid);
+                try { await session.sock.sendPresenceUpdate('paused', jidToSend); } catch (e) {}
+
+                // Deduct strictly 1 delivered message in persistent SQLite daily quota
+                recordDeliveredCampaignMessage(sessionId);
                 q.sent++;
                 q.remaining = Math.max(0, q.total - q.sent - q.failed);
                 if (typeof q.recipients[q.currentIndex] === 'object') {
                     q.recipients[q.currentIndex].status = 'SENT';
                 }
-
+                incrementWeeklyMetric(sessionId, 'sent', 1);
+                setWeeklyPendingMetric(sessionId, q.remaining);
             } catch (e) {
                 q.failed++;
                 q.remaining = Math.max(0, q.total - q.sent - q.failed);
                 if (typeof q.recipients[q.currentIndex] === 'object') {
                     q.recipients[q.currentIndex].status = 'FAILED';
                 }
+                incrementWeeklyMetric(sessionId, 'failed', 1);
+                setWeeklyPendingMetric(sessionId, q.remaining);
             }
 
             q.currentIndex++;
             saveActiveCampaignState(sessionId, { sessionId, queue: q });
 
+            // Tested pacing baseline (~8.7s average / ~172 messages per 25 minutes)
             if (q.currentIndex < q.recipients.length && q.state === 'RUNNING') {
-                if (q.sent > 0 && q.sent % 25 === 0) {
-                    const breatherMs = Math.floor(Math.random() * (18000 - 12000 + 1)) + 12000;
-                    await delay(breatherMs);
-                } else {
-                    await delay(Math.floor(Math.random() * (4200 - 2200 + 1)) + 2200);
-                }
+                const pacingMs = Math.floor(Math.random() * (10200 - 7200 + 1)) + 7200;
+                await delay(pacingMs);
             }
         }
 
         q.isRunning = false;
         q.state = 'STOPPED';
-        purgeCampaignMediaItems(q.sequence || q.mediaItems);
-        q.sequence = [];
-        q.mediaItems = [];
+        q.remaining = Math.max(0, q.total - q.sent - q.failed);
+        setWeeklyPendingMetric(sessionId, 0);
         upsertCampaignHistory(sessionId, q);
-        clearActiveCampaignState(sessionId);
-        cleanOrphanedMediaVaultFiles(sessionId);
+        cleanupCampaignArtifacts(sessionId, q);
     } finally {
         session.isDispatchLoopActive = false;
         touchSessionActivity(sessionId);
     }
 }
 
-// Background Cron: Scheduled Jobs, Auto-Expiry Notices & Lazy Socket Sleep Check (Every 20 seconds)
+// ============================================================================
+// BACKGROUND CRONS & ENGINE STARTUP RECOVERY
+// ============================================================================
 setInterval(async () => {
     const now = Date.now();
 
+    // 1. Auto-expire and purge any schedule past 3 days (72 hours)
+    try {
+        purgeExpiredOrOverWindowSchedules();
+    } catch (e) {}
+
+    // 2. Idle socket check (never sleeps welcome-bot or active/pending tenants)
     for (const [tenantId, session] of sessions.entries()) {
-        if (session && session.sock && (now - session.lastActive > 15 * 60 * 1000)) {
+        if (session && session.sock && (now - session.lastActive > 60 * 60 * 1000)) {
             putSocketToSleep(tenantId);
         }
     }
 
+    // 3. Auto-expire global notices
     try {
         const noticeExpRow = stmtGetSetting.get('global_notice_expiry');
         if (noticeExpRow && noticeExpRow.value) {
@@ -1103,69 +1764,105 @@ setInterval(async () => {
         }
     } catch (e) {}
 
+    // 4. Trigger due scheduled campaigns (1+1+1 format)
     try {
         const dueJobs = stmtGetAllDueJobs.all('SCHEDULED', now);
         for (const row of dueJobs) {
             const tenantId = row.sessionId;
-            const session = await ensureActiveSocket(tenantId);
+            await withTenantLock(tenantId, async () => {
+                const quotaState = getTenantDailyQuotaState(tenantId);
+                let job = null;
+                try {
+                    job = JSON.parse(row.jobDataJson);
+                } catch (e) {
+                    stmtDeleteScheduledJob.run(row.jobId);
+                    return;
+                }
 
-            if (session && session.status === 'CONNECTED' && (!session.queue || !session.queue.isRunning)) {
-                stmtUpsertScheduledJob.run({
-                    jobId: row.jobId,
-                    sessionId: tenantId,
-                    status: 'DISPATCHING',
-                    scheduledForEpoch: row.scheduledForEpoch,
-                    jobDataJson: row.jobDataJson
-                });
+                if ((now - (job.createdAt || row.scheduledForEpoch)) > MAX_SCHEDULE_WINDOW_MS) {
+                    purgeCampaignMediaItems(job.mediaItems);
+                    purgeFilesList(job.mediaPool);
+                    if (job.sourceMediaPath && fs.existsSync(job.sourceMediaPath)) {
+                        try { fs.unlinkSync(job.sourceMediaPath); } catch (e) {}
+                    }
+                    stmtDeleteScheduledJob.run(row.jobId);
+                    cleanOrphanedMediaVaultFiles(tenantId);
+                    return;
+                }
 
-                const job = JSON.parse(row.jobDataJson);
-                session.queue = {
-                    isRunning: true,
-                    state: 'RUNNING',
-                    campaignId: job.id,
-                    timestamp: new Date().toLocaleString(),
-                    total: job.recipients.length,
-                    sent: 0,
-                    failed: 0,
-                    remaining: job.recipients.length,
-                    currentIndex: 0,
-                    recipients: job.recipients.map(r => ({
-                        name: r.name || 'Unsaved',
-                        phone: r.phone,
-                        status: 'PENDING'
-                    })),
-                    sequence: job.sequence || [],
-                    message: job.message || '',
-                    mediaItems: job.mediaItems || []
-                };
+                if (quotaState.remainingQuota <= 0) {
+                    return; // Wait for next quota window / midnight reset; do not lose schedule before 72h expiry
+                }
 
-                saveActiveCampaignState(tenantId, { sessionId: tenantId, queue: session.queue });
-                executeDispatchQueue(tenantId);
-            }
+                const session = await ensureActiveSocket(tenantId);
+                if (session && session.status === 'CONNECTED' && (!session.queue || !session.queue.isRunning)) {
+                    const allowedRecipients = (job.recipients || []).slice(0, quotaState.remainingQuota);
+                    stmtDeleteScheduledJob.run(row.jobId);
+                    const { scheduledJobsFile } = getTenantPaths(tenantId);
+                    safeWriteJsonSync(scheduledJobsFile, []);
+
+                    session.queue = {
+                        isRunning: true,
+                        state: 'RUNNING',
+                        campaignId: job.id,
+                        timestamp: new Date().toLocaleString(),
+                        total: allowedRecipients.length,
+                        sent: 0,
+                        failed: 0,
+                        remaining: allowedRecipients.length,
+                        currentIndex: 0,
+                        recipients: allowedRecipients.map((r) => ({
+                            name: r.name || 'Unsaved',
+                            phone: r.phone,
+                            status: 'PENDING'
+                        })),
+                        mode: job.mode || 'text',
+                        message: job.message || '',
+                        caption: job.caption || '',
+                        sourceMediaPath: job.sourceMediaPath || null,
+                        mimetype: job.mimetype || '',
+                        mediaPool: job.mediaPool || [],
+                        mediaItems: job.mediaItems || []
+                    };
+
+                    setWeeklyPendingMetric(tenantId, session.queue.remaining);
+                    saveActiveCampaignState(tenantId, { sessionId: tenantId, queue: session.queue });
+                    executeDispatchQueue(tenantId);
+                }
+            });
         }
     } catch (e) {}
 }, 20000);
 
-// Non-blocking 24-hour maintenance cron (Prunes stale pre-keys once a day at night)
+// Non-blocking 24-hour maintenance cron: prune old welcome dedup rows, weekly metrics, and stale session keys
 setInterval(() => {
     try {
+        const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
+        stmtPruneOldWelcomeDedup.run(thirtyDaysAgo);
+        stmtPruneOldWeeklyMetrics.run(getLocalWeekKey());
+
         const licenses = stmtGetAllLicensesSorted.all();
         for (const lic of licenses) {
             pruneStaleSessionKeys(lic.sessionId);
+            cleanOrphanedMediaVaultFiles(lic.sessionId);
         }
+        db.pragma('wal_checkpoint(PASSIVE)');
     } catch (e) {}
 }, 24 * 60 * 60 * 1000);
 
-// Only wake up active in-flight tenants on engine start
+// Boot recovery: wake up tenants with active welcome bots or pending/in-flight campaigns
 if (fs.existsSync(BASE_TENANTS_DIR)) {
-    fs.readdirSync(BASE_TENANTS_DIR).forEach(d => {
+    purgeExpiredOrOverWindowSchedules();
+    fs.readdirSync(BASE_TENANTS_DIR).forEach((d) => {
         if (d.startsWith('tenant_')) {
             const tid = d.replace('tenant_', '');
             const { sessionDir, campaignStateFile } = getTenantPaths(tid);
             if (fs.existsSync(path.join(sessionDir, 'creds.json'))) {
                 const saved = safeReadJsonSync(campaignStateFile, null);
-                if (saved && saved.queue?.remaining > 0) {
-                    initSessionSocket(tid);
+                const hasPendingCamp = !!(saved && saved.queue?.remaining > 0 && saved.queue?.state !== 'STOPPED');
+                const welcomeActive = hasActiveWelcomeBot(tid);
+                if (hasPendingCamp || welcomeActive) {
+                    initSessionSocket(tid).catch(() => {});
                 }
             }
         }
@@ -1173,7 +1870,7 @@ if (fs.existsSync(BASE_TENANTS_DIR)) {
 }
 
 // ============================================================================
-// API ROUTES (100% Retained & Compatible with index.html)
+// API ROUTES
 // ============================================================================
 
 app.post('/api/pair', authenticate, async (req, res) => {
@@ -1216,6 +1913,7 @@ app.get('/api/status/:sessionId', async (req, res) => {
 
     touchSessionActivity(sessionId);
 
+    const quotaState = getTenantDailyQuotaState(sessionId);
     const noticeRow = stmtGetSetting.get('global_notice');
     let globalNotice = noticeRow ? noticeRow.value : '';
 
@@ -1240,15 +1938,18 @@ app.get('/api/status/:sessionId', async (req, res) => {
     }
 
     if (!session || session.status !== 'CONNECTED') {
-        return res.json({ 
-            status: 'DISCONNECTED', 
-            phone: null, 
-            globalNotice, 
-            daysLeft, 
+        return res.json({
+            status: 'DISCONNECTED',
+            phone: null,
+            globalNotice,
+            daysLeft,
             isExpired,
             plan: lic?.plan || 'Monthly',
             purchasedAt,
-            validUntil
+            validUntil,
+            dailyCap: DAILY_OUTBOUND_CAP,
+            deliveredTodayCount: quotaState.deliveredTodayCount,
+            remainingQuota: quotaState.remainingQuota
         });
     }
 
@@ -1262,7 +1963,23 @@ app.get('/api/status/:sessionId', async (req, res) => {
         isExpired,
         plan: lic?.plan || 'Monthly',
         purchasedAt,
-        validUntil
+        validUntil,
+        dailyCap: DAILY_OUTBOUND_CAP,
+        deliveredTodayCount: quotaState.deliveredTodayCount,
+        remainingQuota: quotaState.remainingQuota
+    });
+});
+
+app.get('/api/quota/:sessionId', authenticate, (req, res) => {
+    const { sessionId } = req.params;
+    const quotaState = getTenantDailyQuotaState(sessionId);
+    res.json({
+        success: true,
+        dailyCap: DAILY_OUTBOUND_CAP,
+        dayKey: quotaState.dayKey,
+        deliveredTodayCount: quotaState.deliveredTodayCount,
+        remainingQuota: quotaState.remainingQuota,
+        welcomeExempt: true
     });
 });
 
@@ -1277,7 +1994,7 @@ app.post('/api/groups/sync', authenticate, async (req, res) => {
     const { groupsBackupFile } = getTenantPaths(sessionId);
 
     const existingRow = stmtGetGroups.get(sessionId);
-    if (groups.length === 0 && !allowEmptyOverwrite) {
+    if (Array.isArray(groups) && groups.length === 0 && !allowEmptyOverwrite) {
         if (existingRow && existingRow.groupsJson) {
             try {
                 const existing = JSON.parse(existingRow.groupsJson);
@@ -1294,8 +2011,8 @@ app.post('/api/groups/sync', authenticate, async (req, res) => {
         }
     }
 
-    stmtSaveGroups.run(sessionId, JSON.stringify(groups), Date.now());
-    safeWriteJsonSync(groupsBackupFile, groups);
+    stmtSaveGroups.run(sessionId, JSON.stringify(groups || []), Date.now());
+    safeWriteJsonSync(groupsBackupFile, groups || []);
 
     touchSessionActivity(sessionId);
     res.json({ success: true });
@@ -1328,6 +2045,7 @@ app.get('/api/groups/restore', authenticate, (req, res) => {
     res.json({ success: true, groups: diskGroups });
 });
 
+// Welcome Bot Setup (1+1: Text Only OR 1 Compressed Image + Caption; no video; exempt from 300/day quota)
 app.post('/api/welcome/setup', upload.any(), authenticate, async (req, res) => {
     const sessionId = req.body.sessionId || 'unpaired_user';
     await ensureActiveSocket(sessionId);
@@ -1340,51 +2058,86 @@ app.post('/api/welcome/setup', upload.any(), authenticate, async (req, res) => {
     const { welcomeRulesFile, mediaVaultDir } = getTenantPaths(sessionId);
     const resolvedVault = path.resolve(mediaVaultDir);
     const enabled = req.body.enabled === 'true' || req.body.enabled === true;
+    const cooldownHours = Math.max(1, parseInt(req.body.cooldownHours || 24, 10) || 24);
 
-    let blocksMeta = [];
-    try { blocksMeta = JSON.parse(req.body.blocksMeta || '[]'); } catch (e) { blocksMeta = []; }
-
-    const filesMap = new Map();
-    if (req.files && req.files.length > 0) {
-        req.files.forEach(f => filesMap.set(f.fieldname, f));
+    let prevConfig = null;
+    const prevRow = stmtGetWelcome.get(sessionId);
+    if (prevRow && prevRow.configJson) {
+        try { prevConfig = JSON.parse(prevRow.configJson); } catch (e) {}
     }
 
-    const sequence = [];
-    for (const block of blocksMeta) {
-        if (block.type === 'text' && block.content && block.content.trim()) {
-            sequence.push({
-                id: block.id,
-                type: 'text',
-                content: block.content.trim()
-            });
-        } else if (block.type === 'image' || block.type === 'video') {
-            const uploaded = filesMap.get(`file_${block.id}`);
-            if (uploaded) {
-                sequence.push({
-                    id: block.id,
-                    type: block.type,
-                    filePath: uploaded.path,
-                    fileName: uploaded.originalname,
-                    mimetype: uploaded.mimetype,
-                    caption: (block.caption || '').trim()
-                });
-            } else if (block.existingFilePath) {
-                const resolvedExisting = path.resolve(block.existingFilePath);
-                if (resolvedExisting.startsWith(resolvedVault) && fs.existsSync(resolvedExisting)) {
-                    sequence.push({
-                        id: block.id,
-                        type: block.type,
-                        filePath: resolvedExisting,
-                        fileName: block.fileName || path.basename(resolvedExisting),
-                        mimetype: block.mimetype || (block.type === 'video' ? 'video/mp4' : 'image/jpeg'),
-                        caption: (block.caption || '').trim()
-                    });
-                }
+    if (!enabled) {
+        // Immediately purge welcome media when disabled
+        if (prevConfig?.filePath && path.resolve(prevConfig.filePath).startsWith(resolvedVault) && fs.existsSync(prevConfig.filePath)) {
+            try { fs.unlinkSync(prevConfig.filePath); } catch (e) {}
+        }
+        (prevConfig?.sequence || []).forEach((s) => {
+            if (s.filePath && path.resolve(s.filePath).startsWith(resolvedVault) && fs.existsSync(s.filePath)) {
+                try { fs.unlinkSync(s.filePath); } catch (e) {}
+            }
+        });
+        purgeCampaignMediaItems(req.files);
+
+        const disabledConfig = { enabled: false, cooldownHours, type: 'text', content: '', caption: '', filePath: null, fileName: '', mimetype: '' };
+        stmtSaveWelcome.run(sessionId, JSON.stringify(disabledConfig), Date.now());
+        safeWriteJsonSync(welcomeRulesFile, disabledConfig);
+        cleanOrphanedMediaVaultFiles(sessionId);
+        touchSessionActivity(sessionId);
+        return res.json({ success: true, config: disabledConfig });
+    }
+
+    const parsed11 = normalizeWelcome11Payload(req.body, req.files, prevConfig);
+    if (!parsed11.valid) {
+        purgeCampaignMediaItems(req.files);
+        return res.status(400).json({ error: parsed11.error });
+    }
+
+    // Purge any extra files if more than 1 file was uploaded
+    if (req.files && req.files.length > 1) {
+        purgeCampaignMediaItems(req.files.slice(1));
+    }
+
+    let finalFilePath = null;
+    if (parsed11.type === 'image' && parsed11.filePath) {
+        const resolvedCandidate = path.resolve(parsed11.filePath);
+        if (!resolvedCandidate.startsWith(resolvedVault) || !fs.existsSync(resolvedCandidate)) {
+            purgeCampaignMediaItems(req.files);
+            return res.status(400).json({ error: 'Invalid welcome image path.' });
+        }
+        finalFilePath = resolvedCandidate;
+
+        // Purge previous welcome image if replaced
+        const oldPaths = new Set();
+        if (prevConfig?.filePath) oldPaths.add(path.resolve(prevConfig.filePath));
+        (prevConfig?.sequence || []).forEach((s) => { if (s.filePath) oldPaths.add(path.resolve(s.filePath)); });
+        for (const oldP of oldPaths) {
+            if (oldP !== finalFilePath && oldP.startsWith(resolvedVault) && fs.existsSync(oldP)) {
+                try { fs.unlinkSync(oldP); } catch (e) {}
+            }
+        }
+    } else {
+        // Switching to text welcome: purge old welcome media
+        const oldPaths = new Set();
+        if (prevConfig?.filePath) oldPaths.add(path.resolve(prevConfig.filePath));
+        (prevConfig?.sequence || []).forEach((s) => { if (s.filePath) oldPaths.add(path.resolve(s.filePath)); });
+        for (const oldP of oldPaths) {
+            if (oldP.startsWith(resolvedVault) && fs.existsSync(oldP)) {
+                try { fs.unlinkSync(oldP); } catch (e) {}
             }
         }
     }
 
-    const config = { enabled, cooldownHours: 24, sequence };
+    const config = {
+        enabled: true,
+        cooldownHours,
+        type: parsed11.type,
+        content: parsed11.content,
+        caption: parsed11.caption,
+        filePath: finalFilePath,
+        fileName: parsed11.type === 'image' ? parsed11.fileName : '',
+        mimetype: parsed11.type === 'image' ? parsed11.mimetype : ''
+    };
+
     stmtSaveWelcome.run(sessionId, JSON.stringify(config), Date.now());
     safeWriteJsonSync(welcomeRulesFile, config);
     cleanOrphanedMediaVaultFiles(sessionId);
@@ -1396,7 +2149,7 @@ app.post('/api/welcome/setup', upload.any(), authenticate, async (req, res) => {
 app.get('/api/welcome/rules', authenticate, (req, res) => {
     const sessionId = req.query.sessionId || 'unpaired_user';
     touchSessionActivity(sessionId);
-    
+
     const row = stmtGetWelcome.get(sessionId);
     if (row && row.configJson) {
         try {
@@ -1405,186 +2158,238 @@ app.get('/api/welcome/rules', authenticate, (req, res) => {
     }
 
     const { welcomeRulesFile } = getTenantPaths(sessionId);
-    const config = safeReadJsonSync(welcomeRulesFile, { enabled: false, sequence: [] });
+    const config = safeReadJsonSync(welcomeRulesFile, { enabled: false, cooldownHours: 24, type: 'text', content: '' });
     res.json({ success: true, config });
 });
 
+// Bulk Campaign or 1-Slot Schedule (Strict 1+1+1 + Max 1 Schedule Slot + Max 3 Days / 72h + 300/day Quota)
 app.post('/api/message/send-bulk', upload.any(), authenticate, async (req, res) => {
     const sessionId = req.body.sessionId || 'unpaired_user';
-    const recipients = req.body.recipients;
+    const recipientsRaw = req.body.recipients;
     const scheduleEpoch = parseInt(req.body.scheduleEpoch || 0, 10);
     const isScheduled = req.body.isScheduled === 'true' || req.body.isScheduled === true;
 
-    await ensureActiveSocket(sessionId);
-    const session = sessions.get(sessionId);
-    if (!session || session.status !== 'CONNECTED') {
+    purgeExpiredOrOverWindowSchedules(sessionId);
+
+    const payload111 = normalizeSingle111Payload(req.body, req.files);
+    if (!payload111.valid) {
         purgeCampaignMediaItems(req.files);
-        return res.status(400).json({ error: 'WhatsApp not connected.' });
+        return res.status(400).json({ error: payload111.error });
     }
 
-    if (!isScheduled && session.queue && session.queue.isRunning) {
-        purgeCampaignMediaItems(req.files);
-        return res.status(400).json({ error: 'A campaign is already running. Please wait or stop it first.' });
-    }
-
-    const scheduledRows = stmtGetScheduledJobs.all(sessionId);
-    if (isScheduled && scheduledRows.filter(r => r.status === 'SCHEDULED').length >= 3) {
-        purgeCampaignMediaItems(req.files);
-        return res.status(400).json({ error: 'Maximum 3 scheduled campaigns limit reached! Please cancel one before scheduling another.' });
+    // Purge any extra files beyond slot 1
+    if (req.files && req.files.length > 1) {
+        purgeCampaignMediaItems(req.files.slice(1));
     }
 
     let parsed = [];
-    try { parsed = JSON.parse(recipients || '[]'); } catch (e) { parsed = []; }
-    if (parsed.length === 0) {
+    try { parsed = JSON.parse(recipientsRaw || '[]'); } catch (e) { parsed = []; }
+    if (!Array.isArray(parsed) || parsed.length === 0) {
         purgeCampaignMediaItems(req.files);
         return res.status(400).json({ error: 'Recipient list cannot be empty.' });
     }
 
-    let blocksMeta = [];
-    try { blocksMeta = JSON.parse(req.body.blocksMeta || '[]'); } catch (e) { blocksMeta = []; }
-
-    const filesMap = new Map();
-    if (req.files && req.files.length > 0) {
-        req.files.forEach(f => filesMap.set(f.fieldname, f));
-    }
-
-    const sequence = [];
-    for (const block of blocksMeta) {
-        if (block.type === 'text' && block.content && block.content.trim()) {
-            sequence.push({
-                id: block.id,
-                type: 'text',
-                content: block.content.trim()
-            });
-        } else if (block.type === 'image' || block.type === 'video') {
-            const uploaded = filesMap.get(`file_${block.id}`);
-            if (uploaded) {
-                sequence.push({
-                    id: block.id,
-                    type: block.type,
-                    filePath: uploaded.path,
-                    fileName: uploaded.originalname,
-                    mimetype: uploaded.mimetype,
-                    caption: (block.caption || '').trim()
-                });
-            }
+    await withTenantLock(sessionId, async () => {
+        await ensureActiveSocket(sessionId);
+        const session = sessions.get(sessionId);
+        if (!session || session.status !== 'CONNECTED') {
+            purgeCampaignMediaItems(req.files);
+            return res.status(400).json({ error: 'WhatsApp not connected.' });
         }
-    }
 
-    const legacyMessage = req.body.message || '';
-    const legacyMedia = (req.files || []).map(f => ({
-        path: f.path,
-        originalname: f.originalname,
-        mimetype: f.mimetype,
-        caption: req.body[`caption_${f.fieldname}`] || req.body.globalCaption || ''
-    }));
+        const now = Date.now();
+        const quotaState = getTenantDailyQuotaState(sessionId);
 
-    const formattedRecipients = parsed.map(r => ({
-        name: r.name || 'Unsaved',
-        phone: sanitizeToValidWhatsAppJid(r.phone || r),
-        status: 'PENDING'
-    }));
+        if (isScheduled) {
+            if (quotaState.remainingQuota <= 0) {
+                purgeCampaignMediaItems(req.files);
+                return res.status(400).json({ error: 'Daily 300 message quota exhausted for today. Resets at 12:00 AM.' });
+            }
 
-    if (isScheduled && scheduleEpoch > Date.now()) {
-        const job = {
-            id: 'sch_' + Date.now(),
-            scheduledForEpoch: scheduleEpoch,
-            scheduledForDate: new Date(scheduleEpoch).toLocaleString(),
-            status: 'SCHEDULED',
-            recipients: formattedRecipients,
-            sequence: sequence,
-            message: legacyMessage,
-            mediaItems: legacyMedia
+            const existingScheds = stmtGetScheduledJobs.all(sessionId).filter((r) => r.status === 'SCHEDULED' || r.status === 'DISPATCHING');
+            if (existingScheds.length >= MAX_SCHEDULE_SLOTS) {
+                purgeCampaignMediaItems(req.files);
+                return res.status(400).json({ error: 'Only 1 scheduled campaign slot is allowed at a time. Cancel or wait for the active schedule first.' });
+            }
+
+            if (!scheduleEpoch || scheduleEpoch <= now) {
+                purgeCampaignMediaItems(req.files);
+                return res.status(400).json({ error: 'Schedule time must be in the future.' });
+            }
+            if ((scheduleEpoch - now) > MAX_SCHEDULE_WINDOW_MS) {
+                purgeCampaignMediaItems(req.files);
+                return res.status(400).json({ error: 'Maximum schedule window is 3 days (72 hours).' });
+            }
+
+            const cappedRecipients = parsed.slice(0, quotaState.remainingQuota).map((r) => ({
+                name: r.name || 'Unsaved',
+                phone: sanitizeToValidWhatsAppJid(typeof r === 'object' ? r.phone : r),
+                status: 'PENDING'
+            }));
+
+            const job = {
+                id: 'sch_' + now,
+                createdAt: now,
+                scheduledForEpoch: scheduleEpoch,
+                scheduledForDate: new Date(scheduleEpoch).toLocaleString(),
+                status: 'SCHEDULED',
+                mode: payload111.kind,
+                message: payload111.text,
+                caption: payload111.caption,
+                sourceMediaPath: payload111.filePath || null,
+                mimetype: payload111.mimetype || '',
+                mediaPool: [],
+                mediaItems: payload111.filePath ? [{
+                    path: payload111.filePath,
+                    originalname: payload111.fileName,
+                    mimetype: payload111.mimetype,
+                    caption: payload111.caption
+                }] : [],
+                recipients: cappedRecipients
+            };
+
+            stmtUpsertScheduledJob.run({
+                jobId: job.id,
+                sessionId,
+                status: 'SCHEDULED',
+                scheduledForEpoch: scheduleEpoch,
+                jobDataJson: JSON.stringify(job)
+            });
+
+            const { scheduledJobsFile } = getTenantPaths(sessionId);
+            safeWriteJsonSync(scheduledJobsFile, [job]);
+
+            touchSessionActivity(sessionId);
+            return res.json({
+                status: 'SCHEDULED',
+                jobId: job.id,
+                scheduledForDate: job.scheduledForDate,
+                recipientsCount: cappedRecipients.length,
+                remainingQuota: quotaState.remainingQuota
+            });
+        }
+
+        // Immediate Campaign (Only 1 active campaign slot)
+        if (session.queue && (session.queue.isRunning || session.queue.state === 'RUNNING' || session.queue.state === 'PAUSED')) {
+            purgeCampaignMediaItems(req.files);
+            return res.status(400).json({ error: 'A campaign is already active or paused. Stop or finish it before starting a new one.' });
+        }
+
+        if (quotaState.remainingQuota <= 0) {
+            purgeCampaignMediaItems(req.files);
+            return res.status(400).json({ error: 'Daily 300 message quota exhausted for today. Resets at 12:00 AM.' });
+        }
+
+        const allowedRecipients = parsed.slice(0, quotaState.remainingQuota).map((r) => ({
+            name: r.name || 'Unsaved',
+            phone: sanitizeToValidWhatsAppJid(typeof r === 'object' ? r.phone : r),
+            status: 'PENDING'
+        }));
+
+        const campaignId = 'cmp_' + now;
+        session.queue = {
+            isRunning: true,
+            state: 'RUNNING',
+            campaignId,
+            timestamp: new Date().toLocaleString(),
+            total: allowedRecipients.length,
+            sent: 0,
+            failed: 0,
+            remaining: allowedRecipients.length,
+            currentIndex: 0,
+            recipients: allowedRecipients,
+            mode: payload111.kind,
+            message: payload111.text,
+            caption: payload111.caption,
+            sourceMediaPath: payload111.filePath || null,
+            mimetype: payload111.mimetype || '',
+            mediaPool: [],
+            mediaItems: payload111.filePath ? [{
+                path: payload111.filePath,
+                originalname: payload111.fileName,
+                mimetype: payload111.mimetype,
+                caption: payload111.caption
+            }] : []
         };
 
-        stmtUpsertScheduledJob.run({
-            jobId: job.id,
-            sessionId,
-            status: 'SCHEDULED',
-            scheduledForEpoch: scheduleEpoch,
-            jobDataJson: JSON.stringify(job)
+        setWeeklyPendingMetric(sessionId, session.queue.remaining);
+        saveActiveCampaignState(sessionId, { sessionId, queue: session.queue });
+        touchSessionActivity(sessionId);
+
+        res.json({
+            status: 'QUEUED',
+            campaignId,
+            totalRecipients: allowedRecipients.length,
+            dailyCap: DAILY_OUTBOUND_CAP,
+            deliveredTodayCount: quotaState.deliveredTodayCount,
+            remainingQuota: quotaState.remainingQuota,
+            campaign: session.queue
         });
 
-        const { scheduledJobsFile } = getTenantPaths(sessionId);
-        let existingJobs = safeReadJsonSync(scheduledJobsFile, []);
-        existingJobs.push(job);
-        safeWriteJsonSync(scheduledJobsFile, existingJobs);
-
-        touchSessionActivity(sessionId);
-        return res.json({ status: 'SCHEDULED', jobId: job.id, scheduledForDate: job.scheduledForDate });
-    }
-
-    const campaignId = 'cmp_' + Date.now();
-    session.queue = {
-        isRunning: true,
-        state: 'RUNNING',
-        campaignId,
-        timestamp: new Date().toLocaleString(),
-        total: formattedRecipients.length,
-        sent: 0,
-        failed: 0,
-        remaining: formattedRecipients.length,
-        currentIndex: 0,
-        recipients: formattedRecipients,
-        sequence: sequence,
-        message: legacyMessage,
-        mediaItems: legacyMedia
-    };
-
-    saveActiveCampaignState(sessionId, { sessionId, queue: session.queue });
-    touchSessionActivity(sessionId);
-    res.json({ status: 'QUEUED', campaignId, totalRecipients: formattedRecipients.length, campaign: session.queue });
-
-    executeDispatchQueue(sessionId);
+        executeDispatchQueue(sessionId);
+    });
 });
 
 app.get('/api/campaign/scheduled-jobs/:sessionId', authenticate, (req, res) => {
     const { sessionId } = req.params;
+    purgeExpiredOrOverWindowSchedules(sessionId);
     touchSessionActivity(sessionId);
+
     const rows = stmtGetScheduledJobs.all(sessionId);
-    const scheduled = rows.filter(r => r.status === 'SCHEDULED').map(r => {
-        const j = JSON.parse(r.jobDataJson);
-        return {
-            id: j.id,
-            scheduledForDate: j.scheduledForDate,
-            scheduledForEpoch: j.scheduledForEpoch,
-            recipientCount: (j.recipients || []).length,
-            sequenceSummary: (j.sequence || []).map(s => ({
-                type: s.type,
-                content: s.content || '',
-                caption: s.caption || '',
-                fileName: s.fileName || ''
-            })),
-            message: j.message || '',
-            mediaCount: (j.mediaItems || []).length + (j.sequence || []).filter(s => s.type !== 'text').length
-        };
-    });
-    res.json({ success: true, jobs: scheduled });
+    const scheduled = rows
+        .filter((r) => r.status === 'SCHEDULED')
+        .slice(0, MAX_SCHEDULE_SLOTS)
+        .map((r) => {
+            const j = JSON.parse(r.jobDataJson);
+            return {
+                id: j.id,
+                scheduledForDate: j.scheduledForDate,
+                scheduledForEpoch: j.scheduledForEpoch,
+                expiresAtEpoch: (j.createdAt || j.scheduledForEpoch || Date.now()) + MAX_SCHEDULE_WINDOW_MS,
+                recipientCount: (j.recipients || []).length,
+                mode: j.mode || 'text',
+                message: j.message || '',
+                caption: j.caption || '',
+                mediaCount: j.sourceMediaPath || (j.mediaItems || []).length > 0 ? 1 : 0
+            };
+        });
+
+    res.json({ success: true, maxSlots: MAX_SCHEDULE_SLOTS, maxWindowHours: 72, jobs: scheduled });
 });
 
-app.post('/api/campaign/cancel-schedule', authenticate, (req, res) => {
+app.post('/api/campaign/cancel-schedule', authenticate, async (req, res) => {
     const { sessionId, jobId } = req.body;
-    const rows = stmtGetScheduledJobs.all(sessionId);
-    const targetRow = rows.find(r => r.jobId === jobId);
+    await withTenantLock(sessionId, async () => {
+        const rows = stmtGetScheduledJobs.all(sessionId);
+        const targetRow = jobId ? rows.find((r) => r.jobId === jobId) : rows[0];
 
-    if (targetRow) {
+        if (!targetRow) {
+            return res.status(404).json({ error: 'Scheduled job not found.' });
+        }
+
         try {
             const targetJob = JSON.parse(targetRow.jobDataJson);
-            purgeCampaignMediaItems(targetJob.sequence || targetJob.mediaItems);
+            purgeCampaignMediaItems(targetJob.mediaItems);
+            purgeFilesList(targetJob.mediaPool);
+            if (targetJob.sourceMediaPath && fs.existsSync(targetJob.sourceMediaPath)) {
+                try { fs.unlinkSync(targetJob.sourceMediaPath); } catch (e) {}
+            }
         } catch (e) {}
 
-        stmtDeleteScheduledJob.run(jobId);
-
+        stmtDeleteScheduledJob.run(targetRow.jobId);
         const { scheduledJobsFile } = getTenantPaths(sessionId);
-        let jobs = safeReadJsonSync(scheduledJobsFile, []);
-        jobs = jobs.filter(j => j.id !== jobId);
-        safeWriteJsonSync(scheduledJobsFile, jobs);
-
+        safeWriteJsonSync(scheduledJobsFile, []);
         cleanOrphanedMediaVaultFiles(sessionId);
         touchSessionActivity(sessionId);
-        return res.json({ success: true, message: 'Scheduled campaign cancelled and media files purged.' });
-    }
-    res.status(404).json({ error: 'Job not found.' });
+
+        const quotaState = getTenantDailyQuotaState(sessionId);
+        return res.json({
+            success: true,
+            message: 'Scheduled campaign cancelled and media purged. Delivered quota preserved.',
+            deliveredTodayCount: quotaState.deliveredTodayCount,
+            remainingQuota: quotaState.remainingQuota
+        });
+    });
 });
 
 app.get('/api/campaign/state', authenticate, (req, res) => {
@@ -1592,69 +2397,107 @@ app.get('/api/campaign/state', authenticate, (req, res) => {
     touchSessionActivity(sessionId);
     const session = sessions.get(sessionId);
     const history = loadCampaignHistory(sessionId);
+    const quotaState = getTenantDailyQuotaState(sessionId);
 
-    if (session && session.queue && session.queue.campaignId && session.queue.state !== 'STOPPED') {
-        return res.json({ hasState: true, queue: session.queue, history });
+    if (session && session.queue && session.queue.campaignId && !session.queue.isWelcome && session.queue.state !== 'STOPPED') {
+        return res.json({ hasState: true, queue: session.queue, history, quota: quotaState });
     }
 
     const { campaignStateFile } = getTenantPaths(sessionId);
     const saved = safeReadJsonSync(campaignStateFile, null);
-    if (saved) {
-        return res.json({ hasState: true, queue: saved.queue, history });
+    if (saved && saved.queue && !saved.queue.isWelcome && saved.queue.state !== 'STOPPED') {
+        return res.json({ hasState: true, queue: saved.queue, history, quota: quotaState });
     }
 
-    res.json({ hasState: false, history });
+    res.json({ hasState: false, history, quota: quotaState });
 });
 
-app.post('/api/campaign/pause', authenticate, (req, res) => {
+app.post('/api/campaign/pause', authenticate, async (req, res) => {
     const sessionId = req.body.sessionId || 'unpaired_user';
-    const session = sessions.get(sessionId);
-    if (!session || !session.queue || session.queue.state === 'STOPPED') {
-        return res.status(400).json({ error: 'No active campaign to pause.' });
-    }
+    await withTenantLock(sessionId, async () => {
+        const session = sessions.get(sessionId);
+        if (!session || !session.queue || session.queue.isWelcome || session.queue.state === 'STOPPED') {
+            return res.status(400).json({ error: 'No active campaign to pause.' });
+        }
 
-    session.queue.state = 'PAUSED';
-    session.queue.isRunning = false;
-    saveActiveCampaignState(sessionId, { sessionId, queue: session.queue });
-    touchSessionActivity(sessionId);
-    res.json({ status: 'PAUSED', campaignId: session.queue.campaignId, queue: session.queue });
+        session.queue.state = 'PAUSED';
+        session.queue.isRunning = false;
+        setWeeklyPendingMetric(sessionId, session.queue.remaining || 0);
+        saveActiveCampaignState(sessionId, { sessionId, queue: session.queue });
+        touchSessionActivity(sessionId);
+
+        const quotaState = getTenantDailyQuotaState(sessionId);
+        res.json({
+            status: 'PAUSED',
+            campaignId: session.queue.campaignId,
+            queue: session.queue,
+            deliveredTodayCount: quotaState.deliveredTodayCount,
+            remainingQuota: quotaState.remainingQuota
+        });
+    });
 });
 
 app.post('/api/campaign/resume', authenticate, async (req, res) => {
     const sessionId = req.body.sessionId || 'unpaired_user';
-    await ensureActiveSocket(sessionId);
-    const session = sessions.get(sessionId);
-    if (!session || !session.queue || session.queue.state !== 'PAUSED') {
-        return res.status(400).json({ error: 'No paused campaign available to resume.' });
-    }
+    await withTenantLock(sessionId, async () => {
+        const quotaState = getTenantDailyQuotaState(sessionId);
+        if (quotaState.remainingQuota <= 0) {
+            return res.status(400).json({ error: 'Daily 300 message quota reached. Resets at 12:00 AM.' });
+        }
 
-    session.queue.state = 'RUNNING';
-    session.queue.isRunning = true;
-    saveActiveCampaignState(sessionId, { sessionId, queue: session.queue });
-    touchSessionActivity(sessionId);
-    res.json({ status: 'RUNNING', campaignId: session.queue.campaignId, queue: session.queue });
+        await ensureActiveSocket(sessionId);
+        const session = sessions.get(sessionId);
+        if (!session || !session.queue || session.queue.isWelcome || session.queue.state !== 'PAUSED') {
+            return res.status(400).json({ error: 'No paused campaign available to resume.' });
+        }
 
-    executeDispatchQueue(sessionId);
+        session.queue.state = 'RUNNING';
+        session.queue.isRunning = true;
+        saveActiveCampaignState(sessionId, { sessionId, queue: session.queue });
+        touchSessionActivity(sessionId);
+        res.json({ status: 'RUNNING', campaignId: session.queue.campaignId, queue: session.queue });
+
+        executeDispatchQueue(sessionId);
+    });
 });
 
-app.post('/api/campaign/stop', authenticate, (req, res) => {
+// Stop / Close Campaign: Deduct ONLY actually delivered messages; never refund delivered counts; purge media/state
+app.post('/api/campaign/stop', authenticate, async (req, res) => {
     const sessionId = req.body.sessionId || 'unpaired_user';
-    const session = sessions.get(sessionId);
-    if (!session || !session.queue) {
-        return res.status(400).json({ error: 'No active campaign found.' });
-    }
+    await withTenantLock(sessionId, async () => {
+        const session = sessions.get(sessionId);
+        if (!session || !session.queue || session.queue.isWelcome) {
+            return res.status(400).json({ error: 'No active campaign found.' });
+        }
 
-    session.queue.state = 'STOPPED';
-    session.queue.isRunning = false;
-    purgeCampaignMediaItems(session.queue.sequence || session.queue.mediaItems);
-    session.queue.sequence = [];
-    session.queue.mediaItems = [];
-    upsertCampaignHistory(sessionId, session.queue);
-    clearActiveCampaignState(sessionId);
-    cleanOrphanedMediaVaultFiles(sessionId);
-    touchSessionActivity(sessionId);
+        const q = session.queue;
+        q.state = 'STOPPED';
+        q.isRunning = false;
+        q.remaining = Math.max(0, (q.total || 0) - (q.sent || 0) - (q.failed || 0));
 
-    res.json({ status: 'STOPPED', campaignId: session.queue.campaignId, queue: session.queue });
+        setWeeklyPendingMetric(sessionId, 0);
+        upsertCampaignHistory(sessionId, q);
+        cleanupCampaignArtifacts(sessionId, q);
+        touchSessionActivity(sessionId);
+
+        const quotaState = getTenantDailyQuotaState(sessionId);
+        res.json({
+            status: 'STOPPED',
+            campaignId: q.campaignId,
+            deliveredInCampaign: q.sent || 0,
+            deliveredTodayCount: quotaState.deliveredTodayCount,
+            remainingQuota: quotaState.remainingQuota,
+            queue: {
+                campaignId: q.campaignId,
+                state: q.state,
+                isRunning: false,
+                total: q.total,
+                sent: q.sent,
+                failed: q.failed,
+                remaining: q.remaining
+            }
+        });
+    });
 });
 
 app.get('/api/queue-status/:sessionId', authenticate, (req, res) => {
@@ -1662,9 +2505,20 @@ app.get('/api/queue-status/:sessionId', authenticate, (req, res) => {
     touchSessionActivity(sessionId);
     const session = sessions.get(sessionId);
     const history = loadCampaignHistory(sessionId);
+    const quotaState = getTenantDailyQuotaState(sessionId);
 
-    if (!session || !session.queue || !session.queue.campaignId) {
-        return res.json({ isRunning: false, state: 'STOPPED', total: 0, sent: 0, failed: 0, remaining: 0, history });
+    if (!session || !session.queue || !session.queue.campaignId || session.queue.isWelcome) {
+        return res.json({
+            isRunning: false,
+            state: 'STOPPED',
+            total: 0,
+            sent: 0,
+            failed: 0,
+            remaining: 0,
+            history,
+            deliveredTodayCount: quotaState.deliveredTodayCount,
+            remainingQuota: quotaState.remainingQuota
+        });
     }
     res.json({
         isRunning: session.queue.isRunning,
@@ -1675,7 +2529,9 @@ app.get('/api/queue-status/:sessionId', authenticate, (req, res) => {
         failed: session.queue.failed,
         remaining: session.queue.remaining,
         recipients: session.queue.recipients,
-        history
+        history,
+        deliveredTodayCount: quotaState.deliveredTodayCount,
+        remainingQuota: quotaState.remainingQuota
     });
 });
 
@@ -1713,10 +2569,11 @@ app.get('/master-admin/backup-db', (req, res) => {
     res.download(DB_FILE, `engine_data_backup_${Date.now()}.sqlite`);
 });
 
-// Background Auto-Refresh JSON Polling API (Zero-Flicker)
 app.get('/master-admin/live-metrics', (req, res) => {
     const pin = req.query.pin;
     if (pin !== ADMIN_MASTER_PIN) return res.status(401).json({ error: 'Forbidden' });
+
+    purgeExpiredOrOverWindowSchedules();
 
     const licenses = stmtGetAllLicensesSorted.all();
     const memory = process.memoryUsage();
@@ -1743,6 +2600,8 @@ app.get('/master-admin/live-metrics', (req, res) => {
         const session = sessions.get(sid);
         const daysLeft = Math.ceil((lic.validUntil - Date.now()) / (1000 * 60 * 60 * 24));
         const isExpired = daysLeft <= 0;
+        const quotaState = getTenantDailyQuotaState(sid);
+        const weekly = getTenantWeeklySummary(sid);
 
         let socketStatus = 'OFFLINE';
         let socketColor = '#ef4444';
@@ -1759,13 +2618,13 @@ app.get('/master-admin/live-metrics', (req, res) => {
         }
 
         let dispatchHtml = '<span style="color:#8696a0;font-size:0.75rem;">Idle ⚪</span>';
-        if (session && session.queue && session.queue.isRunning) {
+        if (session && session.queue && session.queue.isRunning && !session.queue.isWelcome) {
             activeCampaignsCount++;
             const sent = session.queue.sent || 0;
             const total = session.queue.total || 0;
             const remaining = Math.max(0, total - sent - (session.queue.failed || 0));
             dispatchHtml = `<span style="color:#00a884;font-weight:bold;font-size:0.75rem;">⚡ Sending: ${sent}/${total} (${remaining} pending)</span>`;
-        } else if (session && session.queue && session.queue.state === 'PAUSED') {
+        } else if (session && session.queue && session.queue.state === 'PAUSED' && !session.queue.isWelcome) {
             const sent = session.queue.sent || 0;
             const total = session.queue.total || 0;
             dispatchHtml = `<span style="color:#f59e0b;font-weight:bold;font-size:0.75rem;">⏸️ Paused: ${sent}/${total}</span>`;
@@ -1774,10 +2633,10 @@ app.get('/master-admin/live-metrics', (req, res) => {
         let schedHtml = '';
         try {
             const schedRows = stmtGetScheduledJobs.all(sid);
-            const activeScheds = schedRows.filter(r => r.status === 'SCHEDULED');
+            const activeScheds = schedRows.filter((r) => r.status === 'SCHEDULED');
             if (activeScheds.length > 0) {
                 totalQueuedSchedules += activeScheds.length;
-                schedHtml = `<div style="font-size:0.72rem;color:#38bdf8;font-weight:600;margin-top:2px;">⏰ Sched: ${activeScheds.length} queued</div>`;
+                schedHtml = `<div style="font-size:0.72rem;color:#38bdf8;font-weight:600;margin-top:2px;">⏰ Sched: ${activeScheds.length}/1 queued</div>`;
             }
         } catch (e) {}
 
@@ -1802,7 +2661,11 @@ app.get('/master-admin/live-metrics', (req, res) => {
             status: lic.status,
             daysLeft,
             isExpired,
-            plan: lic.plan || 'Standard'
+            plan: lic.plan || 'Standard',
+            dailyCap: DAILY_OUTBOUND_CAP,
+            deliveredTodayCount: quotaState.deliveredTodayCount,
+            remainingQuota: quotaState.remainingQuota,
+            weekly
         };
     }
 
@@ -1872,6 +2735,7 @@ app.get('/master-admin', (req, res) => {
     }
 
     clearAdminAttempt(clientIp);
+    purgeExpiredOrOverWindowSchedules();
 
     const licenses = stmtGetAllLicensesSorted.all();
     const memory = process.memoryUsage();
@@ -1897,6 +2761,8 @@ app.get('/master-admin', (req, res) => {
         const daysLeft = Math.ceil((data.validUntil - Date.now()) / (1000 * 60 * 60 * 24));
         const isExpired = daysLeft <= 0;
         const session = sessions.get(sid);
+        const quotaState = getTenantDailyQuotaState(sid);
+        const weekly = getTenantWeeklySummary(sid);
 
         let socketStatus = 'OFFLINE';
         let socketColor = '#ef4444';
@@ -1913,13 +2779,13 @@ app.get('/master-admin', (req, res) => {
         }
 
         let dispatchBadge = '<span style="color:#8696a0;font-size:0.75rem;">Idle ⚪</span>';
-        if (session && session.queue && session.queue.isRunning) {
+        if (session && session.queue && session.queue.isRunning && !session.queue.isWelcome) {
             activeCampaignsCount++;
             const sent = session.queue.sent || 0;
             const total = session.queue.total || 0;
             const remaining = Math.max(0, total - sent - (session.queue.failed || 0));
             dispatchBadge = `<span style="color:#00a884;font-weight:bold;font-size:0.75rem;">⚡ Sending: ${sent}/${total} (${remaining} pending)</span>`;
-        } else if (session && session.queue && session.queue.state === 'PAUSED') {
+        } else if (session && session.queue && session.queue.state === 'PAUSED' && !session.queue.isWelcome) {
             const sent = session.queue.sent || 0;
             const total = session.queue.total || 0;
             dispatchBadge = `<span style="color:#f59e0b;font-weight:bold;font-size:0.75rem;">⏸️ Paused: ${sent}/${total}</span>`;
@@ -1928,10 +2794,10 @@ app.get('/master-admin', (req, res) => {
         let schedBadge = '';
         try {
             const schedRows = stmtGetScheduledJobs.all(sid);
-            const activeScheds = schedRows.filter(r => r.status === 'SCHEDULED');
+            const activeScheds = schedRows.filter((r) => r.status === 'SCHEDULED');
             if (activeScheds.length > 0) {
                 totalQueuedSchedules += activeScheds.length;
-                schedBadge = `<div style="font-size:0.72rem;color:#38bdf8;font-weight:600;margin-top:2px;">⏰ Sched: ${activeScheds.length} queued</div>`;
+                schedBadge = `<div style="font-size:0.72rem;color:#38bdf8;font-weight:600;margin-top:2px;">⏰ Sched: ${activeScheds.length}/1 queued</div>`;
             }
         } catch (e) {}
 
@@ -1975,6 +2841,7 @@ app.get('/master-admin', (req, res) => {
                     <div id="dispatch_badge_${sid}" style="margin-top:2px;">${dispatchBadge}</div>
                     <div id="sched_badge_${sid}">${schedBadge}</div>
                     <div id="wel_badge_${sid}">${welBadge}</div>
+                    <div id="quota_badge_${sid}" style="font-size:0.72rem;color:#38bdf8;margin-top:2px;">Quota: ${quotaState.deliveredTodayCount}/${DAILY_OUTBOUND_CAP} (${quotaState.remainingQuota} left) • Wk S:${weekly.totalSent} F:${weekly.totalFailed} P:${weekly.totalPending}</div>
                 </td>
                 <td style="padding:10px;font-size:0.82rem;" id="sub_col_${sid}">
                     <div>${data.plan || 'Standard'}</div>
@@ -2031,8 +2898,6 @@ app.get('/master-admin', (req, res) => {
                 .btn-restart { padding: 7px 12px; border-radius: 6px; background: #dc2626; color: #fff; border: none; font-weight: 700; font-size: 0.82rem; cursor: pointer; }
                 .btn-backup { padding: 7px 12px; border-radius: 6px; background: #0284c7; color: #fff; border: none; font-weight: 700; font-size: 0.82rem; cursor: pointer; }
                 .btn-merge { padding: 7px 12px; border-radius: 6px; background: #6366f1; color: #fff; border: none; font-weight: 700; font-size: 0.82rem; cursor: pointer; }
-
-                /* CSS Micro-Tooltips */
                 [data-tooltip] { position: relative; }
                 [data-tooltip]:hover::after {
                     content: attr(data-tooltip); position: absolute; bottom: 125%; left: 50%;
@@ -2040,8 +2905,6 @@ app.get('/master-admin', (req, res) => {
                     padding: 4px 8px; border-radius: 6px; border: 1px solid #00a884; white-space: nowrap;
                     z-index: 1000; box-shadow: 0 4px 12px rgba(0,0,0,0.5); pointer-events: none;
                 }
-
-                /* Floating Multi-Select Action Bar */
                 .floating-bar {
                     position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%);
                     background: #182229; border: 1px solid #00a884; box-shadow: 0 10px 30px rgba(0,0,0,0.8);
@@ -2127,7 +2990,6 @@ app.get('/master-admin', (req, res) => {
                 </div>
             </div>
 
-            <!-- Floating Multi-Action Bar -->
             <div class="floating-bar" id="floatingBar">
                 <span id="lblSelectedCount" style="font-size:0.82rem;font-weight:bold;color:#00a884;">0 Selected</span>
                 <button class="floating-btn" style="background:#00a884;color:#111b21;" onclick="bulkExtend(30)">+30D</button>
@@ -2140,7 +3002,7 @@ app.get('/master-admin', (req, res) => {
                 function filterTenants() {
                     const q = document.getElementById('searchInput').value.toLowerCase().trim();
                     const rows = document.querySelectorAll('#tenantBody tr');
-                    rows.forEach(r => {
+                    rows.forEach((r) => {
                         const phone = r.getAttribute('data-phone') || '';
                         r.style.display = phone.toLowerCase().includes(q) ? '' : 'none';
                     });
@@ -2148,7 +3010,7 @@ app.get('/master-admin', (req, res) => {
 
                 function toggleSelectAllTenants(master) {
                     const checkboxes = document.querySelectorAll('.tenant-chk');
-                    checkboxes.forEach(c => {
+                    checkboxes.forEach((c) => {
                         if (c.closest('tr').style.display !== 'none') c.checked = master.checked;
                     });
                     updateFloatingBar();
@@ -2167,7 +3029,7 @@ app.get('/master-admin', (req, res) => {
                 }
 
                 function getSelectedSessionIds() {
-                    return Array.from(document.querySelectorAll('.tenant-chk:checked')).map(c => c.value);
+                    return Array.from(document.querySelectorAll('.tenant-chk:checked')).map((c) => c.value);
                 }
 
                 async function extendLicense(sessionId, days, plan) {
@@ -2181,7 +3043,7 @@ app.get('/master-admin', (req, res) => {
                 }
 
                 async function cancelSubscription(sessionId) {
-                    if (!confirm('CANCEL SUBSCRIPTION for this tenant?\\n\\n- Subscription will expire immediately.\\n- All upcoming scheduled campaigns and media will be PURGED.\\n- Active campaign will be STOPPED.\\n- Welcome bot rules will be safely preserved but PAUSED.\\n\\nProceed?')) return;
+                    if (!confirm('CANCEL SUBSCRIPTION for this tenant?\\n\\n- Subscription will expire immediately.\\n- Upcoming scheduled campaign and media will be PURGED.\\n- Active campaign will be STOPPED.\\n- Welcome bot rules will be safely preserved but PAUSED.\\n\\nProceed?')) return;
                     const res = await fetch('/master-admin/cancel-sub', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -2285,7 +3147,6 @@ app.get('/master-admin', (req, res) => {
                     setTimeout(() => location.reload(), 3000);
                 }
 
-                // --- Bulk Actions ---
                 async function bulkExtend(days) {
                     const sids = getSelectedSessionIds();
                     if (!confirm('Extend subscription by ' + days + ' days for ' + sids.length + ' selected tenants?')) return;
@@ -2338,7 +3199,6 @@ app.get('/master-admin', (req, res) => {
                     pollMetrics();
                 }
 
-                // --- Silent Background Live Polling (Zero Screen Flash) ---
                 async function pollMetrics() {
                     try {
                         const res = await fetch('/master-admin/live-metrics?pin=${ADMIN_MASTER_PIN}');
@@ -2347,7 +3207,7 @@ app.get('/master-admin', (req, res) => {
 
                         document.getElementById('vitalSysRam').innerText = data.sysUsedRAMGB + ' / ' + data.sysTotalRAMGB + ' GB (' + data.sysRamPercent + '%)';
                         document.getElementById('vitalNodeRam').innerText = data.nodeRamMB + ' MB';
-                        
+
                         const actEl = document.getElementById('vitalActiveDispatches');
                         actEl.innerText = data.activeCampaignsCount + ' Running';
                         actEl.style.color = data.activeCampaignsCount > 0 ? '#00a884' : '#8696a0';
@@ -2373,6 +3233,11 @@ app.get('/master-admin', (req, res) => {
                                 const welBadge = document.getElementById('wel_badge_' + sid);
                                 if (welBadge) welBadge.innerHTML = t.welHtml;
 
+                                const quotaBadge = document.getElementById('quota_badge_' + sid);
+                                if (quotaBadge && t.weekly) {
+                                    quotaBadge.innerText = 'Quota: ' + t.deliveredTodayCount + '/${DAILY_OUTBOUND_CAP} (' + t.remainingQuota + ' left) • Wk S:' + t.weekly.totalSent + ' F:' + t.weekly.totalFailed + ' P:' + t.weekly.totalPending;
+                                }
+
                                 const subCol = document.getElementById('sub_col_' + sid);
                                 if (subCol) {
                                     const subColor = (t.status === 'ACTIVE' && !t.isExpired) ? '#00a884' : '#ef4444';
@@ -2384,7 +3249,6 @@ app.get('/master-admin', (req, res) => {
                     } catch (e) {}
                 }
 
-                // Poll every 3 seconds silently
                 setInterval(pollMetrics, 3000);
             </script>
         </body>
@@ -2410,7 +3274,7 @@ app.post('/master-admin/merge-duplicates', (req, res) => {
         const allLicenses = stmtGetAllLicensesSorted.all();
         const phoneGroups = new Map();
 
-        allLicenses.forEach(lic => {
+        allLicenses.forEach((lic) => {
             const clean = sanitizeToValidWhatsAppJid(lic.phone || lic.sessionId);
             if (!clean) return;
             if (!phoneGroups.has(clean)) phoneGroups.set(clean, []);
@@ -2418,13 +3282,10 @@ app.post('/master-admin/merge-duplicates', (req, res) => {
         });
 
         let mergedCount = 0;
-
-        // Read legacy JSON file if present to purge duplicates from disk
         let legacyLicObj = safeReadJsonSync(LICENSES_FILE, null);
 
         for (const [phone, tenantList] of phoneGroups.entries()) {
             if (tenantList.length > 1) {
-                // Pick primary: online socket wins, else newest validUntil
                 tenantList.sort((a, b) => {
                     const sessA = sessions.get(a.sessionId);
                     const sessB = sessions.get(b.sessionId);
@@ -2437,36 +3298,32 @@ app.post('/master-admin/merge-duplicates', (req, res) => {
                 const primary = tenantList[0];
                 const duplicates = tenantList.slice(1);
 
-                // Collect contacts from duplicates into primary
                 let primaryGroups = [];
                 const pRow = stmtGetGroups.get(primary.sessionId);
                 if (pRow && pRow.groupsJson) {
                     try { primaryGroups = JSON.parse(pRow.groupsJson); } catch (e) {}
                 }
 
-                duplicates.forEach(dup => {
+                duplicates.forEach((dup) => {
                     const dRow = stmtGetGroups.get(dup.sessionId);
                     if (dRow && dRow.groupsJson) {
                         try {
                             const dGroups = JSON.parse(dRow.groupsJson);
-                            dGroups.forEach(dg => {
-                                const exists = primaryGroups.find(pg => pg.name === dg.name);
+                            dGroups.forEach((dg) => {
+                                const exists = primaryGroups.find((pg) => pg.name === dg.name);
                                 if (!exists) primaryGroups.push(dg);
                             });
                         } catch (e) {}
                     }
 
-                    // 1. Remove duplicate from SQLite
                     stmtDeleteLicense.run(dup.sessionId);
                     wipeSessionData(dup.sessionId);
 
-                    // 2. Permanently delete duplicate folder from disk
                     const { tenantDir } = getTenantPaths(dup.sessionId);
                     if (fs.existsSync(tenantDir)) {
                         try { fs.rmSync(tenantDir, { recursive: true, force: true }); } catch (e) {}
                     }
 
-                    // 3. Remove duplicate from legacy JSON if it exists
                     if (legacyLicObj && legacyLicObj[dup.sessionId]) {
                         delete legacyLicObj[dup.sessionId];
                     }
@@ -2478,7 +3335,6 @@ app.post('/master-admin/merge-duplicates', (req, res) => {
             }
         }
 
-        // Save sanitized legacy JSON so it can never resurrect
         if (legacyLicObj) {
             safeWriteJsonSync(LICENSES_FILE, legacyLicObj);
         }
@@ -2512,7 +3368,6 @@ app.post('/master-admin/extend', (req, res) => {
     res.json({ success: true });
 });
 
-// Cancel Subscription Endpoint: Immediate Expiry + Purge Scheduled Campaigns + Safe-Pause Welcome Bot
 app.post('/master-admin/cancel-sub', (req, res) => {
     const { pin, sessionId } = req.body;
     if (pin !== ADMIN_MASTER_PIN) return res.status(401).json({ error: 'Forbidden' });
@@ -2520,7 +3375,6 @@ app.post('/master-admin/cancel-sub', (req, res) => {
     const lic = stmtGetLicense.get(sessionId);
     const now = Date.now();
     if (lic) {
-        // 1. Hard expire license immediately
         stmtUpsertLicense.run({
             sessionId,
             phone: lic.phone,
@@ -2533,35 +3387,31 @@ app.post('/master-admin/cancel-sub', (req, res) => {
             purchasedAt: lic.purchasedAt || now
         });
 
-        // 2. Stop any running in-flight campaign and purge its media
         const session = sessions.get(sessionId);
         if (session && session.queue) {
             session.queue.state = 'STOPPED';
             session.queue.isRunning = false;
-            purgeCampaignMediaItems(session.queue.sequence || session.queue.mediaItems);
-            session.queue.sequence = [];
-            session.queue.mediaItems = [];
             upsertCampaignHistory(sessionId, session.queue);
-            clearActiveCampaignState(sessionId);
+            cleanupCampaignArtifacts(sessionId, session.queue);
         }
 
-        // 3. Purge all upcoming scheduled jobs from DB and delete attached media files
         const scheduledRows = stmtGetScheduledJobs.all(sessionId);
-        scheduledRows.forEach(row => {
+        scheduledRows.forEach((row) => {
             try {
                 const j = JSON.parse(row.jobDataJson);
-                purgeCampaignMediaItems(j.sequence || j.mediaItems);
+                purgeCampaignMediaItems(j.mediaItems);
+                purgeFilesList(j.mediaPool);
+                if (j.sourceMediaPath && fs.existsSync(j.sourceMediaPath)) {
+                    try { fs.unlinkSync(j.sourceMediaPath); } catch (e) {}
+                }
             } catch (e) {}
         });
         stmtDeleteAllScheduledJobsForSession.run(sessionId);
 
         const { scheduledJobsFile } = getTenantPaths(sessionId);
         safeWriteJsonSync(scheduledJobsFile, []);
-
-        // 4. Clean any orphaned media in vault
         cleanOrphanedMediaVaultFiles(sessionId);
 
-        // Note: Welcome rules and customer groups are 100% PRESERVED, but welcome responder will not reply due to expired license.
         return res.json({ success: true, message: 'Subscription cancelled. Scheduled jobs purged and active campaign stopped. Groups & welcome config preserved.' });
     }
     res.status(404).json({ error: 'Tenant not found.' });
@@ -2589,7 +3439,7 @@ app.post('/master-admin/toggle-status', (req, res) => {
         stmtUpsertLicense.run({
             sessionId,
             phone: lic.phone,
-            status: status,
+            status,
             plan: lic.plan,
             tenantToken: lic.tenantToken,
             validUntil: lic.validUntil,
@@ -2625,5 +3475,30 @@ app.post('/master-admin/restart-server', (req, res) => {
         process.exit(0);
     }, 1000);
 });
+
+// Graceful shutdown handling for PM2 / process managers
+function gracefulShutdown(signal) {
+    console.log(`[SHUTDOWN] Received ${signal}. Persisting active states and closing sockets...`);
+    for (const [sid, sess] of sessions.entries()) {
+        if (sess?.queue && (sess.queue.isRunning || sess.queue.state === 'RUNNING')) {
+            sess.queue.state = 'PAUSED';
+            sess.queue.isRunning = false;
+            saveActiveCampaignState(sid, { sessionId: sid, queue: sess.queue });
+        }
+        try {
+            if (sess?.sock) {
+                sess.sock.end(undefined);
+            }
+        } catch (e) {}
+    }
+    try {
+        db.pragma('wal_checkpoint(PASSIVE)');
+        db.close();
+    } catch (e) {}
+    process.exit(0);
+}
+
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
 app.listen(PORT, '0.0.0.0', () => console.log(`[SERVER] Ultra-Optimized Enterprise Engine Online on port ${PORT}`));
