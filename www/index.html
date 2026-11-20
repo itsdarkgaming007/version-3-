@@ -488,7 +488,7 @@
             </div>
         </div>
 
-        <!-- SUB-PANEL B: AUTO WELCOME RESPONDER (Text Only OR 1 Compressed Image) -->
+        <!-- SUB-PANEL B: AUTO WELCOME RESPONDER (Text Only OR 1 Image) -->
         <div id="subPanelWelcome" style="display: none;">
             <div class="card">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--border);">
@@ -498,7 +498,7 @@
 
                 <div class="mode-111-bar" style="grid-template-columns: repeat(2, 1fr);">
                     <button type="button" class="mode-111-btn active" id="btnWelcomeModeText" onclick="selectWelcomeMode('text')">📝 Text Only</button>
-                    <button type="button" class="mode-111-btn" id="btnWelcomeModeImage" onclick="selectWelcomeMode('image')">🖼️ 1 Compressed Image</button>
+                    <button type="button" class="mode-111-btn" id="btnWelcomeModeImage" onclick="selectWelcomeMode('image')">🖼️ 1 Image</button>
                 </div>
 
                 <div id="welcomeSequenceContainer"></div>
@@ -572,7 +572,7 @@
             </div>
 
             <div id="statusPairingBox">
-                <input type="tel" id="txtPairPhone" placeholder="Enter WhatsApp Number (e.g. 9876543210)">
+                <input type="tel" id="txtPairPhone" placeholder="91xxxxxxxxxx">
                 <button class="btn btn-primary" id="btnPair" onclick="requestPairCode()">Pair WhatsApp & Sync Backup</button>
                 
                 <div id="pairCodeDisplay" style="font-size: 1.5rem; letter-spacing: 4px; font-weight: bold; color: var(--primary); text-align: center; margin-top: 10px; display: none;"></div>
@@ -674,7 +674,7 @@
         <div style="padding: 10px 16px; background: var(--surface); border-bottom: 1px solid var(--border);">
             <div style="display: flex; gap: 6px;">
                 <input type="text" id="quickAddName" placeholder="Name" style="flex: 1; margin-bottom: 0;">
-                <input type="tel" id="quickAddPhone" placeholder="10 Digits or +91" style="flex: 1.4; margin-bottom: 0;">
+                <input type="tel" id="quickAddPhone" placeholder="91xxxxxxxxxx" style="flex: 1.4; margin-bottom: 0;">
                 <button class="btn btn-primary" style="width: auto; padding: 0 14px;" onclick="addSingleContact()">Add</button>
             </div>
         </div>
@@ -818,7 +818,7 @@
         let activeCampaignMode = 'text'; // 'text' | 'image' | 'video'
         let campaignDraft = { text: '', file: null, fileName: '', caption: '' };
 
-        // Strict 1+1 Welcome State (Text Only OR 1 Compressed Image)
+        // Strict 1+1 Welcome State (Text Only OR 1 Image)
         let activeWelcomeMode = 'text'; // 'text' | 'image'
         let welcomeDraft = { text: '', file: null, fileName: '', existingFilePath: '', mimetype: '', caption: '' };
 
@@ -843,6 +843,20 @@
             cachedScheduledJobs = [];
             localStorage.removeItem('app_groups');
             localStorage.removeItem('app_campaigns');
+            localStorage.removeItem('cached_remaining_quota');
+        }
+
+        function resetToUnpairedLocalState() {
+            SESSION_ID = 'unpaired_user';
+            API_BEARER_TOKEN = DEFAULT_TOKEN;
+            clearStaleSessionLocalCache();
+            localStorage.removeItem('connected_phone_permanent');
+            localStorage.removeItem('tenant_session_id');
+            localStorage.removeItem('tenant_token');
+            remainingDailyQuotaGlobal = DAILY_OUTBOUND_LIMIT;
+            renderGroups();
+            renderDashboard();
+            renderQuotaIndicators();
         }
 
         // --- Readiness Popup ("Please Wait..." -> "Safe to Close") ---
@@ -882,7 +896,7 @@
 
         function persistRemainingQuotaCache(quotaObj, sessionKey) {
             const activeKey = sessionKey || SESSION_ID;
-            if (!quotaObj) return;
+            if (!quotaObj || !activeKey || activeKey === 'unpaired_user') return;
             const rem = Math.max(0, Math.min(DAILY_OUTBOUND_LIMIT, parseInt(quotaObj.remainingQuota ?? (DAILY_OUTBOUND_LIMIT - (quotaObj.deliveredToday || 0)), 10)));
             const dateKey = quotaObj.dateKey || getTodayLocalDateKey();
             remainingDailyQuotaGlobal = rem;
@@ -900,6 +914,10 @@
 
         function loadCachedRemainingQuota(sessionKey) {
             const activeKey = sessionKey || SESSION_ID;
+            if (!activeKey || activeKey === 'unpaired_user') {
+                remainingDailyQuotaGlobal = DAILY_OUTBOUND_LIMIT;
+                return remainingDailyQuotaGlobal;
+            }
             const todayKey = getTodayLocalDateKey();
             try {
                 const raw = localStorage.getItem('cached_remaining_quota');
@@ -909,7 +927,7 @@
                         remainingDailyQuotaGlobal = DAILY_OUTBOUND_LIMIT;
                         return remainingDailyQuotaGlobal;
                     }
-                    if (!activeKey || activeKey === 'unpaired_user' || !parsed.sessionId || parsed.sessionId === activeKey) {
+                    if (parsed.sessionId === activeKey) {
                         remainingDailyQuotaGlobal = Math.max(0, Math.min(DAILY_OUTBOUND_LIMIT, parseInt(parsed.remainingQuota ?? DAILY_OUTBOUND_LIMIT, 10)));
                         return remainingDailyQuotaGlobal;
                     }
@@ -944,7 +962,7 @@
         }
 
         async function syncRemainingQuotaFromServer(targetPhoneOverride = null) {
-            const targetPhone = targetPhoneOverride || localStorage.getItem('connected_phone_permanent') || (SESSION_ID !== 'unpaired_user' ? SESSION_ID : '');
+            const targetPhone = targetPhoneOverride || localStorage.getItem('connected_phone_permanent') || '';
             if (!targetPhone || targetPhone === 'unpaired_user') {
                 loadCachedRemainingQuota('unpaired_user');
                 renderQuotaIndicators();
@@ -1110,7 +1128,7 @@
                 targetGroups: "Select Target Groups",
                 deduplicateNote: "Duplicates merged automatically.",
                 deviceContacts: "Device Contacts",
-                warnUnlink: "Are you sure you want to unlink your WhatsApp account? Your saved customer groups will NOT be deleted.",
+                warnUnlink: "Are you sure you want to unlink your WhatsApp account? Local data on this device will be cleared immediately and synced again when you login.",
                 warnStopCamp: "Permanently stop this active campaign? Remaining pending messages will NOT be sent.",
                 warnDeleteGroups: "Permanently delete selected group(s)? The contacts inside these groups will be removed.",
                 warnCancelSched: "Cancel this scheduled campaign? The queue will be removed and attached media purged.",
@@ -1160,7 +1178,7 @@
                 targetGroups: "இலக்கு குழுக்கள்",
                 deduplicateNote: "இரட்டை எண்கள் தானாக நீக்கப்படும்.",
                 deviceContacts: "மொபைல் தொடர்புகள்",
-                warnUnlink: "வாட்ஸ்அப் கணக்கை துண்டிக்கவா? உங்கள் சேமிக்கப்பட்ட குழுக்கள் அழியாது; மீண்டும் உள்நுழையும்போது மீட்டெடுக்கலாம்.",
+                warnUnlink: "வாட்ஸ்அப் கணக்கை துண்டிக்கவா? போனில் உள்ள லோக்கல் தரவு உடனே நீக்கப்படும்; மீண்டும் லாகின் செய்யும்போது மீண்டும் சிங்க் ஆகும்.",
                 warnStopCamp: "இந்த பிரச்சாரத்தை முழுமையாக நிறுத்தவா? மீதமுள்ள நபர்களுக்கு செய்தி போகாது.",
                 warnDeleteGroups: "தேர்ந்தெடுத்த குழுக்களை நிரந்தரமாக நீக்கவா? உள்ளிருக்கும் தொடர்புகள் அகற்றப்படும்.",
                 warnCancelSched: "திட்டமிடப்பட்ட இந்த பிரச்சாரத்தை ரத்து செய்து கோப்புகளை அழிக்கவா?",
@@ -1210,7 +1228,7 @@
                 targetGroups: "लक्षित समूह चुनें",
                 deduplicateNote: "डुप्लिकेट संपर्क स्वतः हटा दिए जाएंगे।",
                 deviceContacts: "फ़ोन संपर्क",
-                warnUnlink: "क्या आप व्हाट्सएप खाता हटाना चाहते हैं? आपके सहेजे गए समूह सुरक्षित रहेंगे।",
+                warnUnlink: "क्या आप व्हाट्सएप खाता हटाना चाहते हैं? डिवाइस का लोकल डेटा तुरंत हट जाएगा और दोबारा लॉगिन करने पर सिंक होगा।",
                 warnStopCamp: "क्या आप इस अभियान को पूरी तरह से रोकना चाहते हैं? शेष संदेश नहीं भेजे जाएंगे।",
                 warnDeleteGroups: "क्या आप चयनित समूहों को हटाना चाहते हैं?",
                 warnCancelSched: "क्या आप इस शेड्यूल अभियान को रद्द करना चाहते हैं?",
@@ -1221,12 +1239,13 @@
         };
 
         let groups = [];
+        let globalCampaigns = [];
         if (SESSION_ID && SESSION_ID !== 'unpaired_user') {
             try { groups = JSON.parse(localStorage.getItem('app_groups') || '[]'); } catch(e) { groups = []; }
+            try { globalCampaigns = JSON.parse(localStorage.getItem('app_campaigns') || '[]'); } catch(e) { globalCampaigns = []; }
+        } else {
+            clearStaleSessionLocalCache();
         }
-
-        let globalCampaigns = [];
-        try { globalCampaigns = JSON.parse(localStorage.getItem('app_campaigns') || '[]'); } catch(e) { globalCampaigns = []; }
 
         let activeGroupId = null;
         let stagedContacts = [];
@@ -1527,7 +1546,7 @@
                     ? `<div class="file-selected-badge">
                         <div>
                             <div style="font-size:0.82rem; font-weight:bold; color:var(--text); word-break:break-all;">✔ ${escapeHtml(campaignDraft.fileName)}</div>
-                            <div style="font-size:0.68rem; color:var(--primary); font-weight:600;">${isImg ? 'Ready (Auto-Compressed)' : 'Ready for upload'}</div>
+                            <div style="font-size:0.68rem; color:var(--primary); font-weight:600;">${isImg ? 'Ready' : 'Ready for upload'}</div>
                         </div>
                         <button type="button" class="btn btn-outline" style="width:auto; padding:4px 8px; font-size:0.72rem;" onclick="document.getElementById('camp111FileInput').click()">Change</button>
                        </div>`
@@ -1655,7 +1674,7 @@
             document.querySelectorAll('.preset-chip').forEach(c => c.classList.remove('active'));
         }
 
-        // --- Strict 1+1 Welcome Setup (Text Only OR 1 Compressed Image) ---
+        // --- Strict 1+1 Welcome Setup (Text Only OR 1 Image) ---
         function selectWelcomeMode(mode) {
             activeWelcomeMode = mode;
             document.getElementById('btnWelcomeModeText').classList.toggle('active', mode === 'text');
@@ -1721,7 +1740,7 @@
                     ? `<div class="file-selected-badge">
                         <div>
                             <div style="font-size:0.82rem; font-weight:bold; color:var(--text); word-break:break-all;">✔ ${escapeHtml(welcomeDraft.fileName || 'Image')}</div>
-                            <div style="font-size:0.68rem; color:var(--primary); font-weight:600;">Ready (Auto-Compressed)</div>
+                            <div style="font-size:0.68rem; color:var(--primary); font-weight:600;">Ready</div>
                         </div>
                         <button type="button" class="btn btn-outline" style="width:auto; padding:4px 8px; font-size:0.72rem;" onclick="document.getElementById('wel11FileInput').click()">Change</button>
                        </div>`
@@ -1730,7 +1749,7 @@
                 container.innerHTML = `
                     <div class="welcome-block-item">
                         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-                            <span style="font-size:0.8rem; font-weight:bold; color:var(--primary);">1 Rule • Compressed Image + Caption</span>
+                            <span style="font-size:0.8rem; font-weight:bold; color:var(--primary);">1 Rule • Image + Caption</span>
                             ${(welcomeDraft.fileName || welcomeDraft.existingFilePath) ? `<button type="button" class="btn btn-outline" style="width:auto; padding:2px 8px; font-size:0.72rem; color:var(--warning); border-color:var(--warning);" onclick="clearWelcomeFile()">Clear</button>` : ''}
                         </div>
                         <input type="file" id="wel11FileInput" accept="image/*" onchange="handleWelcomeFile(event)" style="display:${(welcomeDraft.fileName || welcomeDraft.existingFilePath) ? 'none' : 'block'}; margin-bottom:8px;">
@@ -1774,7 +1793,7 @@
         }
 
         async function loadWelcomeRulesFromServer() {
-            if (SESSION_ID === 'unpaired_user') return;
+            if (!SESSION_ID || SESSION_ID === 'unpaired_user') return;
             try {
                 const res = await fetch(`${FIXED_BACKEND_URL}/api/welcome/rules?sessionId=${SESSION_ID}`, {
                     headers: { 'Authorization': `Bearer ${API_BEARER_TOKEN}`, 'ngrok-skip-browser-warning': 'true' }
@@ -1817,7 +1836,7 @@
             if (isSubscriptionExpiredGlobal) {
                 return showCustomDialog({ title: 'Access Denied', message: 'Your subscription has expired. Please contact admin to recharge before saving welcome rule.', type: 'danger' });
             }
-            if (SESSION_ID === 'unpaired_user') return showCustomDialog({ title: 'Not Connected', message: 'Please pair WhatsApp first before saving rules.', type: 'warning' });
+            if (!SESSION_ID || SESSION_ID === 'unpaired_user') return showCustomDialog({ title: 'Not Connected', message: 'Please pair WhatsApp first before saving rules.', type: 'warning' });
             const enabled = document.getElementById('chkEnableWelcome').checked;
 
             const hasValidItem = activeWelcomeMode === 'text'
@@ -1825,7 +1844,7 @@
                 : (welcomeDraft.file !== null) || ((welcomeDraft.existingFilePath || '').trim().length > 0);
 
             if (enabled && !hasValidItem) {
-                return showCustomDialog({ title: 'Empty Content', message: 'Please enter welcome text or select 1 compressed image.', type: 'warning' });
+                return showCustomDialog({ title: 'Empty Content', message: 'Please enter welcome text or select 1 image.', type: 'warning' });
             }
 
             const fd = new FormData();
@@ -1873,12 +1892,7 @@
         async function syncWhatsAppAccountStatus() {
             let targetPhone = localStorage.getItem('connected_phone_permanent');
             if (!targetPhone || targetPhone === 'unpaired_user') {
-                const inputVal = document.getElementById('txtPairPhone')?.value?.trim();
-                if (inputVal) targetPhone = normalizeNumber(inputVal);
-            }
-            if (!targetPhone || targetPhone === 'unpaired_user') {
-                loadCachedRemainingQuota('unpaired_user');
-                renderQuotaIndicators();
+                resetToUnpairedLocalState();
                 document.getElementById('statusConnectedBox').style.display = 'none';
                 document.getElementById('statusPairingBox').style.display = 'block';
                 return;
@@ -2123,7 +2137,7 @@
                             await syncWhatsAppAccountStatus();
                             showCustomDialog({
                                 title: 'Connected!',
-                                message: `WhatsApp connected successfully for +${cleanPhone}!`,
+                                message: `WhatsApp connected successfully for +${cleanPhone}! Groups & campaign history synced.`,
                                 type: 'info'
                             });
                         }
@@ -2146,20 +2160,30 @@
             });
             if (!confirmed) return;
 
+            const activeSid = SESSION_ID;
+            // Clear local device data immediately upon logout/unlink
+            resetToUnpairedLocalState();
+
             try {
                 await fetch(`${FIXED_BACKEND_URL}/api/logout`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${API_BEARER_TOKEN}`, 'ngrok-skip-browser-warning': 'true' },
-                    body: JSON.stringify({ sessionId: SESSION_ID })
+                    body: JSON.stringify({ sessionId: activeSid })
                 });
             } catch(e) {}
+
             const keepTerms = localStorage.getItem('terms_accepted_permanent');
+            const keepLang = localStorage.getItem('app_lang');
+            const keepTheme = localStorage.getItem('app_theme');
             localStorage.clear();
             sessionStorage.clear();
             if (keepTerms) localStorage.setItem('terms_accepted_permanent', keepTerms);
+            if (keepLang) localStorage.setItem('app_lang', keepLang);
+            if (keepTheme) localStorage.setItem('app_theme', keepTheme);
+
             await showCustomDialog({
                 title: 'Logged Out',
-                message: 'WhatsApp account unlinked. Login again anytime to restore groups.',
+                message: 'Local data cleared. Login again anytime to restore your groups & campaign history.',
                 type: 'info'
             });
             window.location.reload();
@@ -3098,7 +3122,11 @@
 
         window.onload = async () => {
             switchTheme(localStorage.getItem('app_theme') || 'dark');
-            loadCachedRemainingQuota(SESSION_ID);
+            if (!SESSION_ID || SESSION_ID === 'unpaired_user') {
+                resetToUnpairedLocalState();
+            } else {
+                loadCachedRemainingQuota(SESSION_ID);
+            }
             switchLanguage(localStorage.getItem('app_lang') || 'en');
             checkDisclaimerAcceptance();
             renderGroups();
