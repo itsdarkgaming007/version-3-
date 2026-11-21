@@ -105,7 +105,7 @@
 
         label { display: block; font-size: 0.82rem; color: var(--text-muted); margin-bottom: 6px; font-weight: 600; }
         input, select { width: 100%; padding: 11px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface-card); color: var(--text); font-size: 0.92rem; margin-bottom: 12px; outline: none; }
-        
+
         .textarea-container { position: relative; margin-bottom: 12px; }
         textarea.safe-textarea {
             width: 100%; min-height: 95px; max-height: 180px; padding: 12px; padding-right: 55px; border-radius: 8px; border: 1px solid var(--border);
@@ -221,37 +221,37 @@
             filter: grayscale(1);
         }
 
-        .chat-stream-preview { 
-            background: #0b141a; 
-            border: 1px solid var(--border); 
-            border-radius: 12px; 
-            padding: 12px; 
-            margin-bottom: 14px; 
-            max-height: 260px; 
-            overflow-y: auto; 
+        .chat-stream-preview {
+            background: #0b141a;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 12px;
+            margin-bottom: 14px;
+            max-height: 260px;
+            overflow-y: auto;
             box-shadow: inset 0 2px 6px rgba(0,0,0,0.4);
         }
         body.light-theme .chat-stream-preview { background: #efeae2; box-shadow: inset 0 1px 4px rgba(0,0,0,0.1); }
-        .wa-chat-bubble { 
-            background: var(--wa-bubble); 
-            color: #fff; 
-            border-radius: 8px 8px 2px 8px; 
-            padding: 8px 10px; 
-            margin-bottom: 8px; 
-            max-width: 85%; 
-            margin-left: auto; 
-            font-size: 0.88rem; 
-            word-break: break-word; 
+        .wa-chat-bubble {
+            background: var(--wa-bubble);
+            color: #fff;
+            border-radius: 8px 8px 2px 8px;
+            padding: 8px 10px;
+            margin-bottom: 8px;
+            max-width: 85%;
+            margin-left: auto;
+            font-size: 0.88rem;
+            word-break: break-word;
             box-shadow: 0 1px 2px rgba(0,0,0,0.3);
         }
         body.light-theme .wa-chat-bubble { color: #111b21; }
-        .wa-bubble-meta { 
-            display: flex; 
-            align-items: center; 
-            justify-content: flex-end; 
-            gap: 4px; 
-            font-size: 0.65rem; 
-            color: rgba(255,255,255,0.65); 
+        .wa-bubble-meta {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 4px;
+            font-size: 0.65rem;
+            color: rgba(255,255,255,0.65);
             margin-top: 4px;
         }
         body.light-theme .wa-bubble-meta { color: rgba(0,0,0,0.45); }
@@ -366,27 +366,6 @@
     </style>
 </head>
 <body>
-
-    <div class="modal modal-high" id="disclaimerModal" style="display: none; z-index: 999999; background: rgba(0,0,0,0.94);">
-        <div class="modal-content" style="max-height: 85vh;">
-            <div class="modal-title" style="color: var(--primary); display: flex; align-items: center; gap: 8px;">
-                📢 <span>Responsible Usage Guide</span>
-            </div>
-            <div style="font-size: 0.86rem; line-height: 1.5; color: var(--text-muted); overflow-y: auto; margin-bottom: 14px; padding-right: 4px;">
-                <p style="margin-bottom: 10px; color: var(--text);">
-                    Welcome to <b>WA Campaign</b>. Use this tool responsibly for opt-in customer communications, order updates, and legitimate business outreach.
-                </p>
-                <p style="margin-bottom: 10px;">
-                    • <b>Opt-In Only:</b> Message only customers who have consented to receive updates from you.
-                </p>
-                <p style="margin-bottom: 6px;">
-                    • <b>Safe Limits:</b> Keep groups up to 300 contacts and respect the daily 300 outbound message cap.
-                </p>
-            </div>
-            <button class="btn btn-primary" id="btnAcceptDisclaimer" onclick="confirmDisclaimerConsent()">Get Started</button>
-        </div>
-    </div>
-
     <header>
         <div class="header-title" id="txtHeaderTitle">WA Campaign</div>
         <button class="icon-btn" onclick="executeNativeAppShare()">📤</button>
@@ -426,7 +405,6 @@
             <button type="button" class="seg-tab-btn" id="btnSubTabWelcome" onclick="switchCampaignSubTab('welcome')">🤖 Auto Welcome</button>
         </div>
 
-        <!-- SUB-PANEL A: BULK CAMPAIGN -->
         <div id="subPanelBlast">
             <div class="card">
                 <div style="display: flex; justify-content: flex-end; align-items: center; margin-bottom: 10px;">
@@ -448,7 +426,6 @@
                     <div style="text-align:center; color:var(--text-muted); font-size:0.8rem; padding: 12px;">Preview will appear here...</div>
                 </div>
 
-                <!-- Campaign Scheduler (1 Slot • Max 72h) -->
                 <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px; margin-bottom: 12px;">
                     <div style="display: flex; justify-content: space-between; align-items: center;">
                         <div>
@@ -477,7 +454,6 @@
             </div>
         </div>
 
-        <!-- SUB-PANEL B: AUTO WELCOME RESPONDER -->
         <div id="subPanelWelcome" style="display: none;">
             <div class="card">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--border);">
@@ -544,7 +520,7 @@
     <div class="page-content" id="viewSettings">
         <div class="card">
             <label id="lblConnection">WhatsApp Account Status</label>
-            
+
             <div id="statusConnectedBox" style="display: none;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
                     <span id="badgeServerStatus" style="font-size: 0.75rem; padding: 4px 8px; border-radius: 12px; background: rgba(0, 168, 132, 0.2); color: var(--primary); font-weight: bold;">● CONNECTED</span>
@@ -554,7 +530,7 @@
                     Plan: <b id="lblSubPlan" style="color: var(--text);">Monthly</b> • Status: <b id="lblSubDays" style="color: var(--primary);">30 Days Left</b>
                 </div>
                 <div id="txtServerOfflineNotice" style="font-size: 0.78rem; color: var(--warning); display: none; margin-bottom: 8px;">
-                    Laptop server offline. Ensure laptop is turned on with wa-engine and ngrok running.
+                    Server offline. Please try again shortly.
                 </div>
                 <button class="btn btn-danger" id="btnUnlink" onclick="unlinkAccount()">Unlink WhatsApp</button>
             </div>
@@ -562,7 +538,6 @@
             <div id="statusPairingBox">
                 <input type="tel" id="txtPairPhone" placeholder="91xxxxxxxxxx">
                 <button class="btn btn-primary" id="btnPair" onclick="requestPairCode()">Pair WhatsApp & Sync Backup</button>
-                
                 <div id="pairCodeDisplay" style="font-size: 1.5rem; letter-spacing: 4px; font-weight: bold; color: var(--primary); text-align: center; margin-top: 10px; display: none;"></div>
             </div>
         </div>
@@ -588,8 +563,8 @@
                     <b id="lblCurrentVer">v3.6.52</b>
                 </div>
                 <div class="version-row">
-                    <span style="color: var(--text-muted);">Local Engine Status:</span>
-                    <span id="lblCloudSyncStatus" style="color: var(--primary); font-weight: 600;">Active</span>
+                    <span style="color: var(--text-muted);">Server Status:</span>
+                    <span id="lblCloudSyncStatus" style="color: var(--primary); font-weight: 600;">Up to date</span>
                 </div>
 
                 <div class="version-highlight-banner" id="updateBanner">
@@ -605,7 +580,6 @@
         <button class="btn btn-outline" style="margin-top: 10px;" id="btnShareApp" onclick="executeNativeAppShare()">Share WA Campaign App</button>
     </div>
 
-    <!-- Bottom Navigation -->
     <div class="bottom-nav">
         <div class="nav-tab active" onclick="navigateTab('viewGroups', this)"><span class="icon">💬</span><span id="tabGroups">Groups</span></div>
         <div class="nav-tab" onclick="navigateTab('viewCampaign', this)"><span class="icon">📢</span><span id="tabCampaign">Campaign</span></div>
@@ -621,20 +595,16 @@
             <div class="modal-title" id="lblCreateGroup">Create Group (Max 300 Contacts)</div>
             <label id="lblGroupName">Group Name</label>
             <input type="text" id="newGroupName" placeholder="e.g. VIP Customers">
-
             <label id="lblAddContacts">Add Contacts</label>
             <div style="display: flex; gap: 8px; margin-bottom: 12px;">
                 <button type="button" class="btn btn-outline" onclick="openPhonebookSelector('create')">📱 Pick Contacts</button>
             </div>
-
             <div id="createStagedCount" style="font-size: 0.8rem; color: var(--primary); font-weight: bold; margin-bottom: 8px;">0 / 300 Contacts Staged</div>
-
             <button class="btn btn-primary" id="btnSaveGroup" onclick="saveGroup()">Save Group</button>
             <button class="btn btn-secondary" onclick="closeTopModal()">Cancel</button>
         </div>
     </div>
 
-    <!-- FULLSCREEN OVERLAY FOR GROUP MEMBERS -->
     <div class="fullscreen-overlay" id="membersOverlay">
         <div class="fs-header">
             <button class="back-arrow-btn" onclick="closeGroupMembersOverlay()">
@@ -646,7 +616,6 @@
             </button>
             <div style="font-size: 1.1rem; font-weight: bold;" id="lblManageGroupTitle">Group Members</div>
         </div>
-
         <div style="padding: 12px 16px; background: var(--surface); border-bottom: 1px solid var(--border);">
             <label id="lblRenameGroup" style="margin-bottom: 4px;">Group Name</label>
             <div style="display: flex; gap: 8px;">
@@ -654,11 +623,9 @@
                 <button class="btn btn-primary" style="width: auto; padding: 0 16px;" onclick="renameActiveGroup()">Save</button>
             </div>
         </div>
-
         <div style="padding: 10px 16px; background: var(--surface); border-bottom: 1px solid var(--border); display: flex; gap: 8px;">
             <button type="button" class="btn btn-outline" style="flex:1; padding: 8px;" onclick="openPhonebookSelector('edit')">📱 Pick Contacts</button>
         </div>
-
         <div style="padding: 10px 16px; background: var(--surface); border-bottom: 1px solid var(--border);">
             <div style="display: flex; gap: 6px;">
                 <input type="text" id="quickAddName" placeholder="Name" style="flex: 1; margin-bottom: 0;">
@@ -666,23 +633,18 @@
                 <button class="btn btn-primary" style="width: auto; padding: 0 14px;" onclick="addSingleContact()">Add</button>
             </div>
         </div>
-
         <div class="fs-search-container">
             <input type="text" id="groupMembersSearch" placeholder="🔍 Search members by name or phone..." oninput="filterGroupMembers()" style="margin-bottom: 0;">
         </div>
-
         <div class="fs-sub-bar">
             <span id="groupMemberCountBadge" style="font-size: 0.85rem; color: var(--primary); font-weight: bold;">0 Members</span>
         </div>
-
         <div class="fs-list-scroll" id="membersListContainer"></div>
-
         <div class="fs-bottom-bar">
             <button class="btn btn-secondary" onclick="closeGroupMembersOverlay()">Done</button>
         </div>
     </div>
 
-    <!-- Edit Member Modal -->
     <div class="modal modal-high" id="editMemberModal" style="z-index: 600;">
         <div class="modal-content">
             <div class="modal-title">Edit Contact Details</div>
@@ -711,7 +673,6 @@
         </div>
     </div>
 
-    <!-- FULLSCREEN OVERLAY FOR DEVICE CONTACTS PICKER -->
     <div class="fullscreen-overlay" id="phonebookOverlay">
         <div class="fs-header">
             <button class="back-arrow-btn" onclick="closePhonebookOverlay()">
@@ -753,19 +714,17 @@
         </div>
     </div>
 
-    <!-- Blocking Readiness Modal -->
     <div class="modal modal-high" id="readinessModal" style="z-index: 99990;">
         <div class="custom-dialog-card">
             <div class="dialog-icon-badge dialog-icon-info" id="readyIconBadge">⏳</div>
             <div class="dialog-title-text" id="readyTitleText">Please Wait...</div>
-            <div class="dialog-desc-text" id="readyDescText">Syncing configuration with laptop server...</div>
+            <div class="dialog-desc-text" id="readyDescText">Syncing configuration with server...</div>
             <div class="dialog-btn-group" id="readyBtnGroup" style="display: none;">
                 <button class="btn btn-primary" id="btnReadyOk" onclick="acknowledgeReadinessPopup()">Safe to Close</button>
             </div>
         </div>
     </div>
 
-    <!-- Custom Dialog Modal -->
     <div class="modal" id="customDialogModal">
         <div class="custom-dialog-card">
             <div class="dialog-icon-badge" id="dlgIconBadge">⚠️</div>
@@ -779,11 +738,10 @@
     </div>
 
     <script>
-        // CONNECTED DIRECTLY TO YOUR ACTIVE NGROK TUNNEL FOR LOCAL LAPTOP ENGINE
         const DEFAULT_LOCAL_BACKEND = "https://rinse-chest-dish.ngrok-free.dev";
         const FIXED_BACKEND_URL = DEFAULT_LOCAL_BACKEND;
         const DEFAULT_TOKEN = "marketing_engine_secret_2026";
-        
+
         let SESSION_ID = localStorage.getItem('connected_phone_permanent') || 'unpaired_user';
         let API_BEARER_TOKEN = localStorage.getItem('tenant_token') || DEFAULT_TOKEN;
         let SERVER_SHARE_URL = `${FIXED_BACKEND_URL}/share`;
@@ -791,6 +749,7 @@
         const MAX_GROUP_CONTACTS = 300;
         const DAILY_OUTBOUND_LIMIT = 300;
         const MAX_SCHEDULE_HOURS = 72;
+        const MAX_SCHEDULE_SLOTS = 1;
 
         const CI_INJECTED_BUILD = parseInt("__CLIENT_BUILD_NUMBER__");
         let CURRENT_BUILD_NUMBER = !isNaN(CI_INJECTED_BUILD) ? CI_INJECTED_BUILD : (parseInt(localStorage.getItem('acknowledged_release_build')) || 52);
@@ -803,11 +762,10 @@
         let isSubscriptionExpiredGlobal = false;
         let remainingDailyQuotaGlobal = DAILY_OUTBOUND_LIMIT;
 
-        // Strict Single-Selection State
-        let activeCampaignMode = 'text'; // 'text' | 'image' | 'video'
+        let activeCampaignMode = 'text';
         let campaignDraft = { text: '', file: null, fileName: '', caption: '' };
 
-        let activeWelcomeMode = 'text'; // 'text' | 'image'
+        let activeWelcomeMode = 'text';
         let welcomeDraft = { text: '', file: null, fileName: '', existingFilePath: '', mimetype: '', caption: '' };
 
         let cachedScheduledJobs = [];
@@ -854,7 +812,7 @@
             renderQuotaIndicators();
         }
 
-        function showReadinessWaiting(message = 'Connecting with laptop engine...') {
+        function showReadinessWaiting(message = 'Connecting with server...') {
             const modal = document.getElementById('readinessModal');
             document.getElementById('readyIconBadge').className = 'dialog-icon-badge dialog-icon-info';
             document.getElementById('readyIconBadge').innerText = '⏳';
@@ -864,7 +822,7 @@
             modal.style.display = 'flex';
         }
 
-        function showReadinessReady(message = 'Done — Running on Laptop Engine.') {
+        function showReadinessReady(message = 'Done — Connected to server.') {
             const modal = document.getElementById('readinessModal');
             document.getElementById('readyIconBadge').className = 'dialog-icon-badge dialog-icon-info';
             document.getElementById('readyIconBadge').innerText = '✅';
@@ -1078,154 +1036,26 @@
 
         const i18n = {
             en: {
-                title: "WA Campaign",
-                groups: "Groups",
-                campaign: "Campaign",
-                dashboard: "Dashboard",
-                settings: "Settings",
-                sortNewest: "Sort: Newest First",
-                sortAlpha: "Sort: Alphabetical (A-Z)",
-                sortCount: "Sort: Most Contacts",
-                subTabBlast: "📢 Bulk Campaign",
-                subTabWelcome: "🤖 Auto Welcome",
-                dashQuotaNote: "Daily Outbound Quota (12:00 AM reset)",
-                msgPlaceholder: "Type message here...",
-                scheduleTitle: "⏰ Schedule Campaign",
-                scheduleSub: "1 Slot • Max 72 Hours",
-                preset1h: "+1 Hour",
-                presetTom9: "Tomorrow 9 AM",
-                presetTom18: "Tomorrow 6 PM",
+                title: "WA Campaign", groups: "Groups", campaign: "Campaign", dashboard: "Dashboard", settings: "Settings",
+                sortNewest: "Sort: Newest First", sortAlpha: "Sort: Alphabetical (A-Z)", sortCount: "Sort: Most Contacts",
+                subTabBlast: "📢 Bulk Campaign", subTabWelcome: "🤖 Auto Welcome",
+                dashQuotaNote: "Daily Outbound Quota (12:00 AM reset)", msgPlaceholder: "Type message here...",
+                scheduleTitle: "⏰ Schedule Campaign", scheduleSub: "1 Slot • Max 72 Hours",
+                preset1h: "+1 Hour", presetTom9: "Tomorrow 9 AM", presetTom18: "Tomorrow 6 PM",
                 disclaimerFooter: "300/day outbound quota • 1 slot schedule window",
-                launch: "Select Target Groups & Send",
-                enableWelcome: "Enable Welcome Message",
-                saveWelcome: "💾 Save Welcome Rule",
-                totalContacts: "Total Contacts",
-                totalGroups: "Total Groups",
-                recentHistory: "Recent Campaigns History (Last 3)",
-                connection: "WhatsApp Account Status",
-                unlink: "Unlink WhatsApp",
-                pair: "Pair WhatsApp",
-                language: "Language",
-                theme: "Theme",
-                updates: "App Version & Updates",
-                updateCheck: "⚡ Update Now (Zero Data Loss)",
-                shareApp: "Share WA Campaign App",
-                createGroup: "Create Group (Max 300 Contacts)",
-                groupName: "Group Name",
-                addContacts: "Add Contacts",
-                saveGroup: "Save Group",
-                manageGroup: "Group Members",
-                renameGroup: "Group Name",
-                targetGroups: "Select Target Groups",
-                deduplicateNote: "Duplicates merged automatically.",
-                deviceContacts: "Device Contacts",
+                launch: "Select Target Groups & Send", enableWelcome: "Enable Welcome Message", saveWelcome: "💾 Save Welcome Rule",
+                totalContacts: "Total Contacts", totalGroups: "Total Groups", recentHistory: "Recent Campaigns History (Last 3)",
+                connection: "WhatsApp Account Status", unlink: "Unlink WhatsApp", pair: "Pair WhatsApp",
+                language: "Language", theme: "Theme", updates: "App Version & Updates",
+                updateCheck: "⚡ Update Now (Zero Data Loss)", shareApp: "Share WA Campaign App",
+                createGroup: "Create Group (Max 300 Contacts)", groupName: "Group Name", addContacts: "Add Contacts",
+                saveGroup: "Save Group", manageGroup: "Group Members", renameGroup: "Group Name",
+                targetGroups: "Select Target Groups", deduplicateNote: "Duplicates merged automatically.", deviceContacts: "Device Contacts",
                 warnUnlink: "Are you sure you want to unlink your WhatsApp account? Local session on this phone will disconnect cleanly.",
                 warnStopCamp: "Permanently stop this active campaign? Remaining pending messages will NOT be sent.",
                 warnDeleteGroups: "Permanently delete selected group(s)? The contacts inside these groups will be removed.",
                 warnCancelSched: "Cancel this scheduled campaign? The queue will be removed and attached media purged.",
-                daysLeftNotice: "Days Left",
-                subExpiredMsg: "Your subscription has expired. Please contact admin to recharge and continue.",
-                subWarnMsg: "Your subscription expires in {DAYS} day(s). Please recharge to ensure uninterrupted service."
-            },
-            ta: {
-                title: "வாட்ஸ்அப் விளம்பரம்",
-                groups: "குழுக்கள்",
-                campaign: "பிரச்சாரம்",
-                dashboard: "முகப்பு",
-                settings: "அமைப்புகள்",
-                sortNewest: "வரிசை: புதியவை முதலில்",
-                sortAlpha: "வரிசை: அகரவரிசை (A-Z)",
-                sortCount: "வரிசை: அதிக தொடர்புகள்",
-                subTabBlast: "📢 குழு பிரச்சாரம்",
-                subTabWelcome: "🤖 தானியங்கி வரவேற்பு",
-                dashQuotaNote: "தினசரி Outbound வரம்பு (இரவு 12 மணிக்கு ரீசெட்)",
-                msgPlaceholder: "செய்தியை இங்கே உள்ளிடவும்...",
-                scheduleTitle: "⏰ நேரத்தை திட்டமிடு (Schedule)",
-                scheduleSub: "1 ஸ்லாட் • அதிகபட்சம் 72 மணி நேரம்",
-                preset1h: "+1 மணி நேரம்",
-                presetTom9: "நாளை காலை 9",
-                presetTom18: "நாளை மாலை 6",
-                disclaimerFooter: "300/நாள் வரம்பு • 1 ஸ்லாட் Schedule",
-                launch: "குழுக்களை தேர்வு செய்து அனுப்பு",
-                enableWelcome: "வரவேற்பு செய்தியை இயக்கு",
-                saveWelcome: "💾 வரவேற்பு விதியை சேமி",
-                totalContacts: "மொத்த தொடர்புகள்",
-                totalGroups: "மொத்த குழுக்கள்",
-                recentHistory: "முந்தைய 3 பிரச்சாரங்கள்",
-                connection: "வாட்ஸ்அப் இணைப்பு நிலை",
-                unlink: "வாட்ஸ்அப் துண்டி",
-                pair: "வாட்ஸ்அப் இணை",
-                language: "மொழி",
-                theme: "வண்ண தீம்",
-                updates: "செயலி பதிப்பு & புதுப்பிப்புகள்",
-                updateCheck: "⚡ புதிய பதிப்பை நிறுவவும் (தரவு அழியாது)",
-                shareApp: "செயலியை பகிரவும்",
-                createGroup: "புதிய குழு (அதிகபட்சம் 300 நபர்கள்)",
-                groupName: "குழுவின் பெயர்",
-                addContacts: "தொடர்புகளை சேர்க்கவும்",
-                saveGroup: "குழுவை சேமி",
-                manageGroup: "குழு உறுப்பினர்கள்",
-                renameGroup: "குழு பெயர் திருத்து",
-                targetGroups: "இலக்கு குழுக்கள்",
-                deduplicateNote: "இரட்டை எண்கள் தானாக நீக்கப்படும்.",
-                deviceContacts: "மொபைல் தொடர்புகள்",
-                warnUnlink: "வாட்ஸ்அப் கணக்கை துண்டிக்கவா? மீண்டும் உள்நுழையும்போது தரவுகள் மீட்டெடுக்கப்படும்.",
-                warnStopCamp: "இந்த பிரச்சாரத்தை முழுமையாக நிறுத்தவா? மீதமுள்ள நபர்களுக்கு செய்தி போகாது.",
-                warnDeleteGroups: "தேர்ந்தெடுத்த குழுக்களை நிரந்தரமாக நீக்கவா? உள்ளிருக்கும் தொடர்புகள் அகற்றப்படும்.",
-                warnCancelSched: "திட்டமிடப்பட்ட இந்த பிரச்சாரத்தை ரத்து செய்து கோப்புகளை அழிக்கவா?",
-                daysLeftNotice: "நாட்கள் மீதமுள்ளன",
-                subExpiredMsg: "உங்கள் சந்தா முடிவடைந்துவிட்டது. சேவையைத் தொடர அட்மினைத் தொடர்புகொள்ளவும்.",
-                subWarnMsg: "உங்கள் சந்தா இன்னும் {DAYS} நாளில் முடிகிறது. தடையற்ற சேவைக்கு முன்கூட்டியே ரீசார்ஜ் செய்யவும்."
-            },
-            hi: {
-                title: "व्हाट्सएप अभियान",
-                groups: "समूह",
-                campaign: "अभियान",
-                dashboard: "डैशबोर्ड",
-                settings: "सेटिंग्स",
-                sortNewest: "क्रम: नवीनतम पहले",
-                sortAlpha: "क्रम: वर्णमाला (A-Z)",
-                sortCount: "क्रम: सर्वाधिक संपर्क",
-                subTabBlast: "📢 बल्क अभियान",
-                subTabWelcome: "🤖 ऑटो वेलकम",
-                dashQuotaNote: "दैनिक आउटबाउंड कोटा (रात 12 बजे रीसेट)",
-                msgPlaceholder: "यहाँ संदेश टाइप करें...",
-                scheduleTitle: "⏰ अभियान शेड्यूल करें",
-                scheduleSub: "1 स्लॉट • अधिकतम 72 घंटे",
-                preset1h: "+1 घंटा",
-                presetTom9: "कल सुबह 9 बजे",
-                presetTom18: "कल शाम 6 बजे",
-                disclaimerFooter: "300/दिन सीमा • 1 स्लॉट शेड्यूल",
-                launch: "समूह चुनें और भेजें",
-                enableWelcome: "वेलकम मैसेज चालू करें",
-                saveWelcome: "💾 वेलकम नियम सहेजें",
-                totalContacts: "कुल संपर्क",
-                totalGroups: "कुल समूह",
-                recentHistory: "हाल के 3 अभियान",
-                connection: "व्हाट्सएप कनेक्शन स्थिति",
-                unlink: "व्हाट्सएप हटाएं",
-                pair: "व्हाट्सएप जोड़ें",
-                language: "भाषा",
-                theme: "थीम",
-                updates: "ऐप संस्करण और अपडेट",
-                updateCheck: "⚡ नया संस्करण स्थापित करें",
-                shareApp: "ऐप साझा करें",
-                createGroup: "समूह बनाएं (अधिकतम 300 संपर्क)",
-                groupName: "समूह का नाम",
-                addContacts: "संपर्क जोड़ें",
-                saveGroup: "समूह सहेजें",
-                manageGroup: "समूह के सदस्य",
-                renameGroup: "समूह का नाम बदलें",
-                targetGroups: "लक्षित समूह चुनें",
-                deduplicateNote: "डुप्लिकेट संपर्क स्वतः हटा दिए जाएंगे।",
-                deviceContacts: "फ़ोन संपर्क",
-                warnUnlink: "क्या आप व्हाट्सएप खाता हटाना चाहते हैं?",
-                warnStopCamp: "क्या आप इस अभियान को पूरी तरह से रोकना चाहते हैं? शेष संदेश नहीं भेजे जाएंगे।",
-                warnDeleteGroups: "क्या आप चयनित समूहों को हटाना चाहते हैं?",
-                warnCancelSched: "क्या आप इस शेड्यूल अभियान को रद्द करना चाहते हैं?",
-                daysLeftNotice: "दिन शेष हैं",
-                subExpiredMsg: "आपकी सदस्यता समाप्त हो गई है।",
-                subWarnMsg: "आपकी सदस्यता {DAYS} दिनों में समाप्त हो रही है।"
+                daysLeftNotice: "Days Left", subExpiredMsg: "Your subscription has expired. Please contact admin to recharge and continue."
             }
         };
 
@@ -1267,18 +1097,6 @@
             document.getElementById('membersOverlay').style.display = 'none';
         }
 
-        function checkDisclaimerAcceptance() {
-            const accepted = localStorage.getItem('terms_accepted_permanent');
-            if (!accepted) {
-                document.getElementById('disclaimerModal').style.display = 'flex';
-            }
-        }
-
-        function confirmDisclaimerConsent() {
-            localStorage.setItem('terms_accepted_permanent', 'true');
-            document.getElementById('disclaimerModal').style.display = 'none';
-        }
-
         function dismissNoticeBanner() {
             sessionStorage.setItem('dismissed_broadcast_notice', 'true');
             document.getElementById('globalNoticeBanner').style.display = 'none';
@@ -1291,27 +1109,12 @@
                     const editModal = document.getElementById('editMemberModal');
                     const pbOverlay = document.getElementById('phonebookOverlay');
                     const memOverlay = document.getElementById('membersOverlay');
-
-                    if (editModal && editModal.style.display === 'flex') {
-                        closeTopModal();
-                    } else if (pbOverlay && pbOverlay.style.display === 'flex') {
-                        closePhonebookOverlay();
-                    } else if (memOverlay && memOverlay.style.display === 'flex') {
-                        closeGroupMembersOverlay();
-                    } else if (modalStack.length > 0) {
-                        closeTopModal();
-                    } else if (document.querySelectorAll('.page-content.active')[0].id !== 'viewGroups') {
+                    if (editModal && editModal.style.display === 'flex') closeTopModal();
+                    else if (pbOverlay && pbOverlay.style.display === 'flex') closePhonebookOverlay();
+                    else if (memOverlay && memOverlay.style.display === 'flex') closeGroupMembersOverlay();
+                    else if (modalStack.length > 0) closeTopModal();
+                    else if (document.querySelectorAll('.page-content.active')[0].id !== 'viewGroups') {
                         navigateTab('viewGroups', document.querySelectorAll('.nav-tab')[0]);
-                    } else {
-                        showCustomDialog({
-                            title: 'Exit App?',
-                            message: 'Are you sure you want to exit WA Campaign?',
-                            type: 'warning',
-                            confirmText: 'Exit',
-                            cancelText: 'Stay'
-                        }).then(confirmed => {
-                            if (confirmed) AppPlugin.exitApp();
-                        });
                     }
                 });
             }
@@ -1320,18 +1123,13 @@
         function setupPullToRefresh() {
             let startY = 0;
             const spinner = document.getElementById('pullToRefreshSpinner');
-
             window.addEventListener('touchstart', e => {
                 if (window.scrollY === 0) startY = e.touches[0].clientY;
             }, { passive: true });
-
             window.addEventListener('touchmove', e => {
                 const y = e.touches[0].clientY;
-                if (window.scrollY === 0 && y - startY > 90) {
-                    spinner.style.display = 'block';
-                }
+                if (window.scrollY === 0 && y - startY > 90) spinner.style.display = 'block';
             }, { passive: true });
-
             window.addEventListener('touchend', async () => {
                 if (spinner.style.display === 'block') {
                     await syncWhatsAppAccountStatus();
@@ -1369,7 +1167,6 @@
             const btnWelcome = document.getElementById('btnSubTabWelcome');
             const panelBlast = document.getElementById('subPanelBlast');
             const panelWelcome = document.getElementById('subPanelWelcome');
-
             if (mode === 'welcome') {
                 btnBlast.classList.remove('active');
                 btnWelcome.classList.add('active');
@@ -1394,64 +1191,14 @@
 
         function switchLanguage(lang) {
             localStorage.setItem('app_lang', lang);
-            const d = i18n[lang] || i18n.en;
-            document.getElementById('txtHeaderTitle').innerText = d.title;
-            document.getElementById('tabGroups').innerText = d.groups;
-            document.getElementById('tabCampaign').innerText = d.campaign;
-            document.getElementById('tabDashboard').innerText = d.dashboard;
-            document.getElementById('tabSettings').innerText = d.settings;
-
-            document.getElementById('optSortNewest').innerText = d.sortNewest;
-            document.getElementById('optSortAlpha').innerText = d.sortAlpha;
-            document.getElementById('optSortCount').innerText = d.sortCount;
-
-            document.getElementById('btnSubTabBlast').innerText = d.subTabBlast;
-            document.getElementById('btnSubTabWelcome').innerText = d.subTabWelcome;
-            document.getElementById('lblDashQuotaNote').innerText = d.dashQuotaNote;
-
-            document.getElementById('lblScheduleTitle').innerText = d.scheduleTitle;
-            document.getElementById('lblScheduleSub').innerText = d.scheduleSub;
-            document.getElementById('chipPreset1h').innerText = d.preset1h;
-            document.getElementById('chipPresetTom9').innerText = d.presetTom9;
-            document.getElementById('chipPresetTom18').innerText = d.presetTom18;
-            document.getElementById('lblDisclaimerFooter').innerText = d.disclaimerFooter;
-            document.getElementById('btnLaunch').innerText = d.launch;
-
-            document.getElementById('lblEnableWelcome').innerText = d.enableWelcome;
-            document.getElementById('btnSaveWelcome').innerText = d.saveWelcome;
-
-            document.getElementById('lblTotalContacts').innerText = d.totalContacts;
-            document.getElementById('lblTotalGroups').innerText = d.totalGroups;
-            document.getElementById('lblRecentHistory').innerText = d.recentHistory;
-            document.getElementById('lblConnection').innerText = d.connection;
-            document.getElementById('btnUnlink').innerText = d.unlink;
-            document.getElementById('btnPair').innerText = d.pair;
-            document.getElementById('lblLanguage').innerText = d.language;
-            document.getElementById('lblTheme').innerText = d.theme;
-            document.getElementById('lblUpdates').innerText = d.updates;
-            document.getElementById('btnUpdateNow').innerText = d.updateCheck;
-            document.getElementById('btnShareApp').innerText = d.shareApp;
-            document.getElementById('lblCreateGroup').innerText = d.createGroup;
-            document.getElementById('lblGroupName').innerText = d.groupName;
-            document.getElementById('lblAddContacts').innerText = d.addContacts;
-            document.getElementById('btnSaveGroup').innerText = d.saveGroup;
-            document.getElementById('lblManageGroupTitle').innerText = d.manageGroup;
-            document.getElementById('lblRenameGroup').innerText = d.renameGroup;
-            document.getElementById('lblTargetGroups').innerText = d.targetGroups;
-            document.getElementById('lblDeduplicateNote').innerText = d.deduplicateNote;
-            document.getElementById('lblDeviceContacts').innerText = d.deviceContacts;
             document.getElementById('selLanguage').value = lang;
-
             renderQuotaIndicators();
             renderWelcomeSequence();
             renderBulkSequence();
         }
 
-        // --- Single Mode Selection & Grey-Out Enforcement ---
         function hasCampaignContent() {
-            if (activeCampaignMode === 'text') {
-                return (campaignDraft.text || '').trim().length > 0;
-            }
+            if (activeCampaignMode === 'text') return (campaignDraft.text || '').trim().length > 0;
             return Boolean(campaignDraft.file || campaignDraft.fileName);
         }
 
@@ -1460,13 +1207,10 @@
             const btnText = document.getElementById('btnModeText');
             const btnImg = document.getElementById('btnModeImage');
             const btnVid = document.getElementById('btnModeVideo');
-
             if (!btnText || !btnImg || !btnVid) return;
-
             btnText.classList.toggle('active', activeCampaignMode === 'text');
             btnImg.classList.toggle('active', activeCampaignMode === 'image');
             btnVid.classList.toggle('active', activeCampaignMode === 'video');
-
             btnText.classList.toggle('disabled-mode', hasData && activeCampaignMode !== 'text');
             btnImg.classList.toggle('disabled-mode', hasData && activeCampaignMode !== 'image');
             btnVid.classList.toggle('disabled-mode', hasData && activeCampaignMode !== 'video');
@@ -1482,7 +1226,6 @@
                 });
                 return;
             }
-
             activeCampaignMode = targetMode;
             renderBulkSequence();
         }
@@ -1499,13 +1242,11 @@
         function handleCampaign111File(e) {
             const rawFile = e.target.files[0];
             if (!rawFile) return;
-
             if (activeCampaignMode === 'video' && rawFile.size > 15 * 1024 * 1024) {
                 showCustomDialog({ title: 'File Too Large', message: 'Video exceeds 15MB limit! Please select a compressed video under 15MB.', type: 'danger' });
                 e.target.value = '';
                 return;
             }
-
             if (activeCampaignMode === 'image') {
                 compressImageBeforeUpload(rawFile, (compressedFile) => {
                     campaignDraft.file = compressedFile;
@@ -1525,15 +1266,12 @@
         }
 
         function renderBulkSequence() {
-            const lang = localStorage.getItem('app_lang') || 'en';
-            const d = i18n[lang] || i18n.en;
             const container = document.getElementById('bulkSequenceContainer');
-
             if (activeCampaignMode === 'text') {
                 container.innerHTML = `
                     <div class="welcome-block-item">
                         <div class="textarea-container" style="margin-bottom:0;">
-                            <textarea class="safe-textarea" style="min-height:80px; margin-bottom:0;" placeholder="${d.msgPlaceholder}" oninput="campaignDraft.text = this.value; renderBulkLiveStream(); updateModePillStates();">${escapeHtml(campaignDraft.text || '')}</textarea>
+                            <textarea class="safe-textarea" style="min-height:80px; margin-bottom:0;" placeholder="Type message here..." oninput="campaignDraft.text = this.value; renderBulkLiveStream(); updateModePillStates();">${escapeHtml(campaignDraft.text || '')}</textarea>
                             <button type="button" class="clear-btn" onclick="clearCampaignTextInUI()">✖ Clear</button>
                         </div>
                     </div>
@@ -1541,7 +1279,6 @@
             } else {
                 const isImg = activeCampaignMode === 'image';
                 const acceptType = isImg ? 'image/*' : 'video/*';
-
                 const fileControlHtml = campaignDraft.fileName
                     ? `<div class="file-selected-badge">
                         <div>
@@ -1551,7 +1288,6 @@
                         <button type="button" class="btn btn-outline" style="width:auto; padding:4px 8px; font-size:0.72rem;" onclick="document.getElementById('camp111FileInput').click()">Change</button>
                        </div>`
                     : `<input type="file" id="camp111FileInput" accept="${acceptType}" onchange="handleCampaign111File(event)" style="margin-bottom:8px;">`;
-
                 container.innerHTML = `
                     <div class="welcome-block-item">
                         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
@@ -1564,7 +1300,6 @@
                     </div>
                 `;
             }
-
             updateModePillStates();
             renderBulkLiveStream();
         }
@@ -1572,35 +1307,22 @@
         function renderBulkLiveStream() {
             const stream = document.getElementById('bulkLiveStreamPreview');
             const nowTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
             if (activeCampaignMode === 'text') {
                 if (!(campaignDraft.text || '').trim()) {
                     stream.innerHTML = '<div style="text-align:center; color:var(--text-muted); font-size:0.8rem; padding: 12px;">Preview will appear here...</div>';
                     return;
                 }
-                stream.innerHTML = `
-                    <div class="wa-chat-bubble">
-                        ${escapeHtml(campaignDraft.text)}
-                        <div class="wa-bubble-meta">${nowTime} <span style="color: #53bdeb; font-weight: bold;">✓✓</span></div>
-                    </div>
-                `;
+                stream.innerHTML = `<div class="wa-chat-bubble">${escapeHtml(campaignDraft.text)}<div class="wa-bubble-meta">${nowTime} <span style="color: #53bdeb; font-weight: bold;">✓✓</span></div></div>`;
             } else {
                 if (!campaignDraft.file && !campaignDraft.fileName) {
                     stream.innerHTML = '<div style="text-align:center; color:var(--text-muted); font-size:0.8rem; padding: 12px;">Preview will appear here...</div>';
                     return;
                 }
                 const icon = activeCampaignMode === 'image' ? '🖼️ Photo' : '🎥 Video';
-                stream.innerHTML = `
-                    <div class="wa-chat-bubble">
-                        <div style="font-weight: 600; font-size: 0.8rem; margin-bottom: 2px;">${icon}: ${escapeHtml(campaignDraft.fileName || 'Selected')}</div>
-                        ${campaignDraft.caption ? `<div style="margin-top: 4px;">${escapeHtml(campaignDraft.caption)}</div>` : ''}
-                        <div class="wa-bubble-meta">${nowTime} <span style="color: #53bdeb; font-weight: bold;">✓✓</span></div>
-                    </div>
-                `;
+                stream.innerHTML = `<div class="wa-chat-bubble"><div style="font-weight: 600; font-size: 0.8rem; margin-bottom: 2px;">${icon}: ${escapeHtml(campaignDraft.fileName || 'Selected')}</div>${campaignDraft.caption ? `<div style="margin-top: 4px;">${escapeHtml(campaignDraft.caption)}</div>` : ''}<div class="wa-bubble-meta">${nowTime} <span style="color: #53bdeb; font-weight: bold;">✓✓</span></div></div>`;
             }
         }
 
-        // --- Scheduler Presets ---
         function toLocalDateTimeInputString(dateObj) {
             const pad = n => String(n).padStart(2, '0');
             return `${dateObj.getFullYear()}-${pad(dateObj.getMonth() + 1)}-${pad(dateObj.getDate())}T${pad(dateObj.getHours())}:${pad(dateObj.getMinutes())}`;
@@ -1617,14 +1339,9 @@
         function updateScheduleReadableLabel() {
             const val = document.getElementById('campScheduleTime').value;
             const lbl = document.getElementById('lblScheduleFormattedPreview');
-            if (!val) {
-                lbl.innerText = '';
-                return;
-            }
+            if (!val) { lbl.innerText = ''; return; }
             const dt = new Date(val);
-            if (!isNaN(dt.getTime())) {
-                lbl.innerText = `📅 Scheduled for: ${dt.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}`;
-            }
+            if (!isNaN(dt.getTime())) lbl.innerText = `📅 Scheduled for: ${dt.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}`;
         }
 
         function toggleScheduleInput(checkbox) {
@@ -1633,11 +1350,8 @@
                 wrapper.style.display = 'block';
                 updateScheduleMinMaxGuards();
                 const input = document.getElementById('campScheduleTime');
-                if (!input.value) {
-                    applySchedulePreset('1h', document.getElementById('chipPreset1h'));
-                } else {
-                    updateScheduleReadableLabel();
-                }
+                if (!input.value) applySchedulePreset('1h', document.getElementById('chipPreset1h'));
+                else updateScheduleReadableLabel();
             } else {
                 wrapper.style.display = 'none';
             }
@@ -1646,20 +1360,12 @@
         function applySchedulePreset(presetType, btnEl) {
             document.querySelectorAll('.preset-chip').forEach(c => c.classList.remove('active'));
             if (btnEl) btnEl.classList.add('active');
-
             updateScheduleMinMaxGuards();
             const target = new Date();
             if (presetType === '1h') target.setHours(target.getHours() + 1);
-            else if (presetType === 'tom9') {
-                target.setDate(target.getDate() + 1);
-                target.setHours(9, 0, 0, 0);
-            } else if (presetType === 'tom18') {
-                target.setDate(target.getDate() + 1);
-                target.setHours(18, 0, 0, 0);
-            }
-
-            const input = document.getElementById('campScheduleTime');
-            input.value = toLocalDateTimeInputString(target);
+            else if (presetType === 'tom9') { target.setDate(target.getDate() + 1); target.setHours(9, 0, 0, 0); }
+            else if (presetType === 'tom18') { target.setDate(target.getDate() + 1); target.setHours(18, 0, 0, 0); }
+            document.getElementById('campScheduleTime').value = toLocalDateTimeInputString(target);
             updateScheduleReadableLabel();
         }
 
@@ -1680,18 +1386,12 @@
             document.querySelectorAll('.preset-chip').forEach(c => c.classList.remove('active'));
         }
 
-        // --- Auto Welcome Responder ---
         function selectWelcomeMode(mode) {
             activeWelcomeMode = mode;
             document.getElementById('btnWelcomeModeText').classList.toggle('active', mode === 'text');
             document.getElementById('btnWelcomeModeImage').classList.toggle('active', mode === 'image');
-
             if (mode === 'text') {
-                welcomeDraft.file = null;
-                welcomeDraft.fileName = '';
-                welcomeDraft.existingFilePath = '';
-                welcomeDraft.mimetype = '';
-                welcomeDraft.caption = '';
+                welcomeDraft = { text: '', file: null, fileName: '', existingFilePath: '', mimetype: '', caption: '' };
             } else {
                 welcomeDraft.text = '';
             }
@@ -1711,7 +1411,6 @@
         function handleWelcomeFile(e) {
             const rawFile = e.target.files[0];
             if (!rawFile) return;
-
             compressImageBeforeUpload(rawFile, (compressedFile) => {
                 welcomeDraft.file = compressedFile;
                 welcomeDraft.fileName = compressedFile.name;
@@ -1728,7 +1427,6 @@
 
         function renderWelcomeSequence() {
             const container = document.getElementById('welcomeSequenceContainer');
-
             if (activeWelcomeMode === 'text') {
                 container.innerHTML = `
                     <div class="welcome-block-item">
@@ -1748,7 +1446,6 @@
                         <button type="button" class="btn btn-outline" style="width:auto; padding:4px 8px; font-size:0.72rem;" onclick="document.getElementById('wel11FileInput').click()">Change</button>
                        </div>`
                     : '';
-
                 container.innerHTML = `
                     <div class="welcome-block-item">
                         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
@@ -1761,46 +1458,31 @@
                     </div>
                 `;
             }
-
             renderWelcomeLiveStream();
         }
 
         function renderWelcomeLiveStream() {
             const stream = document.getElementById('welcomeLiveStreamPreview');
             const nowTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
             if (activeWelcomeMode === 'text') {
                 if (!(welcomeDraft.text || '').trim()) {
                     stream.innerHTML = '<div style="text-align:center; color:var(--text-muted); font-size:0.8rem; padding: 12px;">Welcome preview will appear here...</div>';
                     return;
                 }
-                stream.innerHTML = `
-                    <div class="wa-chat-bubble">
-                        ${escapeHtml(welcomeDraft.text)}
-                        <div class="wa-bubble-meta">${nowTime} <span style="color: #53bdeb; font-weight: bold;">✓✓</span></div>
-                    </div>
-                `;
+                stream.innerHTML = `<div class="wa-chat-bubble">${escapeHtml(welcomeDraft.text)}<div class="wa-bubble-meta">${nowTime} <span style="color: #53bdeb; font-weight: bold;">✓✓</span></div></div>`;
             } else {
                 if (!welcomeDraft.file && !welcomeDraft.existingFilePath && !welcomeDraft.fileName) {
                     stream.innerHTML = '<div style="text-align:center; color:var(--text-muted); font-size:0.8rem; padding: 12px;">Welcome preview will appear here...</div>';
                     return;
                 }
-                stream.innerHTML = `
-                    <div class="wa-chat-bubble">
-                        <div style="font-weight: 600; font-size: 0.8rem; margin-bottom: 2px;">🖼️ Photo: ${escapeHtml(welcomeDraft.fileName || 'Image')}</div>
-                        ${welcomeDraft.caption ? `<div style="margin-top: 4px;">${escapeHtml(welcomeDraft.caption)}</div>` : ''}
-                        <div class="wa-bubble-meta">${nowTime} <span style="color: #53bdeb; font-weight: bold;">✓✓</span></div>
-                    </div>
-                `;
+                stream.innerHTML = `<div class="wa-chat-bubble"><div style="font-weight: 600; font-size: 0.8rem; margin-bottom: 2px;">🖼️ Photo: ${escapeHtml(welcomeDraft.fileName || 'Image')}</div>${welcomeDraft.caption ? `<div style="margin-top: 4px;">${escapeHtml(welcomeDraft.caption)}</div>` : ''}<div class="wa-bubble-meta">${nowTime} <span style="color: #53bdeb; font-weight: bold;">✓✓</span></div></div>`;
             }
         }
 
         async function loadWelcomeRulesFromServer() {
             if (!SESSION_ID || SESSION_ID === 'unpaired_user') return;
             try {
-                const res = await fetch(`${FIXED_BACKEND_URL}/api/welcome/rules?sessionId=${SESSION_ID}`, {
-                    headers: getApiHeaders()
-                });
+                const res = await fetch(`${FIXED_BACKEND_URL}/api/welcome/rules?sessionId=${SESSION_ID}`, { headers: getApiHeaders() });
                 const d = await res.json();
                 if (d.success && d.config) {
                     document.getElementById('chkEnableWelcome').checked = !!d.config.enabled;
@@ -1818,14 +1500,7 @@
                             };
                         } else {
                             activeWelcomeMode = 'text';
-                            welcomeDraft = {
-                                text: firstStep.content || '',
-                                file: null,
-                                fileName: '',
-                                existingFilePath: '',
-                                mimetype: '',
-                                caption: ''
-                            };
+                            welcomeDraft = { text: firstStep.content || '', file: null, fileName: '', existingFilePath: '', mimetype: '', caption: '' };
                         }
                         document.getElementById('btnWelcomeModeText').classList.toggle('active', activeWelcomeMode === 'text');
                         document.getElementById('btnWelcomeModeImage').classList.toggle('active', activeWelcomeMode === 'image');
@@ -1841,19 +1516,15 @@
             }
             if (!SESSION_ID || SESSION_ID === 'unpaired_user') return showCustomDialog({ title: 'Not Connected', message: 'Please pair WhatsApp first before saving rules.', type: 'warning' });
             const enabled = document.getElementById('chkEnableWelcome').checked;
-
             const hasValidItem = activeWelcomeMode === 'text'
                 ? (welcomeDraft.text || '').trim().length > 0
                 : (welcomeDraft.file !== null) || ((welcomeDraft.existingFilePath || '').trim().length > 0);
-
             if (enabled && !hasValidItem) {
                 return showCustomDialog({ title: 'Empty Content', message: 'Please enter welcome text or select 1 image.', type: 'warning' });
             }
-
             const fd = new FormData();
             fd.append('sessionId', SESSION_ID);
             fd.append('enabled', enabled);
-
             const blockId = 'wb_11';
             const blocksMeta = hasValidItem
                 ? [{
@@ -1866,19 +1537,12 @@
                     mimetype: activeWelcomeMode === 'image' ? (welcomeDraft.mimetype || 'image/jpeg') : ''
                 }]
                 : [];
-
             fd.append('blocksMeta', JSON.stringify(blocksMeta));
-            if (activeWelcomeMode === 'image' && welcomeDraft.file) {
-                fd.append(`file_${blockId}`, welcomeDraft.file);
-            }
+            if (activeWelcomeMode === 'image' && welcomeDraft.file) fd.append(`file_${blockId}`, welcomeDraft.file);
 
-            showReadinessWaiting('Saving welcome rule to laptop engine...');
+            showReadinessWaiting('Saving welcome rule to server...');
             try {
-                const res = await fetch(`${FIXED_BACKEND_URL}/api/welcome/setup`, {
-                    method: 'POST',
-                    headers: getApiHeaders(),
-                    body: fd
-                });
+                const res = await fetch(`${FIXED_BACKEND_URL}/api/welcome/setup`, { method: 'POST', headers: getApiHeaders(), body: fd });
                 const d = await res.json();
                 document.getElementById('readinessModal').style.display = 'none';
                 if (d.success) {
@@ -1887,11 +1551,10 @@
                 } else showCustomDialog({ title: 'Error', message: d.error || 'Failed to save', type: 'danger' });
             } catch(e) {
                 document.getElementById('readinessModal').style.display = 'none';
-                showCustomDialog({ title: 'Connection Error', message: 'Laptop server offline. Ensure engine & ngrok are running.', type: 'danger' });
+                showCustomDialog({ title: 'Connection Error', message: 'Server offline. Please try again shortly.', type: 'danger' });
             }
         }
 
-        // --- Core Status & Handshake ---
         async function syncWhatsAppAccountStatus() {
             let targetPhone = localStorage.getItem('connected_phone_permanent');
             if (!targetPhone || targetPhone === 'unpaired_user') {
@@ -1900,29 +1563,15 @@
                 document.getElementById('statusPairingBox').style.display = 'block';
                 return;
             }
-
             loadCachedRemainingQuota(targetPhone);
             renderQuotaIndicators();
-
             try {
                 const res = await fetch(`${FIXED_BACKEND_URL}/api/status/${targetPhone}`, {
-                    headers: {
-                        'Authorization': `Bearer ${DEFAULT_TOKEN}`,
-                        'ngrok-skip-browser-warning': 'true'
-                    }
+                    headers: { 'Authorization': `Bearer ${DEFAULT_TOKEN}`, 'ngrok-skip-browser-warning': 'true' }
                 });
                 const d = await res.json();
-
-                if (d && d.quota) {
-                    persistRemainingQuotaCache(d.quota, d.phone || targetPhone);
-                }
-                if (d && d.shareUrl) {
-                    SERVER_SHARE_URL = d.shareUrl;
-                }
-                
-                const lang = localStorage.getItem('app_lang') || 'en';
-                const langDict = i18n[lang] || i18n.en;
-
+                if (d && d.quota) persistRemainingQuotaCache(d.quota, d.phone || targetPhone);
+                if (d && d.shareUrl) SERVER_SHARE_URL = d.shareUrl;
                 const daysLeft = typeof d.daysLeft === 'number' ? d.daysLeft : 30;
                 isSubscriptionExpiredGlobal = !!d.isExpired || daysLeft <= 0;
 
@@ -1933,17 +1582,15 @@
                 if (isSubscriptionExpiredGlobal) {
                     banner.classList.add('expired-alert');
                     banner.style.display = 'flex';
-                    noticeTxt.innerText = "⚠️ " + langDict.subExpiredMsg;
+                    noticeTxt.innerText = "⚠️ Your subscription has expired. Please contact admin to recharge and continue.";
                     document.getElementById('btnDismissNotice').style.display = 'none';
+                } else if (d.globalNotice && d.globalNotice.trim() !== '' && !isDismissedThisSession) {
+                    banner.classList.remove('expired-alert');
+                    banner.style.display = 'flex';
+                    noticeTxt.innerText = "📢 " + d.globalNotice;
+                    document.getElementById('btnDismissNotice').style.display = 'block';
                 } else {
-                    if (d.globalNotice && d.globalNotice.trim() !== '' && !isDismissedThisSession) {
-                        banner.classList.remove('expired-alert');
-                        banner.style.display = 'flex';
-                        noticeTxt.innerText = "📢 " + d.globalNotice;
-                        document.getElementById('btnDismissNotice').style.display = 'block';
-                    } else {
-                        banner.style.display = 'none';
-                    }
+                    banner.style.display = 'none';
                 }
 
                 document.getElementById('lblSubPlan').innerText = d.plan || 'Monthly';
@@ -1952,14 +1599,12 @@
                     subDaysEl.innerText = "Expired";
                     subDaysEl.style.color = "var(--danger)";
                 } else {
-                    subDaysEl.innerText = `${daysLeft} ${langDict.daysLeftNotice}`;
+                    subDaysEl.innerText = `${daysLeft} Days Left`;
                     subDaysEl.style.color = daysLeft <= 3 ? "var(--warning)" : "var(--primary)";
                 }
 
                 if (d.status === 'CONNECTED' && d.phone) {
-                    if (SESSION_ID !== 'unpaired_user' && SESSION_ID !== d.phone) {
-                        clearStaleSessionLocalCache();
-                    }
+                    if (SESSION_ID !== 'unpaired_user' && SESSION_ID !== d.phone) clearStaleSessionLocalCache();
                     SESSION_ID = d.phone;
                     localStorage.setItem('connected_phone_permanent', d.phone);
                     localStorage.setItem('tenant_session_id', d.phone);
@@ -1967,7 +1612,6 @@
                         API_BEARER_TOKEN = d.tenantToken;
                         localStorage.setItem('tenant_token', API_BEARER_TOKEN);
                     }
-
                     document.getElementById('statusConnectedBox').style.display = 'block';
                     document.getElementById('statusPairingBox').style.display = 'none';
                     document.getElementById('lblConnectedPhone').innerText = `+${d.phone}`;
@@ -1989,7 +1633,7 @@
                     document.getElementById('statusConnectedBox').style.display = 'block';
                     document.getElementById('statusPairingBox').style.display = 'none';
                     document.getElementById('lblConnectedPhone').innerText = `+${savedPhone}`;
-                    document.getElementById('badgeServerStatus').innerText = "● LAPTOP OFFLINE";
+                    document.getElementById('badgeServerStatus').innerText = "● SERVER OFFLINE";
                     document.getElementById('badgeServerStatus').style.color = "var(--warning)";
                     document.getElementById('txtServerOfflineNotice').style.display = "block";
                 }
@@ -2010,18 +1654,14 @@
         async function restoreGroupsFromServer(forcePull = false) {
             if (!SESSION_ID || SESSION_ID === 'unpaired_user') return false;
             try {
-                const res = await fetch(`${FIXED_BACKEND_URL}/api/groups/restore?sessionId=${SESSION_ID}`, {
-                    headers: getApiHeaders()
-                });
+                const res = await fetch(`${FIXED_BACKEND_URL}/api/groups/restore?sessionId=${SESSION_ID}`, { headers: getApiHeaders() });
                 const d = await res.json();
-                if (d.groups && Array.isArray(d.groups)) {
-                    if (groups.length === 0 || forcePull) {
-                        groups = d.groups;
-                        localStorage.setItem('app_groups', JSON.stringify(groups));
-                        renderGroups();
-                        renderDashboard();
-                        return true;
-                    }
+                if (d.groups && Array.isArray(d.groups) && (groups.length === 0 || forcePull)) {
+                    groups = d.groups;
+                    localStorage.setItem('app_groups', JSON.stringify(groups));
+                    renderGroups();
+                    renderDashboard();
+                    return true;
                 }
             } catch(e) {}
             return false;
@@ -2030,27 +1670,19 @@
         async function hydrateCampaignStateFromServer() {
             if (!SESSION_ID || SESSION_ID === 'unpaired_user') return;
             try {
-                const res = await fetch(`${FIXED_BACKEND_URL}/api/campaign/state?sessionId=${SESSION_ID}`, {
-                    headers: getApiHeaders()
-                });
+                const res = await fetch(`${FIXED_BACKEND_URL}/api/campaign/state?sessionId=${SESSION_ID}`, { headers: getApiHeaders() });
                 const d = await res.json();
-
-                if (d && d.quota) {
-                    persistRemainingQuotaCache(d.quota, SESSION_ID);
-                }
-
+                if (d && d.quota) persistRemainingQuotaCache(d.quota, SESSION_ID);
                 if (Array.isArray(d.history) && d.history.length > 0) {
                     globalCampaigns = d.history;
                     localStorage.setItem('app_campaigns', JSON.stringify(globalCampaigns));
                 }
-
                 const panel = document.getElementById('campaignCtrlPanel');
                 if (d.hasState && d.queue && d.queue.state !== 'STOPPED') {
                     const q = d.queue;
                     currentActiveCampaignId = q.campaignId;
                     panel.style.display = 'block';
                     document.getElementById('txtLiveCampaignProgress').innerText = `${q.sent || 0} / ${q.total} Sent`;
-
                     if (q.state === 'PAUSED') {
                         document.getElementById('txtLiveCampaignState').innerText = 'PAUSED';
                         document.getElementById('txtLiveCampaignState').style.color = 'var(--warning)';
@@ -2075,10 +1707,7 @@
             if (!phone) return showCustomDialog({ title: 'Input Required', message: 'Enter WhatsApp phone number', type: 'warning' });
             const cleanPhone = normalizeNumber(phone);
             if (!cleanPhone || cleanPhone.length < 10) return showCustomDialog({ title: 'Invalid Number', message: 'Enter a valid 10-digit phone number', type: 'warning' });
-
-            if (SESSION_ID && SESSION_ID !== 'unpaired_user' && SESSION_ID !== cleanPhone) {
-                clearStaleSessionLocalCache();
-            }
+            if (SESSION_ID && SESSION_ID !== 'unpaired_user' && SESSION_ID !== cleanPhone) clearStaleSessionLocalCache();
 
             const disp = document.getElementById('pairCodeDisplay');
             disp.style.display = 'block';
@@ -2089,11 +1718,7 @@
             try {
                 const res = await fetch(`${FIXED_BACKEND_URL}/api/pair`, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${DEFAULT_TOKEN}`,
-                        'ngrok-skip-browser-warning': 'true'
-                    },
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${DEFAULT_TOKEN}`, 'ngrok-skip-browser-warning': 'true' },
                     body: JSON.stringify({ phoneNumber: cleanPhone })
                 });
                 const d = await res.json();
@@ -2102,10 +1727,7 @@
                     if (pairingPollTimer) clearInterval(pairingPollTimer);
                     pairingPollTimer = setInterval(async () => {
                         const statusRes = await fetch(`${FIXED_BACKEND_URL}/api/status/${cleanPhone}`, {
-                            headers: {
-                                'Authorization': `Bearer ${DEFAULT_TOKEN}`,
-                                'ngrok-skip-browser-warning': 'true'
-                            }
+                            headers: { 'Authorization': `Bearer ${DEFAULT_TOKEN}`, 'ngrok-skip-browser-warning': 'true' }
                         });
                         const sd = await statusRes.json();
                         if (sd.status === 'CONNECTED') {
@@ -2117,38 +1739,27 @@
                             }
                             localStorage.setItem('connected_phone_permanent', cleanPhone);
                             localStorage.setItem('tenant_session_id', cleanPhone);
-                            if (sd.quota) {
-                                persistRemainingQuotaCache(sd.quota, cleanPhone);
-                            }
+                            if (sd.quota) persistRemainingQuotaCache(sd.quota, cleanPhone);
                             await syncWhatsAppAccountStatus();
-                            showCustomDialog({
-                                title: 'Connected!',
-                                message: `WhatsApp connected successfully for +${cleanPhone}!`,
-                                type: 'info'
-                            });
+                            showCustomDialog({ title: 'Connected!', message: `WhatsApp connected successfully for +${cleanPhone}!`, type: 'info' });
                         }
                     }, 2500);
                 } else disp.innerText = d.error || 'Pairing error';
-            } catch(e) { disp.innerText = 'Connection Error: Laptop Server Offline'; }
+            } catch(e) { disp.innerText = 'Connection Error: Server Offline'; }
             finally { btnPair.disabled = false; }
         }
 
         async function unlinkAccount() {
-            const lang = localStorage.getItem('app_lang') || 'en';
-            const msg = (i18n[lang] || i18n.en).warnUnlink;
-            
             const confirmed = await showCustomDialog({
                 title: 'Unlink Account?',
-                message: msg,
+                message: 'Are you sure you want to unlink your WhatsApp account? Local session on this phone will disconnect cleanly.',
                 type: 'danger',
                 confirmText: 'Unlink',
                 cancelText: 'Cancel'
             });
             if (!confirmed) return;
-
             const activeSid = SESSION_ID;
             resetToUnpairedLocalState();
-
             try {
                 await fetch(`${FIXED_BACKEND_URL}/api/logout`, {
                     method: 'POST',
@@ -2156,17 +1767,11 @@
                     body: JSON.stringify({ sessionId: activeSid })
                 });
             } catch(e) {}
-
             const keepTerms = localStorage.getItem('terms_accepted_permanent');
             localStorage.clear();
             sessionStorage.clear();
             if (keepTerms) localStorage.setItem('terms_accepted_permanent', keepTerms);
-
-            await showCustomDialog({
-                title: 'Logged Out',
-                message: 'Device session cleared.',
-                type: 'info'
-            });
+            await showCustomDialog({ title: 'Logged Out', message: 'Device session cleared.', type: 'info' });
             window.location.reload();
         }
 
@@ -2185,18 +1790,14 @@
 
         async function deleteSelectedGroups() {
             if (selectedGroupsForDelete.size === 0) return showCustomDialog({ title: 'Select Groups', message: 'Please select groups to delete.', type: 'warning' });
-            const lang = localStorage.getItem('app_lang') || 'en';
-            const msg = (i18n[lang] || i18n.en).warnDeleteGroups;
-
             const confirmed = await showCustomDialog({
                 title: 'Delete Groups?',
-                message: msg,
+                message: 'Permanently delete selected group(s)? The contacts inside these groups will be removed.',
                 type: 'danger',
                 confirmText: 'Delete',
                 cancelText: 'Cancel'
             });
             if (!confirmed) return;
-
             groups = groups.filter(g => !selectedGroupsForDelete.has(g.id));
             localStorage.setItem('app_groups', JSON.stringify(groups));
             syncGroupsToServer(true);
@@ -2204,27 +1805,16 @@
         }
 
         async function openMultiGroupDispatchModal() {
-            if (isSubscriptionExpiredGlobal) {
-                return showCustomDialog({ title: 'Access Denied', message: 'Your subscription has expired. Please recharge to continue.', type: 'danger' });
-            }
-            if (!SESSION_ID || SESSION_ID === 'unpaired_user') {
-                return showCustomDialog({ title: 'Not Connected', message: 'Please pair WhatsApp in Settings first.', type: 'warning' });
-            }
+            if (isSubscriptionExpiredGlobal) return showCustomDialog({ title: 'Access Denied', message: 'Your subscription has expired. Please recharge to continue.', type: 'danger' });
+            if (!SESSION_ID || SESSION_ID === 'unpaired_user') return showCustomDialog({ title: 'Not Connected', message: 'Please pair WhatsApp in Settings first.', type: 'warning' });
             await syncRemainingQuotaFromServer();
             await loadScheduledCampaignsList();
             const isScheduleEnabled = document.getElementById('chkEnableSchedule').checked;
             if (!isScheduleEnabled && remainingDailyQuotaGlobal <= 0) {
-                return showCustomDialog({
-                    title: 'Daily Limit Reached',
-                    message: '300 messages/day outbound quota reached. Resets at 12:00 AM.',
-                    type: 'warning'
-                });
+                return showCustomDialog({ title: 'Daily Limit Reached', message: '300 messages/day outbound quota reached. Resets at 12:00 AM.', type: 'warning' });
             }
-            if (!hasCampaignContent()) {
-                return showCustomDialog({ title: 'Content Missing', message: 'Please enter text or select 1 image/video for your campaign.', type: 'warning' });
-            }
+            if (!hasCampaignContent()) return showCustomDialog({ title: 'Content Missing', message: 'Please enter text or select 1 image/video for your campaign.', type: 'warning' });
             if (groups.length === 0) return showCustomDialog({ title: 'No Groups', message: 'No customer groups available.', type: 'warning' });
-
             selectedTargetGroupIds.clear();
             renderTargetGroupCards();
             renderQuotaIndicators();
@@ -2235,15 +1825,7 @@
             const container = document.getElementById('targetGroupsCardsContainer');
             container.innerHTML = groups.map(g => {
                 const isSelected = selectedTargetGroupIds.has(g.id);
-                return `
-                    <div class="group-select-card ${isSelected ? 'selected' : ''}" onclick="toggleTargetGroupSelect('${g.id}')">
-                        <div>
-                            <div style="font-weight: 600;">${escapeHtml(g.name)}</div>
-                            <div style="font-size: 0.78rem; color: var(--text-muted);">${g.contacts.length} / ${MAX_GROUP_CONTACTS} contacts</div>
-                        </div>
-                        <div class="group-checkbox-custom">${isSelected ? '✓' : ''}</div>
-                    </div>
-                `;
+                return `<div class="group-select-card ${isSelected ? 'selected' : ''}" onclick="toggleTargetGroupSelect('${g.id}')"><div><div style="font-weight: 600;">${escapeHtml(g.name)}</div><div style="font-size: 0.78rem; color: var(--text-muted);">${g.contacts.length} / ${MAX_GROUP_CONTACTS} contacts</div></div><div class="group-checkbox-custom">${isSelected ? '✓' : ''}</div></div>`;
             }).join('');
         }
 
@@ -2261,11 +1843,7 @@
 
         async function confirmDispatchMultiGroup() {
             if (selectedTargetGroupIds.size === 0) return showCustomDialog({ title: 'Select Target', message: 'Please select at least one group.', type: 'warning' });
-
-            if (!SESSION_ID || SESSION_ID === 'unpaired_user') {
-                return showCustomDialog({ title: 'Not Connected', message: 'Please pair WhatsApp in Settings first.', type: 'warning' });
-            }
-
+            if (!SESSION_ID || SESSION_ID === 'unpaired_user') return showCustomDialog({ title: 'Not Connected', message: 'Please pair WhatsApp in Settings first.', type: 'warning' });
             await loadScheduledCampaignsList();
 
             const combinedMap = new Map();
@@ -2276,7 +1854,6 @@
                     if (norm) combinedMap.set(norm, { name: c.name, phone: norm });
                 });
             });
-
             const uniqueRecipients = Array.from(combinedMap.values());
             if (uniqueRecipients.length === 0) return showCustomDialog({ title: 'No Valid Contacts', message: 'Selected groups contain no valid contacts.', type: 'warning' });
 
@@ -2284,13 +1861,8 @@
             const scheduleTime = document.getElementById('campScheduleTime').value;
 
             if (!isScheduleEnabled && remainingDailyQuotaGlobal <= 0) {
-                return showCustomDialog({
-                    title: 'Daily Limit Reached',
-                    message: '300 messages/day outbound quota reached. Resets at 12:00 AM.',
-                    type: 'warning'
-                });
+                return showCustomDialog({ title: 'Daily Limit Reached', message: '300 messages/day outbound quota reached. Resets at 12:00 AM.', type: 'warning' });
             }
-
             if (isScheduleEnabled && cachedScheduledJobs.length >= MAX_SCHEDULE_SLOTS) {
                 return showCustomDialog({ title: 'Schedule Slot Occupied', message: 'Maximum 1 scheduled slot allowed at a time! Cancel the active schedule first.', type: 'warning' });
             }
@@ -2321,29 +1893,18 @@
                 fileName: campaignDraft.fileName || ''
             }];
             formData.append('blocksMeta', JSON.stringify(blocksMeta));
-
-            if (activeCampaignMode !== 'text' && campaignDraft.file) {
-                formData.append(`file_${blockId}`, campaignDraft.file);
-            }
+            if (activeCampaignMode !== 'text' && campaignDraft.file) formData.append(`file_${blockId}`, campaignDraft.file);
 
             closeTopModal();
             const btnLaunch = document.getElementById('btnStartSend');
             btnLaunch.disabled = true;
-
-            showReadinessWaiting(isScheduleEnabled ? 'Saving schedule to laptop engine...' : 'Dispatching campaign...');
+            showReadinessWaiting(isScheduleEnabled ? 'Saving schedule to server...' : 'Dispatching campaign...');
 
             try {
-                const res = await fetch(`${FIXED_BACKEND_URL}/api/message/send-bulk`, {
-                    method: 'POST',
-                    headers: getApiHeaders(),
-                    body: formData
-                });
+                const res = await fetch(`${FIXED_BACKEND_URL}/api/message/send-bulk`, { method: 'POST', headers: getApiHeaders(), body: formData });
                 const d = await res.json();
                 document.getElementById('readinessModal').style.display = 'none';
-
-                if (d && d.quota) {
-                    persistRemainingQuotaCache(d.quota, SESSION_ID);
-                }
+                if (d && d.quota) persistRemainingQuotaCache(d.quota, SESSION_ID);
                 if (d.status === 'SCHEDULED') {
                     campaignDraft = { text: '', file: null, fileName: '', caption: '' };
                     renderBulkSequence();
@@ -2363,18 +1924,15 @@
                 } else showCustomDialog({ title: 'Dispatch Error', message: d.error || 'Failed to dispatch', type: 'danger' });
             } catch(e) {
                 document.getElementById('readinessModal').style.display = 'none';
-                showCustomDialog({ title: 'Connection Error', message: 'Laptop server offline. Ensure engine & ngrok are running.', type: 'danger' });
+                showCustomDialog({ title: 'Connection Error', message: 'Server offline. Please try again shortly.', type: 'danger' });
+            } finally {
+                btnLaunch.disabled = false;
             }
-            finally { btnLaunch.disabled = false; }
         }
 
         async function pauseCurrentCampaign() {
             try {
-                const res = await fetch(`${FIXED_BACKEND_URL}/api/campaign/pause`, {
-                    method: 'POST',
-                    headers: getApiHeaders({ 'Content-Type': 'application/json' }),
-                    body: JSON.stringify({ sessionId: SESSION_ID, campaignId: currentActiveCampaignId })
-                });
+                const res = await fetch(`${FIXED_BACKEND_URL}/api/campaign/pause`, { method: 'POST', headers: getApiHeaders({ 'Content-Type': 'application/json' }), body: JSON.stringify({ sessionId: SESSION_ID, campaignId: currentActiveCampaignId }) });
                 const d = await res.json();
                 if (d && d.quota) persistRemainingQuotaCache(d.quota, SESSION_ID);
                 if (d.status === 'PAUSED') {
@@ -2389,11 +1947,7 @@
 
         async function resumeCurrentCampaign() {
             try {
-                const res = await fetch(`${FIXED_BACKEND_URL}/api/campaign/resume`, {
-                    method: 'POST',
-                    headers: getApiHeaders({ 'Content-Type': 'application/json' }),
-                    body: JSON.stringify({ sessionId: SESSION_ID, campaignId: currentActiveCampaignId })
-                });
+                const res = await fetch(`${FIXED_BACKEND_URL}/api/campaign/resume`, { method: 'POST', headers: getApiHeaders({ 'Content-Type': 'application/json' }), body: JSON.stringify({ sessionId: SESSION_ID, campaignId: currentActiveCampaignId }) });
                 const d = await res.json();
                 if (d && d.quota) persistRemainingQuotaCache(d.quota, SESSION_ID);
                 if (d.status === 'RUNNING') {
@@ -2407,24 +1961,16 @@
         }
 
         async function stopCurrentCampaign() {
-            const lang = localStorage.getItem('app_lang') || 'en';
-            const msg = (i18n[lang] || i18n.en).warnStopCamp;
-
             const confirmed = await showCustomDialog({
                 title: 'Stop Campaign?',
-                message: msg,
+                message: 'Permanently stop this active campaign? Remaining pending messages will NOT be sent.',
                 type: 'danger',
                 confirmText: 'Stop Campaign',
                 cancelText: 'Cancel'
             });
             if (!confirmed) return;
-
             try {
-                const res = await fetch(`${FIXED_BACKEND_URL}/api/campaign/stop`, {
-                    method: 'POST',
-                    headers: getApiHeaders({ 'Content-Type': 'application/json' }),
-                    body: JSON.stringify({ sessionId: SESSION_ID, campaignId: currentActiveCampaignId })
-                });
+                const res = await fetch(`${FIXED_BACKEND_URL}/api/campaign/stop`, { method: 'POST', headers: getApiHeaders({ 'Content-Type': 'application/json' }), body: JSON.stringify({ sessionId: SESSION_ID, campaignId: currentActiveCampaignId }) });
                 const d = await res.json();
                 if (d && d.quota) persistRemainingQuotaCache(d.quota, SESSION_ID);
                 if (d.status === 'STOPPED') {
@@ -2438,27 +1984,16 @@
 
         function pollCampaignLive(campId) {
             if (pollTimer) clearInterval(pollTimer);
-
             pollTimer = setInterval(async () => {
                 try {
-                    const res = await fetch(`${FIXED_BACKEND_URL}/api/queue-status/${SESSION_ID}`, {
-                        headers: getApiHeaders()
-                    });
+                    const res = await fetch(`${FIXED_BACKEND_URL}/api/queue-status/${SESSION_ID}`, { headers: getApiHeaders() });
                     const q = await res.json();
-
-                    if (q && q.quota) {
-                        persistRemainingQuotaCache(q.quota, SESSION_ID);
-                    }
-
+                    if (q && q.quota) persistRemainingQuotaCache(q.quota, SESSION_ID);
                     if (Array.isArray(q.history) && q.history.length > 0) {
                         globalCampaigns = q.history;
                         localStorage.setItem('app_campaigns', JSON.stringify(globalCampaigns));
                     }
-
-                    if (q && q.total > 0) {
-                        document.getElementById('txtLiveCampaignProgress').innerText = `${q.sent || 0} / ${q.total} Sent`;
-                    }
-
+                    if (q && q.total > 0) document.getElementById('txtLiveCampaignProgress').innerText = `${q.sent || 0} / ${q.total} Sent`;
                     if (q.state === 'PAUSED') {
                         document.getElementById('txtLiveCampaignState').innerText = 'PAUSED';
                         document.getElementById('txtLiveCampaignState').style.color = 'var(--warning)';
@@ -2470,9 +2005,7 @@
                         document.getElementById('btnPauseCampaign').style.display = 'block';
                         document.getElementById('btnResumeCampaign').style.display = 'none';
                     }
-
                     renderDashboard();
-
                     if (!q.isRunning && q.state !== 'PAUSED') {
                         clearInterval(pollTimer);
                         document.getElementById('campaignCtrlPanel').style.display = 'none';
@@ -2493,30 +2026,17 @@
                 container.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 20px;">No campaigns recorded yet.</div>';
                 return;
             }
-
             container.innerHTML = globalCampaigns.map((camp, idx) => `
                 <div class="card">
                     <div style="display: flex; justify-content: space-between; font-weight: bold; margin-bottom: 8px;">
-                        <span>Campaign #${globalCampaigns.length - idx}</span>
+                        <span>${camp.isSchedule ? 'Schedule' : 'Campaign'} #${globalCampaigns.length - idx}</span>
                         <span style="font-size: 0.75rem; color: var(--text-muted);">${escapeHtml(camp.timestamp)}</span>
                     </div>
                     <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px;">
-                        <div class="dh-pill" onclick="showFilteredContacts('${camp.id}', 'ALL')">
-                            <div class="dh-val">${camp.total}</div>
-                            <div class="dh-lbl">Total</div>
-                        </div>
-                        <div class="dh-pill" onclick="showFilteredContacts('${camp.id}', 'SENT')">
-                            <div class="dh-val" style="color: var(--primary);">${camp.sent}</div>
-                            <div class="dh-lbl">Sent</div>
-                        </div>
-                        <div class="dh-pill" onclick="showFilteredContacts('${camp.id}', 'FAILED')">
-                            <div class="dh-val" style="color: var(--danger);">${camp.failed}</div>
-                            <div class="dh-lbl">Failed</div>
-                        </div>
-                        <div class="dh-pill" onclick="showFilteredContacts('${camp.id}', 'PENDING')">
-                            <div class="dh-val" style="color: var(--warning);">${camp.pending}</div>
-                            <div class="dh-lbl">Pending</div>
-                        </div>
+                        <div class="dh-pill" onclick="showFilteredContacts('${camp.id}', 'ALL')"><div class="dh-val">${camp.total}</div><div class="dh-lbl">Total</div></div>
+                        <div class="dh-pill" onclick="showFilteredContacts('${camp.id}', 'SENT')"><div class="dh-val" style="color: var(--primary);">${camp.sent}</div><div class="dh-lbl">Sent</div></div>
+                        <div class="dh-pill" onclick="showFilteredContacts('${camp.id}', 'FAILED')"><div class="dh-val" style="color: var(--danger);">${camp.failed}</div><div class="dh-lbl">Failed</div></div>
+                        <div class="dh-pill" onclick="showFilteredContacts('${camp.id}', 'PENDING')"><div class="dh-val" style="color: var(--warning);">${camp.pending}</div><div class="dh-lbl">Pending</div></div>
                     </div>
                 </div>
             `).join('');
@@ -2529,9 +2049,7 @@
                 return;
             }
             try {
-                const res = await fetch(`${FIXED_BACKEND_URL}/api/campaign/scheduled-jobs/${SESSION_ID}`, {
-                    headers: getApiHeaders()
-                });
+                const res = await fetch(`${FIXED_BACKEND_URL}/api/campaign/scheduled-jobs/${SESSION_ID}`, { headers: getApiHeaders() });
                 const d = await res.json();
                 if (d.success && Array.isArray(d.jobs)) {
                     cachedScheduledJobs = d.jobs;
@@ -2555,51 +2073,31 @@
         function openScheduledPreview(jobId) {
             const job = cachedScheduledJobs.find(x => x.id === jobId);
             if (!job) return;
-
             const bodyEl = document.getElementById('schedModalBody');
-            let contentHtml = `<div style="margin-bottom:8px;"><b>Date:</b> ${escapeHtml(job.scheduledForDate)}</div>
-                               <div style="margin-bottom:12px;"><b>Total Recipients:</b> ${job.recipientCount}</div>`;
-
+            let contentHtml = `<div style="margin-bottom:8px;"><b>Date:</b> ${escapeHtml(job.scheduledForDate)}</div><div style="margin-bottom:12px;"><b>Total Recipients:</b> ${job.recipientCount}</div>`;
             if (job.sequenceSummary && job.sequenceSummary.length > 0) {
                 contentHtml += `<b>Sequence Blocks (${job.sequenceSummary.length}):</b><div style="margin-top:6px;">`;
                 job.sequenceSummary.forEach((s, idx) => {
-                    contentHtml += `<div style="background:var(--surface-card); padding:8px; border-radius:6px; margin-bottom:6px; border:1px solid var(--border);">
-                        <span style="color:var(--primary); font-weight:bold;">#${idx+1} [${s.type.toUpperCase()}]</span>: ${escapeHtml(s.content || s.fileName || '')}
-                        ${s.caption ? `<div style="font-size:0.78rem; color:var(--text-muted); margin-top:2px;">Caption: ${escapeHtml(s.caption)}</div>` : ''}
-                    </div>`;
+                    contentHtml += `<div style="background:var(--surface-card); padding:8px; border-radius:6px; margin-bottom:6px; border:1px solid var(--border);"><span style="color:var(--primary); font-weight:bold;">#${idx+1} [${s.type.toUpperCase()}]</span>: ${escapeHtml(s.content || s.fileName || '')}${s.caption ? `<div style="font-size:0.78rem; color:var(--text-muted); margin-top:2px;">Caption: ${escapeHtml(s.caption)}</div>` : ''}</div>`;
                 });
                 contentHtml += `</div>`;
-            } else if (job.message) {
-                contentHtml += `<b>Message:</b><div style="background:var(--surface-card); padding:8px; border-radius:6px; margin-top:4px;">${escapeHtml(job.message)}</div>`;
             }
-
             bodyEl.innerHTML = contentHtml;
-            document.getElementById('btnModalCancelSched').onclick = () => {
-                closeTopModal();
-                cancelScheduledCampaign(jobId);
-            };
+            document.getElementById('btnModalCancelSched').onclick = () => { closeTopModal(); cancelScheduledCampaign(jobId); };
             openModal('scheduledDetailsModal');
         }
 
         async function cancelScheduledCampaign(jobId) {
-            const lang = localStorage.getItem('app_lang') || 'en';
-            const msg = (i18n[lang] || i18n.en).warnCancelSched;
-
             const confirmed = await showCustomDialog({
                 title: 'Cancel Schedule?',
-                message: msg,
+                message: 'Cancel this scheduled campaign? The queue will be removed and attached media purged.',
                 type: 'danger',
                 confirmText: 'Cancel Schedule',
                 cancelText: 'Keep'
             });
             if (!confirmed) return;
-
             try {
-                const res = await fetch(`${FIXED_BACKEND_URL}/api/campaign/cancel-schedule`, {
-                    method: 'POST',
-                    headers: getApiHeaders({ 'Content-Type': 'application/json' }),
-                    body: JSON.stringify({ sessionId: SESSION_ID, jobId })
-                });
+                const res = await fetch(`${FIXED_BACKEND_URL}/api/campaign/cancel-schedule`, { method: 'POST', headers: getApiHeaders({ 'Content-Type': 'application/json' }), body: JSON.stringify({ sessionId: SESSION_ID, jobId }) });
                 const d = await res.json();
                 if (d.success) {
                     showCustomDialog({ title: 'Cancelled', message: 'Scheduled campaign cancelled.', type: 'info' });
@@ -2611,39 +2109,21 @@
         function showFilteredContacts(campId, filterType) {
             const camp = globalCampaigns.find(c => c.id === campId);
             if (!camp) return;
-
             let list = camp.recipients || [];
             const container = document.getElementById('filterModalContainer');
-
             if (filterType === 'SENT') {
                 document.getElementById('filterModalTitle').innerText = 'Delivered Summary';
-                container.innerHTML = `<div style="text-align: center; color: var(--text); padding: 24px;">
-                    <div style="font-size: 2rem; margin-bottom: 8px;">✅</div>
-                    <b>Delivered Successfully</b><br><br>
-                    <span style="color: var(--text-muted); font-size: 0.85rem;">All ${camp.sent} recipients received this campaign. Individual numbers are cleared for storage optimization.</span>
-                </div>`;
+                container.innerHTML = `<div style="text-align: center; color: var(--text); padding: 24px;"><div style="font-size: 2rem; margin-bottom: 8px;">✅</div><b>Delivered Successfully</b><br><br><span style="color: var(--text-muted); font-size: 0.85rem;">All ${camp.sent} recipients received this campaign. Individual numbers are cleared for storage optimization.</span></div>`;
                 openModal('contactFilterModal');
                 return;
             }
-
             if (filterType === 'FAILED') list = list.filter(r => r.status === 'FAILED');
             else if (filterType === 'PENDING') list = list.filter(r => r.status === 'PENDING');
-
             document.getElementById('filterModalTitle').innerText = `${filterType} Contacts (${list.length})`;
-
             if (list.length === 0) {
                 container.innerHTML = `<div style="text-align: center; color: var(--text-muted); padding: 24px;">No ${filterType.toLowerCase()} contacts found in this campaign.</div>`;
             } else {
-                container.innerHTML = list.map(c => `
-                    <div class="contact-picker-row">
-                        <div class="contact-avatar">${escapeHtml((c.name || 'U').charAt(0).toUpperCase())}</div>
-                        <div class="contact-details">
-                            <div class="contact-name-txt">${escapeHtml(c.name || 'Unsaved')}</div>
-                            <div class="contact-phone-txt">${escapeHtml(c.phone)}</div>
-                        </div>
-                        <span style="font-size: 0.72rem; padding: 2px 6px; border-radius: 4px; font-weight: bold; background: ${c.status === 'FAILED' ? 'rgba(239,68,68,0.2)' : 'rgba(245,158,11,0.2)'}; color: ${c.status === 'FAILED' ? 'var(--danger)' : 'var(--warning)'};">${escapeHtml(c.status)}</span>
-                    </div>
-                `).join('');
+                container.innerHTML = list.map(c => `<div class="contact-picker-row"><div class="contact-avatar">${escapeHtml((c.name || 'U').charAt(0).toUpperCase())}</div><div class="contact-details"><div class="contact-name-txt">${escapeHtml(c.name || 'Unsaved')}</div><div class="contact-phone-txt">${escapeHtml(c.phone)}</div></div><span style="font-size: 0.72rem; padding: 2px 6px; border-radius: 4px; font-weight: bold; background: ${c.status === 'FAILED' ? 'rgba(239,68,68,0.2)' : 'rgba(245,158,11,0.2)'}; color: ${c.status === 'FAILED' ? 'var(--danger)' : 'var(--warning)'};">${escapeHtml(c.status)}</span></div>`).join('');
             }
             openModal('contactFilterModal');
         }
@@ -2657,31 +2137,26 @@
             const ackBuild = parseInt(localStorage.getItem('acknowledged_release_build')) || 0;
             if (ackBuild > CURRENT_BUILD_NUMBER) CURRENT_BUILD_NUMBER = ackBuild;
             document.getElementById('lblCurrentVer').innerText = `v3.6.${CURRENT_BUILD_NUMBER}`;
-
             try {
-                const res = await fetch("https://api.github.com/repos/itsdarkgaming007/version-3-/releases/latest", {
-                    headers: { 'Accept': 'application/vnd.github.v3+json' }
-                });
+                const res = await fetch("https://api.github.com/repos/itsdarkgaming007/version-3-/releases/latest", { headers: { 'Accept': 'application/vnd.github.v3+json' } });
                 const rel = await res.json();
-                
                 if (rel && rel.name) {
                     const latestBuild = extractRunNumber(rel.name);
                     latestDetectedRemoteBuild = latestBuild;
-
                     if (latestBuild > CURRENT_BUILD_NUMBER) {
                         document.getElementById('lblCloudSyncStatus').innerText = "Update available";
                         document.getElementById('lblCloudSyncStatus').style.color = "var(--warning)";
                         document.getElementById('updateBanner').style.display = 'block';
                         document.getElementById('lblNewVerNumber').innerText = `Release: ${rel.name}`;
                     } else {
-                        document.getElementById('lblCloudSyncStatus').innerText = "Local Engine Active";
+                        document.getElementById('lblCloudSyncStatus').innerText = "Up to date";
                         document.getElementById('lblCloudSyncStatus').style.color = "var(--primary)";
                         document.getElementById('updateBanner').style.display = 'none';
                         if (isManual) showCustomDialog({ title: 'Latest Version', message: 'App is running latest version.', type: 'info' });
                     }
                 }
             } catch(e) {
-                document.getElementById('lblCloudSyncStatus').innerText = "Local Engine Active";
+                document.getElementById('lblCloudSyncStatus').innerText = "Up to date";
                 document.getElementById('lblCloudSyncStatus').style.color = "var(--primary)";
             }
         }
@@ -2692,24 +2167,13 @@
 
         async function executeNativeAppShare() {
             const shareUrl = SERVER_SHARE_URL || `${FIXED_BACKEND_URL}/share`;
-            const shareData = {
-                title: 'WA Campaign',
-                text: 'WA Campaign — Smart Marketing Platform:',
-                url: shareUrl
-            };
-
+            const shareData = { title: 'WA Campaign', text: 'WA Campaign — Smart Marketing Platform:', url: shareUrl };
             const SharePlugin = window.Capacitor?.Plugins?.Share;
             if (SharePlugin) {
-                try {
-                    await SharePlugin.share(shareData);
-                    return;
-                } catch(e) {}
+                try { await SharePlugin.share(shareData); return; } catch(e) {}
             }
             if (navigator.share) {
-                try {
-                    await navigator.share(shareData);
-                    return;
-                } catch(e) {}
+                try { await navigator.share(shareData); return; } catch(e) {}
             }
             navigator.clipboard.writeText(shareUrl);
             showCustomDialog({ title: 'Copied', message: 'Share link copied to clipboard!', type: 'info' });
@@ -2737,18 +2201,7 @@
             }
             container.innerHTML = groups.map(g => {
                 const isSelected = selectedGroupsForDelete.has(g.id);
-                return `
-                    <div class="group-card ${isSelected ? 'selected' : ''}" onclick="${isGroupSelectMode ? `toggleGroupSelectionForDelete('${g.id}', event)` : `openMembersManagerFor('${g.id}')`}">
-                        <div style="display: flex; align-items: center; gap: 10px;">
-                            ${isGroupSelectMode ? `<div class="group-checkbox-custom" style="${isSelected ? 'background: var(--danger); border-color: var(--danger);' : ''}">${isSelected ? '✓' : ''}</div>` : ''}
-                            <div>
-                                <div class="group-card-title">${escapeHtml(g.name)}</div>
-                                <div style="font-size: 0.75rem; color: var(--text-muted);">Created: ${new Date(g.createdAt).toLocaleDateString()}</div>
-                            </div>
-                        </div>
-                        <span class="group-card-badge">${g.contacts.length} / ${MAX_GROUP_CONTACTS}</span>
-                    </div>
-                `;
+                return `<div class="group-card ${isSelected ? 'selected' : ''}" onclick="${isGroupSelectMode ? `toggleGroupSelectionForDelete('${g.id}', event)` : `openMembersManagerFor('${g.id}')`}"><div style="display: flex; align-items: center; gap: 10px;">${isGroupSelectMode ? `<div class="group-checkbox-custom" style="${isSelected ? 'background: var(--danger); border-color: var(--danger);' : ''}">${isSelected ? '✓' : ''}</div>` : ''}<div><div class="group-card-title">${escapeHtml(g.name)}</div><div style="font-size: 0.75rem; color: var(--text-muted);">Created: ${new Date(g.createdAt).toLocaleDateString()}</div></div></div><span class="group-card-badge">${g.contacts.length} / ${MAX_GROUP_CONTACTS}</span></div>`;
             }).join('');
         }
 
@@ -2762,9 +2215,7 @@
         function saveGroup() {
             const name = document.getElementById('newGroupName').value.trim();
             if (!name) return showCustomDialog({ title: 'Input Required', message: 'Enter group name', type: 'warning' });
-            if (stagedContacts.length > MAX_GROUP_CONTACTS) {
-                return showCustomDialog({ title: 'Limit Exceeded', message: `Group limit exceeded! Maximum allowed is ${MAX_GROUP_CONTACTS} contacts.`, type: 'warning' });
-            }
+            if (stagedContacts.length > MAX_GROUP_CONTACTS) return showCustomDialog({ title: 'Limit Exceeded', message: `Group limit exceeded! Maximum allowed is ${MAX_GROUP_CONTACTS} contacts.`, type: 'warning' });
             groups.push({ id: 'grp_' + Date.now(), name, contacts: stagedContacts, createdAt: Date.now() });
             localStorage.setItem('app_groups', JSON.stringify(groups));
             syncGroupsToServer();
@@ -2794,46 +2245,22 @@
             }
         }
 
-        function filterGroupMembers() {
-            renderMembers();
-        }
+        function filterGroupMembers() { renderMembers(); }
 
         function renderMembers() {
             const g = groups.find(x => x.id === activeGroupId);
             const container = document.getElementById('membersListContainer');
             const counter = document.getElementById('groupMemberCountBadge');
             if (!g) return;
-
             const q = (document.getElementById('groupMembersSearch')?.value || '').toLowerCase().trim();
             let displayList = g.contacts || [];
-            if (q) {
-                displayList = displayList.filter(c => 
-                    (c.name || '').toLowerCase().includes(q) || (c.phone || '').includes(q)
-                );
-            }
-
+            if (q) displayList = displayList.filter(c => (c.name || '').toLowerCase().includes(q) || (c.phone || '').includes(q));
             if (counter) counter.innerText = `${displayList.length} / ${g.contacts.length} Members`;
-
             if (displayList.length === 0) {
                 container.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 30px;">No contacts found.</div>';
                 return;
             }
-
-            container.innerHTML = displayList.map(c => {
-                return `
-                    <div class="contact-picker-row">
-                        <div class="contact-avatar">${escapeHtml((c.name || 'U').charAt(0).toUpperCase())}</div>
-                        <div class="contact-details">
-                            <div class="contact-name-txt">${escapeHtml(c.name || 'Unsaved')}</div>
-                            <div class="contact-phone-txt">${escapeHtml(c.phone)}</div>
-                        </div>
-                        <div style="display: flex; gap: 8px;">
-                            <button class="icon-btn" style="color: var(--primary); font-size: 1.1rem;" onclick="openEditMemberByPhone('${c.phone}')">✏️</button>
-                            <button class="icon-btn" style="color: var(--danger); font-size: 1.1rem;" onclick="confirmAndDeleteMemberByPhone('${c.phone}')">🗑️</button>
-                        </div>
-                    </div>
-                `;
-            }).join('');
+            container.innerHTML = displayList.map(c => `<div class="contact-picker-row"><div class="contact-avatar">${escapeHtml((c.name || 'U').charAt(0).toUpperCase())}</div><div class="contact-details"><div class="contact-name-txt">${escapeHtml(c.name || 'Unsaved')}</div><div class="contact-phone-txt">${escapeHtml(c.phone)}</div></div><div style="display: flex; gap: 8px;"><button class="icon-btn" style="color: var(--primary); font-size: 1.1rem;" onclick="openEditMemberByPhone('${c.phone}')">✏️</button><button class="icon-btn" style="color: var(--danger); font-size: 1.1rem;" onclick="confirmAndDeleteMemberByPhone('${c.phone}')">🗑️</button></div></div>`).join('');
         }
 
         async function confirmAndDeleteMemberByPhone(phone) {
@@ -2841,15 +2268,7 @@
             if (!g) return;
             const target = g.contacts.find(x => x.phone === phone);
             if (!target) return;
-            const displayName = target.name || target.phone;
-
-            const confirmed = await showCustomDialog({
-                title: 'Delete Contact?',
-                message: `Are you sure you want to delete "${displayName}" from this group?`,
-                type: 'danger',
-                confirmText: 'Delete',
-                cancelText: 'Cancel'
-            });
+            const confirmed = await showCustomDialog({ title: 'Delete Contact?', message: `Are you sure you want to delete "${target.name || target.phone}" from this group?`, type: 'danger', confirmText: 'Delete', cancelText: 'Cancel' });
             if (confirmed) {
                 g.contacts = g.contacts.filter(c => c.phone !== phone);
                 localStorage.setItem('app_groups', JSON.stringify(groups));
@@ -2877,7 +2296,6 @@
             const name = document.getElementById('editTargetName').value.trim();
             const phone = normalizeNumber(document.getElementById('editTargetPhone').value.trim());
             if (!phone || phone.length < 10) return showCustomDialog({ title: 'Invalid Phone', message: 'Enter a valid phone number', type: 'warning' });
-
             g.contacts[editingMemberIndex] = { name, phone };
             localStorage.setItem('app_groups', JSON.stringify(groups));
             syncGroupsToServer();
@@ -2890,13 +2308,10 @@
             const g = groups.find(x => x.id === activeGroupId);
             if (!g) return;
             if (g.contacts.length >= MAX_GROUP_CONTACTS) return showCustomDialog({ title: 'Limit Reached', message: `Maximum safe limit of ${MAX_GROUP_CONTACTS} reached.`, type: 'warning' });
-
             const name = document.getElementById('quickAddName').value.trim();
             const phone = normalizeNumber(document.getElementById('quickAddPhone').value.trim());
             if (!phone || phone.length < 10) return showCustomDialog({ title: 'Invalid Phone', message: 'Enter valid phone number', type: 'warning' });
-
             if (g.contacts.some(c => c.phone === phone)) return showCustomDialog({ title: 'Duplicate Contact', message: 'Phone number already exists in this group.', type: 'warning' });
-
             g.contacts.push({ name, phone });
             localStorage.setItem('app_groups', JSON.stringify(groups));
             syncGroupsToServer();
@@ -2906,7 +2321,6 @@
             renderGroups();
         }
 
-        // --- DIRECT PHONEBOOK LOADER ---
         async function openPhonebookSelector(mode) {
             pbTargetMode = mode;
             selectedPbContacts.clear();
@@ -2915,31 +2329,34 @@
             if (mode === 'edit') {
                 const g = groups.find(x => x.id === activeGroupId);
                 if (g && Array.isArray(g.contacts)) {
-                    g.contacts.forEach(c => {
-                        const norm = normalizeNumber(c.phone);
-                        if (norm) selectedPbContacts.add(norm);
-                    });
+                    g.contacts.forEach(c => { const norm = normalizeNumber(c.phone); if (norm) selectedPbContacts.add(norm); });
                 }
             } else if (mode === 'create') {
-                stagedContacts.forEach(c => {
-                    const norm = normalizeNumber(c.phone);
-                    if (norm) selectedPbContacts.add(norm);
-                });
+                stagedContacts.forEach(c => { const norm = normalizeNumber(c.phone); if (norm) selectedPbContacts.add(norm); });
             }
 
             const ContactsPlugin = window.Capacitor?.Plugins?.Contacts;
             if (ContactsPlugin) {
                 try {
+                    if (typeof ContactsPlugin.checkPermissions === 'function') {
+                        const permStatus = await ContactsPlugin.checkPermissions();
+                        const stateVal = permStatus?.contacts || permStatus?.readContacts || permStatus?.status || '';
+                        if (stateVal !== 'granted' && typeof ContactsPlugin.requestPermissions === 'function') {
+                            const reqStatus = await ContactsPlugin.requestPermissions();
+                            const reqVal = reqStatus?.contacts || reqStatus?.readContacts || reqStatus?.status || '';
+                            if (reqVal === 'denied') {
+                                showCustomDialog({ title: 'Contacts Access Needed', message: 'Please allow Contacts permission in Android App Settings -> Permissions -> Contacts, then tap Pick Contacts again.', type: 'warning' });
+                                return;
+                            }
+                        }
+                    }
                     let res = null;
                     try {
                         res = await ContactsPlugin.getContacts({ projection: { name: true, phones: true } });
                     } catch (readErr) {
-                        if (typeof ContactsPlugin.requestPermissions === 'function') {
-                            await ContactsPlugin.requestPermissions();
-                        }
+                        if (typeof ContactsPlugin.requestPermissions === 'function') await ContactsPlugin.requestPermissions();
                         res = await ContactsPlugin.getContacts({ projection: { name: true, phones: true } });
                     }
-
                     if (res && Array.isArray(res.contacts)) {
                         cachedDeviceContacts = [];
                         res.contacts.forEach(c => {
@@ -2977,11 +2394,7 @@
                 } catch(e) {}
             }
 
-            showCustomDialog({
-                title: 'Contacts Access Needed',
-                message: 'Please allow Contacts permission in Android App Settings -> Permissions -> Contacts, then tap Pick Contacts again.',
-                type: 'warning'
-            });
+            showCustomDialog({ title: 'Contacts Access Needed', message: 'Please allow Contacts permission in Android App Settings -> Permissions -> Contacts, then tap Pick Contacts again.', type: 'warning' });
         }
 
         function showPhonebookOverlay() { document.getElementById('phonebookOverlay').style.display = 'flex'; }
@@ -2999,30 +2412,17 @@
                 container.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 40px;">No contacts found.</div>';
                 return;
             }
-
             container.innerHTML = list.map(c => {
                 const isSelected = selectedPbContacts.has(c.phone);
                 const initial = (c.name || 'U').charAt(0).toUpperCase();
-                return `
-                    <div class="contact-picker-row ${isSelected ? 'selected' : ''}" onclick="togglePbSelect('${escapeHtml(c.phone)}')">
-                        <div class="contact-avatar">${escapeHtml(initial)}</div>
-                        <div class="contact-details">
-                            <div class="contact-name-txt">${escapeHtml(c.name || 'Unsaved')}</div>
-                            <div class="contact-phone-txt">${escapeHtml(c.phone)}</div>
-                        </div>
-                        <div class="contact-chk-box">${isSelected ? '✓' : ''}</div>
-                    </div>
-                `;
+                return `<div class="contact-picker-row ${isSelected ? 'selected' : ''}" onclick="togglePbSelect('${escapeHtml(c.phone)}')"><div class="contact-avatar">${escapeHtml(initial)}</div><div class="contact-details"><div class="contact-name-txt">${escapeHtml(c.name || 'Unsaved')}</div><div class="contact-phone-txt">${escapeHtml(c.phone)}</div></div><div class="contact-chk-box">${isSelected ? '✓' : ''}</div></div>`;
             }).join('');
         }
 
         function togglePbSelect(phone) {
-            if (selectedPbContacts.has(phone)) {
-                selectedPbContacts.delete(phone);
-            } else {
-                if (selectedPbContacts.size + 1 > MAX_GROUP_CONTACTS) {
-                    return showCustomDialog({ title: 'Limit Reached', message: `Group limit capped at ${MAX_GROUP_CONTACTS} contacts.`, type: 'warning' });
-                }
+            if (selectedPbContacts.has(phone)) selectedPbContacts.delete(phone);
+            else {
+                if (selectedPbContacts.size + 1 > MAX_GROUP_CONTACTS) return showCustomDialog({ title: 'Limit Reached', message: `Group limit capped at ${MAX_GROUP_CONTACTS} contacts.`, type: 'warning' });
                 selectedPbContacts.add(phone);
             }
             renderPhonebook(currentlyFilteredContacts);
@@ -3030,17 +2430,11 @@
         }
 
         function toggleSelectAllFilteredContacts() {
-            const normalizedFilteredPhones = currentlyFilteredContacts
-                .map(c => normalizeNumber(c.phone))
-                .filter(Boolean);
-
+            const normalizedFilteredPhones = currentlyFilteredContacts.map(c => normalizeNumber(c.phone)).filter(Boolean);
             if (normalizedFilteredPhones.length === 0) return;
-
             const allSelected = normalizedFilteredPhones.every(p => selectedPbContacts.has(p));
-
-            if (allSelected) {
-                normalizedFilteredPhones.forEach(p => selectedPbContacts.delete(p));
-            } else {
+            if (allSelected) normalizedFilteredPhones.forEach(p => selectedPbContacts.delete(p));
+            else {
                 for (const p of normalizedFilteredPhones) {
                     if (selectedPbContacts.size >= MAX_GROUP_CONTACTS) break;
                     selectedPbContacts.add(p);
@@ -3052,9 +2446,7 @@
 
         function filterPhonebook() {
             const q = document.getElementById('phonebookSearch').value.toLowerCase().trim();
-            currentlyFilteredContacts = cachedDeviceContacts.filter(c => 
-                (c.name || '').toLowerCase().includes(q) || c.phone.includes(q)
-            );
+            currentlyFilteredContacts = cachedDeviceContacts.filter(c => (c.name || '').toLowerCase().includes(q) || c.phone.includes(q));
             renderPhonebook(currentlyFilteredContacts);
         }
 
@@ -3082,9 +2474,7 @@
                 const toAdd = [];
                 for (const item of list) {
                     if (toAdd.length >= spaceLeft) break;
-                    if (!stagedContacts.some(c => c.phone === item.phone) && !toAdd.some(c => c.phone === item.phone)) {
-                        toAdd.push(item);
-                    }
+                    if (!stagedContacts.some(c => c.phone === item.phone) && !toAdd.some(c => c.phone === item.phone)) toAdd.push(item);
                 }
                 stagedContacts.push(...toAdd);
                 document.getElementById('createStagedCount').innerText = `${stagedContacts.length} / ${MAX_GROUP_CONTACTS} Contacts Staged`;
@@ -3096,9 +2486,7 @@
                     const toAdd = [];
                     for (const item of list) {
                         if (toAdd.length >= spaceLeft) break;
-                        if (!g.contacts.some(c => c.phone === item.phone) && !toAdd.some(c => c.phone === item.phone)) {
-                            toAdd.push(item);
-                        }
+                        if (!g.contacts.some(c => c.phone === item.phone) && !toAdd.some(c => c.phone === item.phone)) toAdd.push(item);
                     }
                     g.contacts.push(...toAdd);
                     localStorage.setItem('app_groups', JSON.stringify(groups));
@@ -3110,17 +2498,11 @@
             }
         }
 
-        checkDisclaimerAcceptance();
-
         window.onload = async () => {
             switchTheme(localStorage.getItem('app_theme') || 'dark');
-            if (!SESSION_ID || SESSION_ID === 'unpaired_user') {
-                resetToUnpairedLocalState();
-            } else {
-                loadCachedRemainingQuota(SESSION_ID);
-            }
+            if (!SESSION_ID || SESSION_ID === 'unpaired_user') resetToUnpairedLocalState();
+            else loadCachedRemainingQuota(SESSION_ID);
             switchLanguage(localStorage.getItem('app_lang') || 'en');
-            checkDisclaimerAcceptance();
             renderGroups();
             renderDashboard();
             setupBackNavigation();
