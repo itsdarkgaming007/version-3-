@@ -45,7 +45,6 @@ jobs:
           echo "BUILD_NUM=$BUILD_NUM" >> $GITHUB_ENV
           echo "VERSION_NAME=$VERSION_NAME" >> $GITHUB_ENV
 
-          # Ensure www/index.html exists from index.html if needed, then pre-inject version number
           if [ ! -f "www/index.html" ] && [ -f "index.html" ]; then
             mkdir -p www
             cp index.html www/index.html
@@ -77,16 +76,13 @@ jobs:
           BUILD_NUM=${{ env.BUILD_NUM }}
           VERSION_NAME="${{ env.VERSION_NAME }}"
 
-          # Inject into Gradle without double-quote shell/sed clash
           sed -i "s/versionCode 1/versionCode ${BUILD_NUM}/g" android/app/build.gradle
           sed -i "s/versionName \"1.0\"/versionName \"${VERSION_NAME}\"/g" android/app/build.gradle
 
-          # Secondary safety: ensure android asset copy also has the exact build number
           if [ -f "android/app/src/main/assets/public/index.html" ]; then
             sed -i "s/__CLIENT_BUILD_NUMBER__/$BUILD_NUM/g" android/app/src/main/assets/public/index.html || true
           fi
 
-          # Enable cleartext traffic and minimal safe permissions (idempotent guard)
           if [ -f "android/app/src/main/AndroidManifest.xml" ]; then
             if ! grep -q 'android:usesCleartextTraffic="true"' android/app/src/main/AndroidManifest.xml; then
               sed -i 's/<application/<application android:usesCleartextTraffic="true"/g' android/app/src/main/AndroidManifest.xml
@@ -170,14 +166,12 @@ jobs:
           cp "$APK_DIR/app-debug.apk" "$APK_DIR/WA_Campaign_Latest.apk"
           echo "VERSIONED_NAME=$VERSIONED_NAME" >> $GITHUB_ENV
 
-      # Staging Step: Saves private APK artifact for your testing
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: wa-campaign-${{ env.VERSION_NAME }}
           path: android/app/build/outputs/apk/debug/${{ env.VERSIONED_NAME }}
 
-      # Production Step: Executes ONLY when manually approved
       - name: Publish Release
         if: ${{ github.event.inputs.publish_to_customers == 'true' }}
         uses: softprops/action-gh-release@v2
