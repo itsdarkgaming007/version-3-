@@ -374,16 +374,13 @@
             </div>
             <div style="font-size: 0.86rem; line-height: 1.5; color: var(--text-muted); overflow-y: auto; margin-bottom: 14px; padding-right: 4px;">
                 <p style="margin-bottom: 10px; color: var(--text);">
-                    Welcome to <b>WA Campaign</b>. This platform is designed for legitimate business updates, opt-in customer broadcasts, and automated welcome responses.
+                    Welcome to <b>WA Campaign</b>. Use this tool responsibly for opt-in customer communications, order updates, and legitimate business outreach.
                 </p>
                 <p style="margin-bottom: 10px;">
-                    • <b>Maintain Consent:</b> Send messages strictly to customers who have agreed to receive updates from your business.
-                </p>
-                <p style="margin-bottom: 10px;">
-                    • <b>Optimal Limits:</b> Keep your customer groups within 300 contacts and respect the daily 300 outbound limit to maintain high delivery performance.
+                    • <b>Opt-In Only:</b> Message only customers who have consented to receive updates from you.
                 </p>
                 <p style="margin-bottom: 6px;">
-                    • <b>Local Control:</b> All session data, scheduling queues, and contact backups run reliably under your direct system management.
+                    • <b>Safe Limits:</b> Keep groups up to 300 contacts and respect the daily 300 outbound message cap.
                 </p>
             </div>
             <button class="btn btn-primary" id="btnAcceptDisclaimer" onclick="confirmDisclaimerConsent()">Get Started</button>
@@ -557,7 +554,7 @@
                     Plan: <b id="lblSubPlan" style="color: var(--text);">Monthly</b> • Status: <b id="lblSubDays" style="color: var(--primary);">30 Days Left</b>
                 </div>
                 <div id="txtServerOfflineNotice" style="font-size: 0.78rem; color: var(--warning); display: none; margin-bottom: 8px;">
-                    Laptop server offline. Ensure laptop is turned on with wa-engine running.
+                    Laptop server offline. Ensure laptop is turned on with wa-engine and ngrok running.
                 </div>
                 <button class="btn btn-danger" id="btnUnlink" onclick="unlinkAccount()">Unlink WhatsApp</button>
             </div>
@@ -782,9 +779,9 @@
     </div>
 
     <script>
-        // POINT DIRECTLY TO LOCAL LAPTOP SERVER (Replace IP/Host if using local network or tunnel)
-        const DEFAULT_LOCAL_BACKEND = "http://10.0.2.2:3000"; // 10.0.2.2 reaches localhost from Android emulator; change to your laptop LAN IP (e.g. http://192.168.1.X:3000) or tunnel
-        const FIXED_BACKEND_URL = localStorage.getItem('custom_backend_url') || (window.location.hostname === 'localhost' ? 'http://localhost:3000' : DEFAULT_LOCAL_BACKEND);
+        // CONNECTED DIRECTLY TO YOUR ACTIVE NGROK TUNNEL FOR LOCAL LAPTOP ENGINE
+        const DEFAULT_LOCAL_BACKEND = "https://rinse-chest-dish.ngrok-free.dev";
+        const FIXED_BACKEND_URL = DEFAULT_LOCAL_BACKEND;
         const DEFAULT_TOKEN = "marketing_engine_secret_2026";
         
         let SESSION_ID = localStorage.getItem('connected_phone_permanent') || 'unpaired_user';
@@ -814,6 +811,13 @@
         let welcomeDraft = { text: '', file: null, fileName: '', existingFilePath: '', mimetype: '', caption: '' };
 
         let cachedScheduledJobs = [];
+
+        function getApiHeaders(extra = {}) {
+            return Object.assign({
+                'Authorization': `Bearer ${API_BEARER_TOKEN}`,
+                'ngrok-skip-browser-warning': 'true'
+            }, extra);
+        }
 
         function escapeHtml(str) {
             return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
@@ -850,7 +854,7 @@
             renderQuotaIndicators();
         }
 
-        function showReadinessWaiting(message = 'Connecting with local laptop engine...') {
+        function showReadinessWaiting(message = 'Connecting with laptop engine...') {
             const modal = document.getElementById('readinessModal');
             document.getElementById('readyIconBadge').className = 'dialog-icon-badge dialog-icon-info';
             document.getElementById('readyIconBadge').innerText = '⏳';
@@ -860,7 +864,7 @@
             modal.style.display = 'flex';
         }
 
-        function showReadinessReady(message = 'Done — Running on Local Engine.') {
+        function showReadinessReady(message = 'Done — Running on Laptop Engine.') {
             const modal = document.getElementById('readinessModal');
             document.getElementById('readyIconBadge').className = 'dialog-icon-badge dialog-icon-info';
             document.getElementById('readyIconBadge').innerText = '✅';
@@ -960,7 +964,7 @@
 
             try {
                 const res = await fetch(`${FIXED_BACKEND_URL}/api/campaign/state?sessionId=${encodeURIComponent(targetPhone)}`, {
-                    headers: { 'Authorization': `Bearer ${API_BEARER_TOKEN}` }
+                    headers: getApiHeaders()
                 });
                 if (res.ok) {
                     const d = await res.json();
@@ -1795,7 +1799,7 @@
             if (!SESSION_ID || SESSION_ID === 'unpaired_user') return;
             try {
                 const res = await fetch(`${FIXED_BACKEND_URL}/api/welcome/rules?sessionId=${SESSION_ID}`, {
-                    headers: { 'Authorization': `Bearer ${API_BEARER_TOKEN}` }
+                    headers: getApiHeaders()
                 });
                 const d = await res.json();
                 if (d.success && d.config) {
@@ -1807,7 +1811,7 @@
                             welcomeDraft = {
                                 text: '',
                                 file: null,
-                                fileName: firstStep.fileName || (firstStep.filePath ? firstStep.filePath.split(/[\\/]/).pop() : ''),
+                                fileName: firstStep.fileName || (firstStep.filePath ? firstStep.filePath.split(/[\/]/).pop() : ''),
                                 existingFilePath: firstStep.filePath || '',
                                 mimetype: firstStep.mimetype || 'image/jpeg',
                                 caption: firstStep.caption || ''
@@ -1872,7 +1876,7 @@
             try {
                 const res = await fetch(`${FIXED_BACKEND_URL}/api/welcome/setup`, {
                     method: 'POST',
-                    headers: { 'Authorization': `Bearer ${API_BEARER_TOKEN}` },
+                    headers: getApiHeaders(),
                     body: fd
                 });
                 const d = await res.json();
@@ -1883,7 +1887,7 @@
                 } else showCustomDialog({ title: 'Error', message: d.error || 'Failed to save', type: 'danger' });
             } catch(e) {
                 document.getElementById('readinessModal').style.display = 'none';
-                showCustomDialog({ title: 'Connection Error', message: 'Laptop server offline. Ensure engine is running.', type: 'danger' });
+                showCustomDialog({ title: 'Connection Error', message: 'Laptop server offline. Ensure engine & ngrok are running.', type: 'danger' });
             }
         }
 
@@ -1902,7 +1906,10 @@
 
             try {
                 const res = await fetch(`${FIXED_BACKEND_URL}/api/status/${targetPhone}`, {
-                    headers: { 'Authorization': `Bearer ${DEFAULT_TOKEN}` }
+                    headers: {
+                        'Authorization': `Bearer ${DEFAULT_TOKEN}`,
+                        'ngrok-skip-browser-warning': 'true'
+                    }
                 });
                 const d = await res.json();
 
@@ -1994,7 +2001,7 @@
             try {
                 await fetch(`${FIXED_BACKEND_URL}/api/groups/sync`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${API_BEARER_TOKEN}` },
+                    headers: getApiHeaders({ 'Content-Type': 'application/json' }),
                     body: JSON.stringify({ sessionId: SESSION_ID, groups, allowEmptyOverwrite })
                 });
             } catch(e) {}
@@ -2004,7 +2011,7 @@
             if (!SESSION_ID || SESSION_ID === 'unpaired_user') return false;
             try {
                 const res = await fetch(`${FIXED_BACKEND_URL}/api/groups/restore?sessionId=${SESSION_ID}`, {
-                    headers: { 'Authorization': `Bearer ${API_BEARER_TOKEN}` }
+                    headers: getApiHeaders()
                 });
                 const d = await res.json();
                 if (d.groups && Array.isArray(d.groups)) {
@@ -2024,7 +2031,7 @@
             if (!SESSION_ID || SESSION_ID === 'unpaired_user') return;
             try {
                 const res = await fetch(`${FIXED_BACKEND_URL}/api/campaign/state?sessionId=${SESSION_ID}`, {
-                    headers: { 'Authorization': `Bearer ${API_BEARER_TOKEN}` }
+                    headers: getApiHeaders()
                 });
                 const d = await res.json();
 
@@ -2082,7 +2089,11 @@
             try {
                 const res = await fetch(`${FIXED_BACKEND_URL}/api/pair`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${DEFAULT_TOKEN}` },
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${DEFAULT_TOKEN}`,
+                        'ngrok-skip-browser-warning': 'true'
+                    },
                     body: JSON.stringify({ phoneNumber: cleanPhone })
                 });
                 const d = await res.json();
@@ -2091,7 +2102,10 @@
                     if (pairingPollTimer) clearInterval(pairingPollTimer);
                     pairingPollTimer = setInterval(async () => {
                         const statusRes = await fetch(`${FIXED_BACKEND_URL}/api/status/${cleanPhone}`, {
-                            headers: { 'Authorization': `Bearer ${DEFAULT_TOKEN}` }
+                            headers: {
+                                'Authorization': `Bearer ${DEFAULT_TOKEN}`,
+                                'ngrok-skip-browser-warning': 'true'
+                            }
                         });
                         const sd = await statusRes.json();
                         if (sd.status === 'CONNECTED') {
@@ -2138,7 +2152,7 @@
             try {
                 await fetch(`${FIXED_BACKEND_URL}/api/logout`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${API_BEARER_TOKEN}` },
+                    headers: getApiHeaders({ 'Content-Type': 'application/json' }),
                     body: JSON.stringify({ sessionId: activeSid })
                 });
             } catch(e) {}
@@ -2321,7 +2335,7 @@
             try {
                 const res = await fetch(`${FIXED_BACKEND_URL}/api/message/send-bulk`, {
                     method: 'POST',
-                    headers: { 'Authorization': `Bearer ${API_BEARER_TOKEN}` },
+                    headers: getApiHeaders(),
                     body: formData
                 });
                 const d = await res.json();
@@ -2349,7 +2363,7 @@
                 } else showCustomDialog({ title: 'Dispatch Error', message: d.error || 'Failed to dispatch', type: 'danger' });
             } catch(e) {
                 document.getElementById('readinessModal').style.display = 'none';
-                showCustomDialog({ title: 'Connection Error', message: 'Laptop server offline. Ensure engine is running.', type: 'danger' });
+                showCustomDialog({ title: 'Connection Error', message: 'Laptop server offline. Ensure engine & ngrok are running.', type: 'danger' });
             }
             finally { btnLaunch.disabled = false; }
         }
@@ -2358,7 +2372,7 @@
             try {
                 const res = await fetch(`${FIXED_BACKEND_URL}/api/campaign/pause`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${API_BEARER_TOKEN}` },
+                    headers: getApiHeaders({ 'Content-Type': 'application/json' }),
                     body: JSON.stringify({ sessionId: SESSION_ID, campaignId: currentActiveCampaignId })
                 });
                 const d = await res.json();
@@ -2377,7 +2391,7 @@
             try {
                 const res = await fetch(`${FIXED_BACKEND_URL}/api/campaign/resume`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${API_BEARER_TOKEN}` },
+                    headers: getApiHeaders({ 'Content-Type': 'application/json' }),
                     body: JSON.stringify({ sessionId: SESSION_ID, campaignId: currentActiveCampaignId })
                 });
                 const d = await res.json();
@@ -2408,7 +2422,7 @@
             try {
                 const res = await fetch(`${FIXED_BACKEND_URL}/api/campaign/stop`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${API_BEARER_TOKEN}` },
+                    headers: getApiHeaders({ 'Content-Type': 'application/json' }),
                     body: JSON.stringify({ sessionId: SESSION_ID, campaignId: currentActiveCampaignId })
                 });
                 const d = await res.json();
@@ -2428,7 +2442,7 @@
             pollTimer = setInterval(async () => {
                 try {
                     const res = await fetch(`${FIXED_BACKEND_URL}/api/queue-status/${SESSION_ID}`, {
-                        headers: { 'Authorization': `Bearer ${API_BEARER_TOKEN}` }
+                        headers: getApiHeaders()
                     });
                     const q = await res.json();
 
@@ -2516,7 +2530,7 @@
             }
             try {
                 const res = await fetch(`${FIXED_BACKEND_URL}/api/campaign/scheduled-jobs/${SESSION_ID}`, {
-                    headers: { 'Authorization': `Bearer ${API_BEARER_TOKEN}` }
+                    headers: getApiHeaders()
                 });
                 const d = await res.json();
                 if (d.success && Array.isArray(d.jobs)) {
@@ -2583,7 +2597,7 @@
             try {
                 const res = await fetch(`${FIXED_BACKEND_URL}/api/campaign/cancel-schedule`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${API_BEARER_TOKEN}` },
+                    headers: getApiHeaders({ 'Content-Type': 'application/json' }),
                     body: JSON.stringify({ sessionId: SESSION_ID, jobId })
                 });
                 const d = await res.json();
@@ -2916,12 +2930,10 @@
             const ContactsPlugin = window.Capacitor?.Plugins?.Contacts;
             if (ContactsPlugin) {
                 try {
-                    // Try direct fetch first (if granted in settings it succeeds immediately)
                     let res = null;
                     try {
                         res = await ContactsPlugin.getContacts({ projection: { name: true, phones: true } });
                     } catch (readErr) {
-                        // Request permission if not already granted
                         if (typeof ContactsPlugin.requestPermissions === 'function') {
                             await ContactsPlugin.requestPermissions();
                         }
