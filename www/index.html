@@ -40,7 +40,6 @@
         .header-title { font-size: 1.2rem; font-weight: 700; color: var(--text); }
         .icon-btn { background: none; border: none; font-size: 1.3rem; color: var(--text); cursor: pointer; }
 
-        /* Smooth Marquee News Ticker Broadcast Banner */
         #globalNoticeBanner {
             display: none;
             background: rgba(0, 168, 132, 0.15);
@@ -177,7 +176,6 @@
             color: var(--primary);
         }
 
-        /* Compact 300/300 Quota Pill Badge (Placed only where outbound quota applies) */
         .quota-pill-badge {
             background: rgba(0, 168, 132, 0.15);
             color: var(--primary);
@@ -194,7 +192,6 @@
             border-color: rgba(239, 68, 68, 0.45);
         }
 
-        /* Strict 1+1+1 Mode Selector Pills */
         .mode-111-bar {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
@@ -211,14 +208,19 @@
             font-weight: 700;
             cursor: pointer;
             text-align: center;
+            transition: all 0.2s ease;
         }
         .mode-111-btn.active {
             background: rgba(0, 168, 132, 0.16);
             border-color: var(--primary);
             color: var(--primary);
         }
+        .mode-111-btn.disabled-mode {
+            opacity: 0.35 !important;
+            cursor: not-allowed !important;
+            filter: grayscale(1);
+        }
 
-        /* Seamless Chat Stream Preview */
         .chat-stream-preview { 
             background: #0b141a; 
             border: 1px solid var(--border); 
@@ -256,13 +258,11 @@
 
         .modal { display: none; position: fixed; inset: 0; background: var(--modal-backdrop); z-index: 200; align-items: center; justify-content: center; padding: 16px; backdrop-filter: blur(4px); }
         .modal-high { z-index: 300; }
-        
         #editMemberModal { z-index: 600 !important; }
 
         .modal-content { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; width: 100%; max-width: 500px; padding: 20px; max-height: 90vh; display: flex; flex-direction: column; overflow-y: auto; box-shadow: 0 10px 30px rgba(0,0,0,0.6); }
         .modal-title { font-size: 1.15rem; font-weight: 700; margin-bottom: 14px; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
 
-        /* Polished Theme-Adaptive Custom Dialog */
         #customDialogModal { z-index: 99999; }
         .custom-dialog-card {
             background: var(--surface);
@@ -369,28 +369,24 @@
 
     <div class="modal modal-high" id="disclaimerModal" style="display: none; z-index: 999999; background: rgba(0,0,0,0.94);">
         <div class="modal-content" style="max-height: 85vh;">
-            <div class="modal-title" style="color: var(--warning); display: flex; align-items: center; gap: 8px;">
-                ⚠️ <span>Usage Terms & Anti-Spam Policy</span>
+            <div class="modal-title" style="color: var(--primary); display: flex; align-items: center; gap: 8px;">
+                📢 <span>Responsible Usage Guide</span>
             </div>
-            <div style="font-size: 0.85rem; line-height: 1.5; color: var(--text-muted); overflow-y: auto; margin-bottom: 14px; padding-right: 4px;">
-                <p style="margin-bottom: 8px; color: var(--text);">
-                    <b>WA Campaign</b> is designed exclusively for opt-in customer communications, order updates, and legitimate business outreach.
+            <div style="font-size: 0.86rem; line-height: 1.5; color: var(--text-muted); overflow-y: auto; margin-bottom: 14px; padding-right: 4px;">
+                <p style="margin-bottom: 10px; color: var(--text);">
+                    Welcome to <b>WA Campaign</b>. This platform is designed for legitimate business updates, opt-in customer broadcasts, and automated welcome responses.
                 </p>
-                <p style="margin-bottom: 8px;">
-                    1. <b>Strict Anti-Spam Rule:</b> Sending unsolicited bulk messages to unknown individuals violates WhatsApp Terms of Service and telecommunication regulations.
+                <p style="margin-bottom: 10px;">
+                    • <b>Maintain Consent:</b> Send messages strictly to customers who have agreed to receive updates from your business.
                 </p>
-                <p style="margin-bottom: 8px;">
-                    2. <b>100% Own Risk & No-Refund Policy:</b> You use this tool at your <b>100% own risk</b>. All subscription payments are <b>strictly non-refundable</b>; the developer holds no liability for account restrictions/bans.
+                <p style="margin-bottom: 10px;">
+                    • <b>Optimal Limits:</b> Keep your customer groups within 300 contacts and respect the daily 300 outbound limit to maintain high delivery performance.
                 </p>
-                <p style="margin-bottom: 8px;">
-                    3. <b>Safe Cadence Advice:</b> Always maintain customer consent, respect the 300 contact group limit and 300/day outbound cap, and follow recommended delays.
+                <p style="margin-bottom: 6px;">
+                    • <b>Local Control:</b> All session data, scheduling queues, and contact backups run reliably under your direct system management.
                 </p>
             </div>
-            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; margin-bottom: 14px; font-size: 0.82rem; color: var(--text);">
-                <input type="checkbox" id="chkAcceptTerms" style="width: 20px; height: 20px; margin-bottom: 0;">
-                <span>I accept 100% own risk, strict no-refund terms, and anti-spam rules.</span>
-            </label>
-            <button class="btn btn-primary" id="btnAcceptDisclaimer" onclick="confirmDisclaimerConsent()" disabled style="opacity: 0.5;">Accept & Proceed</button>
+            <button class="btn btn-primary" id="btnAcceptDisclaimer" onclick="confirmDisclaimerConsent()">Get Started</button>
         </div>
     </div>
 
@@ -399,7 +395,6 @@
         <button class="icon-btn" onclick="executeNativeAppShare()">📤</button>
     </header>
 
-    <!-- Global Notice News Ticker Marquee Banner (Zero Space if Empty) -->
     <div id="globalNoticeBanner">
         <div class="marquee-wrapper">
             <span class="marquee-content" id="txtNoticeContent"></span>
@@ -434,11 +429,10 @@
             <button type="button" class="seg-tab-btn" id="btnSubTabWelcome" onclick="switchCampaignSubTab('welcome')">🤖 Auto Welcome</button>
         </div>
 
-        <!-- SUB-PANEL A: BULK CAMPAIGN (Strict 1+1+1) -->
+        <!-- SUB-PANEL A: BULK CAMPAIGN -->
         <div id="subPanelBlast">
             <div class="card">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                    <span style="font-size: 0.88rem; font-weight: 700;">1+1+1 Campaign Format</span>
+                <div style="display: flex; justify-content: flex-end; align-items: center; margin-bottom: 10px;">
                     <span class="quota-pill-badge" id="badgeRemainingQuota">300/300 Remaining</span>
                 </div>
 
@@ -450,16 +444,14 @@
 
                 <div id="bulkSequenceContainer" style="margin-bottom: 12px;"></div>
 
-                <!-- Seamless Real-time WhatsApp Stream Preview -->
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
                     <span style="font-size: 0.8rem; font-weight: bold; color: var(--primary);">📱 Live WhatsApp Preview</span>
-                    <span style="font-size: 0.72rem; color: var(--text-muted);">1+1+1 Preview</span>
                 </div>
                 <div class="chat-stream-preview" id="bulkLiveStreamPreview">
                     <div style="text-align:center; color:var(--text-muted); font-size:0.8rem; padding: 12px;">Preview will appear here...</div>
                 </div>
 
-                <!-- Smart Campaign Scheduler (1 Slot • Max 72h) -->
+                <!-- Campaign Scheduler (1 Slot • Max 72h) -->
                 <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px; margin-bottom: 12px;">
                     <div style="display: flex; justify-content: space-between; align-items: center;">
                         <div>
@@ -481,14 +473,14 @@
                 </div>
 
                 <div id="lblDisclaimerFooter" style="font-size: 0.74rem; color: var(--text-muted); text-align: center; margin-bottom: 12px; line-height: 1.3;">
-                    ⚠️ 100% Own Risk • Strict No-Refund • 300/day outbound cap
+                    300/day outbound quota • 1 slot schedule window
                 </div>
 
                 <button class="btn btn-primary" id="btnLaunch" onclick="openMultiGroupDispatchModal()">Select Target Groups & Send</button>
             </div>
         </div>
 
-        <!-- SUB-PANEL B: AUTO WELCOME RESPONDER (Text Only OR 1 Image) -->
+        <!-- SUB-PANEL B: AUTO WELCOME RESPONDER -->
         <div id="subPanelWelcome" style="display: none;">
             <div class="card">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--border);">
@@ -503,7 +495,6 @@
 
                 <div id="welcomeSequenceContainer"></div>
 
-                <!-- Auto Welcome Stream Preview -->
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; margin-top: 10px;">
                     <span style="font-size: 0.8rem; font-weight: bold; color: var(--primary);">📱 Welcome Stream Preview</span>
                 </div>
@@ -566,7 +557,7 @@
                     Plan: <b id="lblSubPlan" style="color: var(--text);">Monthly</b> • Status: <b id="lblSubDays" style="color: var(--primary);">30 Days Left</b>
                 </div>
                 <div id="txtServerOfflineNotice" style="font-size: 0.78rem; color: var(--warning); display: none; margin-bottom: 8px;">
-                    Server offline. Background execution will resume when online.
+                    Laptop server offline. Ensure laptop is turned on with wa-engine running.
                 </div>
                 <button class="btn btn-danger" id="btnUnlink" onclick="unlinkAccount()">Unlink WhatsApp</button>
             </div>
@@ -600,8 +591,8 @@
                     <b id="lblCurrentVer">v3.6.52</b>
                 </div>
                 <div class="version-row">
-                    <span style="color: var(--text-muted);">Cloud Status:</span>
-                    <span id="lblCloudSyncStatus" style="color: var(--primary); font-weight: 600;">Up to date</span>
+                    <span style="color: var(--text-muted);">Local Engine Status:</span>
+                    <span id="lblCloudSyncStatus" style="color: var(--primary); font-weight: 600;">Active</span>
                 </div>
 
                 <div class="version-highlight-banner" id="updateBanner">
@@ -646,7 +637,7 @@
         </div>
     </div>
 
-    <!-- FULLSCREEN OVERLAY FOR GROUP MEMBERS (Full Screen + Live Member Search) -->
+    <!-- FULLSCREEN OVERLAY FOR GROUP MEMBERS -->
     <div class="fullscreen-overlay" id="membersOverlay">
         <div class="fs-header">
             <button class="back-arrow-btn" onclick="closeGroupMembersOverlay()">
@@ -679,7 +670,6 @@
             </div>
         </div>
 
-        <!-- Live Search Bar inside Group Members -->
         <div class="fs-search-container">
             <input type="text" id="groupMembersSearch" placeholder="🔍 Search members by name or phone..." oninput="filterGroupMembers()" style="margin-bottom: 0;">
         </div>
@@ -695,7 +685,7 @@
         </div>
     </div>
 
-    <!-- Edit Member Modal with high z-index (600) so it displays over full-screen overlays -->
+    <!-- Edit Member Modal -->
     <div class="modal modal-high" id="editMemberModal" style="z-index: 600;">
         <div class="modal-content">
             <div class="modal-title">Edit Contact Details</div>
@@ -766,19 +756,19 @@
         </div>
     </div>
 
-    <!-- Blocking Readiness Modal ("Please Wait..." -> "Safe to Close") -->
+    <!-- Blocking Readiness Modal -->
     <div class="modal modal-high" id="readinessModal" style="z-index: 99990;">
         <div class="custom-dialog-card">
             <div class="dialog-icon-badge dialog-icon-info" id="readyIconBadge">⏳</div>
             <div class="dialog-title-text" id="readyTitleText">Please Wait...</div>
-            <div class="dialog-desc-text" id="readyDescText">Syncing configuration with server. Do not close the app yet.</div>
+            <div class="dialog-desc-text" id="readyDescText">Syncing configuration with laptop server...</div>
             <div class="dialog-btn-group" id="readyBtnGroup" style="display: none;">
                 <button class="btn btn-primary" id="btnReadyOk" onclick="acknowledgeReadinessPopup()">Safe to Close</button>
             </div>
         </div>
     </div>
 
-    <!-- Polished Theme-Adaptive Custom Dialog Modal -->
+    <!-- Custom Dialog Modal -->
     <div class="modal" id="customDialogModal">
         <div class="custom-dialog-card">
             <div class="dialog-icon-badge" id="dlgIconBadge">⚠️</div>
@@ -792,7 +782,9 @@
     </div>
 
     <script>
-        const FIXED_BACKEND_URL = "https://wa-engine-server.onrender.com";
+        // POINT DIRECTLY TO LOCAL LAPTOP SERVER (Replace IP/Host if using local network or tunnel)
+        const DEFAULT_LOCAL_BACKEND = "http://10.0.2.2:3000"; // 10.0.2.2 reaches localhost from Android emulator; change to your laptop LAN IP (e.g. http://192.168.1.X:3000) or tunnel
+        const FIXED_BACKEND_URL = localStorage.getItem('custom_backend_url') || (window.location.hostname === 'localhost' ? 'http://localhost:3000' : DEFAULT_LOCAL_BACKEND);
         const DEFAULT_TOKEN = "marketing_engine_secret_2026";
         
         let SESSION_ID = localStorage.getItem('connected_phone_permanent') || 'unpaired_user';
@@ -814,11 +806,10 @@
         let isSubscriptionExpiredGlobal = false;
         let remainingDailyQuotaGlobal = DAILY_OUTBOUND_LIMIT;
 
-        // Strict 1+1+1 Campaign State
+        // Strict Single-Selection State
         let activeCampaignMode = 'text'; // 'text' | 'image' | 'video'
         let campaignDraft = { text: '', file: null, fileName: '', caption: '' };
 
-        // Strict 1+1 Welcome State (Text Only OR 1 Image)
         let activeWelcomeMode = 'text'; // 'text' | 'image'
         let welcomeDraft = { text: '', file: null, fileName: '', existingFilePath: '', mimetype: '', caption: '' };
 
@@ -859,8 +850,7 @@
             renderQuotaIndicators();
         }
 
-        // --- Readiness Popup ("Please Wait..." -> "Safe to Close") ---
-        function showReadinessWaiting(message = 'Syncing configuration with server. Please wait...') {
+        function showReadinessWaiting(message = 'Connecting with local laptop engine...') {
             const modal = document.getElementById('readinessModal');
             document.getElementById('readyIconBadge').className = 'dialog-icon-badge dialog-icon-info';
             document.getElementById('readyIconBadge').innerText = '⏳';
@@ -870,11 +860,11 @@
             modal.style.display = 'flex';
         }
 
-        function showReadinessReady(message = 'Done — Running on Cloud. Safe to close the app.') {
+        function showReadinessReady(message = 'Done — Running on Local Engine.') {
             const modal = document.getElementById('readinessModal');
             document.getElementById('readyIconBadge').className = 'dialog-icon-badge dialog-icon-info';
             document.getElementById('readyIconBadge').innerText = '✅';
-            document.getElementById('readyTitleText').innerText = 'Done — Running on Cloud';
+            document.getElementById('readyTitleText').innerText = 'Success';
             document.getElementById('readyDescText').innerText = message;
             document.getElementById('btnReadyOk').innerText = 'Safe to Close';
             document.getElementById('readyBtnGroup').style.display = 'flex';
@@ -885,7 +875,6 @@
             document.getElementById('readinessModal').style.display = 'none';
         }
 
-        // --- Persistent Remaining Quota Sync across App Reinstall / Restart ---
         function getTodayLocalDateKey() {
             const d = new Date();
             const yyyy = d.getFullYear();
@@ -971,7 +960,7 @@
 
             try {
                 const res = await fetch(`${FIXED_BACKEND_URL}/api/campaign/state?sessionId=${encodeURIComponent(targetPhone)}`, {
-                    headers: { 'Authorization': `Bearer ${API_BEARER_TOKEN}`, 'ngrok-skip-browser-warning': 'true' }
+                    headers: { 'Authorization': `Bearer ${API_BEARER_TOKEN}` }
                 });
                 if (res.ok) {
                     const d = await res.json();
@@ -987,7 +976,6 @@
             return remainingDailyQuotaGlobal;
         }
 
-        // --- Theme-Adaptive Custom Dialog Helper (Replaces default alert/confirm) ---
         function showCustomDialog({ title, message, type = 'info', confirmText = 'OK', cancelText = null }) {
             return new Promise((resolve) => {
                 const modal = document.getElementById('customDialogModal');
@@ -1010,7 +998,6 @@
 
                 titleEl.innerText = title;
                 msgEl.innerText = message;
-
                 btnGroup.innerHTML = '';
 
                 if (cancelText) {
@@ -1104,7 +1091,7 @@
                 preset1h: "+1 Hour",
                 presetTom9: "Tomorrow 9 AM",
                 presetTom18: "Tomorrow 6 PM",
-                disclaimerFooter: "⚠️ 100% Own Risk • Strict No-Refund • 300/day outbound cap",
+                disclaimerFooter: "300/day outbound quota • 1 slot schedule window",
                 launch: "Select Target Groups & Send",
                 enableWelcome: "Enable Welcome Message",
                 saveWelcome: "💾 Save Welcome Rule",
@@ -1128,7 +1115,7 @@
                 targetGroups: "Select Target Groups",
                 deduplicateNote: "Duplicates merged automatically.",
                 deviceContacts: "Device Contacts",
-                warnUnlink: "Are you sure you want to unlink your WhatsApp account? Local data on this device will be cleared immediately and synced again when you login.",
+                warnUnlink: "Are you sure you want to unlink your WhatsApp account? Local session on this phone will disconnect cleanly.",
                 warnStopCamp: "Permanently stop this active campaign? Remaining pending messages will NOT be sent.",
                 warnDeleteGroups: "Permanently delete selected group(s)? The contacts inside these groups will be removed.",
                 warnCancelSched: "Cancel this scheduled campaign? The queue will be removed and attached media purged.",
@@ -1154,7 +1141,7 @@
                 preset1h: "+1 மணி நேரம்",
                 presetTom9: "நாளை காலை 9",
                 presetTom18: "நாளை மாலை 6",
-                disclaimerFooter: "⚠️ 100% சொந்த ரிஸ்க் • ரீஃபண்ட் கிடையாது • 300/நாள் வரம்பு",
+                disclaimerFooter: "300/நாள் வரம்பு • 1 ஸ்லாட் Schedule",
                 launch: "குழுக்களை தேர்வு செய்து அனுப்பு",
                 enableWelcome: "வரவேற்பு செய்தியை இயக்கு",
                 saveWelcome: "💾 வரவேற்பு விதியை சேமி",
@@ -1178,7 +1165,7 @@
                 targetGroups: "இலக்கு குழுக்கள்",
                 deduplicateNote: "இரட்டை எண்கள் தானாக நீக்கப்படும்.",
                 deviceContacts: "மொபைல் தொடர்புகள்",
-                warnUnlink: "வாட்ஸ்அப் கணக்கை துண்டிக்கவா? போனில் உள்ள லோக்கல் தரவு உடனே நீக்கப்படும்; மீண்டும் லாகின் செய்யும்போது மீண்டும் சிங்க் ஆகும்.",
+                warnUnlink: "வாட்ஸ்அப் கணக்கை துண்டிக்கவா? மீண்டும் உள்நுழையும்போது தரவுகள் மீட்டெடுக்கப்படும்.",
                 warnStopCamp: "இந்த பிரச்சாரத்தை முழுமையாக நிறுத்தவா? மீதமுள்ள நபர்களுக்கு செய்தி போகாது.",
                 warnDeleteGroups: "தேர்ந்தெடுத்த குழுக்களை நிரந்தரமாக நீக்கவா? உள்ளிருக்கும் தொடர்புகள் அகற்றப்படும்.",
                 warnCancelSched: "திட்டமிடப்பட்ட இந்த பிரச்சாரத்தை ரத்து செய்து கோப்புகளை அழிக்கவா?",
@@ -1204,7 +1191,7 @@
                 preset1h: "+1 घंटा",
                 presetTom9: "कल सुबह 9 बजे",
                 presetTom18: "कल शाम 6 बजे",
-                disclaimerFooter: "⚠️ 100% स्वयं का जोखिम • रिफंड नहीं • 300/दिन सीमा",
+                disclaimerFooter: "300/दिन सीमा • 1 स्लॉट शेड्यूल",
                 launch: "समूह चुनें और भेजें",
                 enableWelcome: "वेलकम मैसेज चालू करें",
                 saveWelcome: "💾 वेलकम नियम सहेजें",
@@ -1228,13 +1215,13 @@
                 targetGroups: "लक्षित समूह चुनें",
                 deduplicateNote: "डुप्लिकेट संपर्क स्वतः हटा दिए जाएंगे।",
                 deviceContacts: "फ़ोन संपर्क",
-                warnUnlink: "क्या आप व्हाट्सएप खाता हटाना चाहते हैं? डिवाइस का लोकल डेटा तुरंत हट जाएगा और दोबारा लॉगिन करने पर सिंक होगा।",
+                warnUnlink: "क्या आप व्हाट्सएप खाता हटाना चाहते हैं?",
                 warnStopCamp: "क्या आप इस अभियान को पूरी तरह से रोकना चाहते हैं? शेष संदेश नहीं भेजे जाएंगे।",
                 warnDeleteGroups: "क्या आप चयनित समूहों को हटाना चाहते हैं?",
                 warnCancelSched: "क्या आप इस शेड्यूल अभियान को रद्द करना चाहते हैं?",
                 daysLeftNotice: "दिन शेष हैं",
-                subExpiredMsg: "आपकी सदस्यता समाप्त हो गई है। कृपया सेवा जारी रखने के लिए एडमिन से संपर्क करें।",
-                subWarnMsg: "आपकी सदस्यता {DAYS} दिनों में समाप्त हो रही है। कृपया समय पर रिचार्ज करें।"
+                subExpiredMsg: "आपकी सदस्यता समाप्त हो गई है।",
+                subWarnMsg: "आपकी सदस्यता {DAYS} दिनों में समाप्त हो रही है।"
             }
         };
 
@@ -1280,21 +1267,10 @@
             const accepted = localStorage.getItem('terms_accepted_permanent');
             if (!accepted) {
                 document.getElementById('disclaimerModal').style.display = 'flex';
-                const chk = document.getElementById('chkAcceptTerms');
-                const btn = document.getElementById('btnAcceptDisclaimer');
-                if (chk && btn) {
-                    btn.disabled = !chk.checked;
-                    btn.style.opacity = chk.checked ? '1' : '0.5';
-                    chk.onchange = function() {
-                        btn.disabled = !this.checked;
-                        btn.style.opacity = this.checked ? '1' : '0.5';
-                    };
-                }
             }
         }
 
         function confirmDisclaimerConsent() {
-            if (!document.getElementById('chkAcceptTerms').checked) return;
             localStorage.setItem('terms_accepted_permanent', 'true');
             document.getElementById('disclaimerModal').style.display = 'none';
         }
@@ -1467,26 +1443,50 @@
             renderBulkSequence();
         }
 
-        // --- Strict 1+1+1 Campaign Editor ---
-        function selectCampaign111Mode(mode) {
-            activeCampaignMode = mode;
-            document.getElementById('btnModeText').classList.toggle('active', mode === 'text');
-            document.getElementById('btnModeImage').classList.toggle('active', mode === 'image');
-            document.getElementById('btnModeVideo').classList.toggle('active', mode === 'video');
-
-            if (mode === 'text') {
-                campaignDraft.file = null;
-                campaignDraft.fileName = '';
-                campaignDraft.caption = '';
-            } else {
-                campaignDraft.text = '';
+        // --- Single Mode Selection & Grey-Out Enforcement ---
+        function hasCampaignContent() {
+            if (activeCampaignMode === 'text') {
+                return (campaignDraft.text || '').trim().length > 0;
             }
+            return Boolean(campaignDraft.file || campaignDraft.fileName);
+        }
+
+        function updateModePillStates() {
+            const hasData = hasCampaignContent();
+            const btnText = document.getElementById('btnModeText');
+            const btnImg = document.getElementById('btnModeImage');
+            const btnVid = document.getElementById('btnModeVideo');
+
+            if (!btnText || !btnImg || !btnVid) return;
+
+            btnText.classList.toggle('active', activeCampaignMode === 'text');
+            btnImg.classList.toggle('active', activeCampaignMode === 'image');
+            btnVid.classList.toggle('active', activeCampaignMode === 'video');
+
+            btnText.classList.toggle('disabled-mode', hasData && activeCampaignMode !== 'text');
+            btnImg.classList.toggle('disabled-mode', hasData && activeCampaignMode !== 'image');
+            btnVid.classList.toggle('disabled-mode', hasData && activeCampaignMode !== 'video');
+        }
+
+        function selectCampaign111Mode(targetMode) {
+            if (targetMode === activeCampaignMode) return;
+            if (hasCampaignContent()) {
+                showCustomDialog({
+                    title: 'Only 1 Item Allowed',
+                    message: 'Only 1 item (Text, Image, or Video) can be added per campaign. Clear the current item first to choose another format.',
+                    type: 'info'
+                });
+                return;
+            }
+
+            activeCampaignMode = targetMode;
             renderBulkSequence();
         }
 
         function clearCampaignFile() {
             campaignDraft.file = null;
             campaignDraft.fileName = '';
+            campaignDraft.caption = '';
             const inp = document.getElementById('camp111FileInput');
             if (inp) inp.value = '';
             renderBulkSequence();
@@ -1497,7 +1497,7 @@
             if (!rawFile) return;
 
             if (activeCampaignMode === 'video' && rawFile.size > 15 * 1024 * 1024) {
-                showCustomDialog({ title: 'File Too Large', message: 'Video size exceeds 15MB limit! Please select a compressed video under 15MB.', type: 'danger' });
+                showCustomDialog({ title: 'File Too Large', message: 'Video exceeds 15MB limit! Please select a compressed video under 15MB.', type: 'danger' });
                 e.target.value = '';
                 return;
             }
@@ -1528,11 +1528,8 @@
             if (activeCampaignMode === 'text') {
                 container.innerHTML = `
                     <div class="welcome-block-item">
-                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-                            <span style="font-size:0.8rem; font-weight:bold; color:var(--primary);">1 Item • Text Only</span>
-                        </div>
                         <div class="textarea-container" style="margin-bottom:0;">
-                            <textarea class="safe-textarea" style="min-height:80px; margin-bottom:0;" placeholder="${d.msgPlaceholder}" oninput="campaignDraft.text = this.value; renderBulkLiveStream();">${escapeHtml(campaignDraft.text || '')}</textarea>
+                            <textarea class="safe-textarea" style="min-height:80px; margin-bottom:0;" placeholder="${d.msgPlaceholder}" oninput="campaignDraft.text = this.value; renderBulkLiveStream(); updateModePillStates();">${escapeHtml(campaignDraft.text || '')}</textarea>
                             <button type="button" class="clear-btn" onclick="clearCampaignTextInUI()">✖ Clear</button>
                         </div>
                     </div>
@@ -1540,7 +1537,6 @@
             } else {
                 const isImg = activeCampaignMode === 'image';
                 const acceptType = isImg ? 'image/*' : 'video/*';
-                const labelText = isImg ? '1 Item • Image + Caption' : '1 Item • Video (Max 15MB) + Caption';
 
                 const fileControlHtml = campaignDraft.fileName
                     ? `<div class="file-selected-badge">
@@ -1555,7 +1551,7 @@
                 container.innerHTML = `
                     <div class="welcome-block-item">
                         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-                            <span style="font-size:0.8rem; font-weight:bold; color:var(--primary);">${labelText}</span>
+                            <span style="font-size:0.8rem; font-weight:bold; color:var(--primary);">${isImg ? 'Photo' : 'Video (Max 15MB)'}</span>
                             ${campaignDraft.fileName ? `<button type="button" class="btn btn-outline" style="width:auto; padding:2px 8px; font-size:0.72rem; color:var(--warning); border-color:var(--warning);" onclick="clearCampaignFile()">Clear</button>` : ''}
                         </div>
                         <input type="file" id="camp111FileInput" accept="${acceptType}" onchange="handleCampaign111File(event)" style="display:${campaignDraft.fileName ? 'none' : 'block'}; margin-bottom:8px;">
@@ -1565,6 +1561,7 @@
                 `;
             }
 
+            updateModePillStates();
             renderBulkLiveStream();
         }
 
@@ -1599,7 +1596,7 @@
             }
         }
 
-        // --- Scheduler Presets (Max 72 Hours Window) ---
+        // --- Scheduler Presets ---
         function toLocalDateTimeInputString(dateObj) {
             const pad = n => String(n).padStart(2, '0');
             return `${dateObj.getFullYear()}-${pad(dateObj.getMonth() + 1)}-${pad(dateObj.getDate())}T${pad(dateObj.getHours())}:${pad(dateObj.getMinutes())}`;
@@ -1652,15 +1649,9 @@
             else if (presetType === 'tom9') {
                 target.setDate(target.getDate() + 1);
                 target.setHours(9, 0, 0, 0);
-                if (target.getTime() > Date.now() + MAX_SCHEDULE_HOURS * 60 * 60 * 1000) {
-                    target.setTime(Date.now() + 24 * 60 * 60 * 1000);
-                }
             } else if (presetType === 'tom18') {
                 target.setDate(target.getDate() + 1);
                 target.setHours(18, 0, 0, 0);
-                if (target.getTime() > Date.now() + MAX_SCHEDULE_HOURS * 60 * 60 * 1000) {
-                    target.setTime(Date.now() + 36 * 60 * 60 * 1000);
-                }
             }
 
             const input = document.getElementById('campScheduleTime');
@@ -1685,7 +1676,7 @@
             document.querySelectorAll('.preset-chip').forEach(c => c.classList.remove('active'));
         }
 
-        // --- Strict 1+1 Welcome Setup (Text Only OR 1 Image) ---
+        // --- Auto Welcome Responder ---
         function selectWelcomeMode(mode) {
             activeWelcomeMode = mode;
             document.getElementById('btnWelcomeModeText').classList.toggle('active', mode === 'text');
@@ -1737,9 +1728,6 @@
             if (activeWelcomeMode === 'text') {
                 container.innerHTML = `
                     <div class="welcome-block-item">
-                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-                            <span style="font-size:0.8rem; font-weight:bold; color:var(--primary);">1 Rule • Text Only</span>
-                        </div>
                         <div class="textarea-container" style="margin-bottom:0;">
                             <textarea class="safe-textarea" style="min-height:70px; margin-bottom:0;" placeholder="Enter welcome text..." oninput="welcomeDraft.text = this.value; renderWelcomeLiveStream();">${escapeHtml(welcomeDraft.text || '')}</textarea>
                             <button type="button" class="clear-btn" onclick="clearWelcomeTextInUI()">✖ Clear</button>
@@ -1760,7 +1748,7 @@
                 container.innerHTML = `
                     <div class="welcome-block-item">
                         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-                            <span style="font-size:0.8rem; font-weight:bold; color:var(--primary);">1 Rule • Image + Caption</span>
+                            <span style="font-size:0.8rem; font-weight:bold; color:var(--primary);">Photo</span>
                             ${(welcomeDraft.fileName || welcomeDraft.existingFilePath) ? `<button type="button" class="btn btn-outline" style="width:auto; padding:2px 8px; font-size:0.72rem; color:var(--warning); border-color:var(--warning);" onclick="clearWelcomeFile()">Clear</button>` : ''}
                         </div>
                         <input type="file" id="wel11FileInput" accept="image/*" onchange="handleWelcomeFile(event)" style="display:${(welcomeDraft.fileName || welcomeDraft.existingFilePath) ? 'none' : 'block'}; margin-bottom:8px;">
@@ -1807,7 +1795,7 @@
             if (!SESSION_ID || SESSION_ID === 'unpaired_user') return;
             try {
                 const res = await fetch(`${FIXED_BACKEND_URL}/api/welcome/rules?sessionId=${SESSION_ID}`, {
-                    headers: { 'Authorization': `Bearer ${API_BEARER_TOKEN}`, 'ngrok-skip-browser-warning': 'true' }
+                    headers: { 'Authorization': `Bearer ${API_BEARER_TOKEN}` }
                 });
                 const d = await res.json();
                 if (d.success && d.config) {
@@ -1880,26 +1868,26 @@
                 fd.append(`file_${blockId}`, welcomeDraft.file);
             }
 
-            showReadinessWaiting('Saving welcome rule to server. Do not close the app yet...');
+            showReadinessWaiting('Saving welcome rule to laptop engine...');
             try {
                 const res = await fetch(`${FIXED_BACKEND_URL}/api/welcome/setup`, {
                     method: 'POST',
-                    headers: { 'Authorization': `Bearer ${API_BEARER_TOKEN}`, 'ngrok-skip-browser-warning': 'true' },
+                    headers: { 'Authorization': `Bearer ${API_BEARER_TOKEN}` },
                     body: fd
                 });
                 const d = await res.json();
                 document.getElementById('readinessModal').style.display = 'none';
                 if (d.success) {
                     await loadWelcomeRulesFromServer();
-                    showReadinessReady(enabled ? 'Welcome rule synced with server. Done — Running on Cloud.' : 'Welcome rule disabled and synced with server.');
+                    showReadinessReady(enabled ? 'Welcome rule active and running.' : 'Welcome rule disabled.');
                 } else showCustomDialog({ title: 'Error', message: d.error || 'Failed to save', type: 'danger' });
             } catch(e) {
                 document.getElementById('readinessModal').style.display = 'none';
-                showCustomDialog({ title: 'Connection Error', message: e.message, type: 'danger' });
+                showCustomDialog({ title: 'Connection Error', message: 'Laptop server offline. Ensure engine is running.', type: 'danger' });
             }
         }
 
-        // --- Core Status, WhatsApp Handshake & Soft-Lock Subscription Lifecycle ---
+        // --- Core Status & Handshake ---
         async function syncWhatsAppAccountStatus() {
             let targetPhone = localStorage.getItem('connected_phone_permanent');
             if (!targetPhone || targetPhone === 'unpaired_user') {
@@ -1914,7 +1902,7 @@
 
             try {
                 const res = await fetch(`${FIXED_BACKEND_URL}/api/status/${targetPhone}`, {
-                    headers: { 'Authorization': `Bearer ${DEFAULT_TOKEN}`, 'ngrok-skip-browser-warning': 'true' }
+                    headers: { 'Authorization': `Bearer ${DEFAULT_TOKEN}` }
                 });
                 const d = await res.json();
 
@@ -1940,31 +1928,6 @@
                     banner.style.display = 'flex';
                     noticeTxt.innerText = "⚠️ " + langDict.subExpiredMsg;
                     document.getElementById('btnDismissNotice').style.display = 'none';
-                } else if (daysLeft <= 3 && daysLeft > 0) {
-                    const todayStr = new Date().toISOString().split('T')[0];
-                    const lastDismissedDate = localStorage.getItem('sub_warning_last_dismissed');
-
-                    if (lastDismissedDate !== todayStr) {
-                        const warnText = langDict.subWarnMsg.replace('{DAYS}', daysLeft);
-                        showCustomDialog({
-                            title: 'Subscription Expiring Soon',
-                            message: warnText,
-                            type: 'warning',
-                            confirmText: 'Acknowledge',
-                            cancelText: 'Remind Later'
-                        }).then(() => {
-                            localStorage.setItem('sub_warning_last_dismissed', todayStr);
-                        });
-                    }
-
-                    if (d.globalNotice && d.globalNotice.trim() !== '' && !isDismissedThisSession) {
-                        banner.classList.remove('expired-alert');
-                        banner.style.display = 'flex';
-                        noticeTxt.innerText = "📢 " + d.globalNotice;
-                        document.getElementById('btnDismissNotice').style.display = 'block';
-                    } else {
-                        banner.style.display = 'none';
-                    }
                 } else {
                     if (d.globalNotice && d.globalNotice.trim() !== '' && !isDismissedThisSession) {
                         banner.classList.remove('expired-alert');
@@ -1996,8 +1959,6 @@
                     if (d.tenantToken) {
                         API_BEARER_TOKEN = d.tenantToken;
                         localStorage.setItem('tenant_token', API_BEARER_TOKEN);
-                    } else {
-                        API_BEARER_TOKEN = DEFAULT_TOKEN;
                     }
 
                     document.getElementById('statusConnectedBox').style.display = 'block';
@@ -2021,7 +1982,7 @@
                     document.getElementById('statusConnectedBox').style.display = 'block';
                     document.getElementById('statusPairingBox').style.display = 'none';
                     document.getElementById('lblConnectedPhone').innerText = `+${savedPhone}`;
-                    document.getElementById('badgeServerStatus').innerText = "● SERVER OFFLINE";
+                    document.getElementById('badgeServerStatus').innerText = "● LAPTOP OFFLINE";
                     document.getElementById('badgeServerStatus').style.color = "var(--warning)";
                     document.getElementById('txtServerOfflineNotice').style.display = "block";
                 }
@@ -2033,7 +1994,7 @@
             try {
                 await fetch(`${FIXED_BACKEND_URL}/api/groups/sync`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${API_BEARER_TOKEN}`, 'ngrok-skip-browser-warning': 'true' },
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${API_BEARER_TOKEN}` },
                     body: JSON.stringify({ sessionId: SESSION_ID, groups, allowEmptyOverwrite })
                 });
             } catch(e) {}
@@ -2043,7 +2004,7 @@
             if (!SESSION_ID || SESSION_ID === 'unpaired_user') return false;
             try {
                 const res = await fetch(`${FIXED_BACKEND_URL}/api/groups/restore?sessionId=${SESSION_ID}`, {
-                    headers: { 'Authorization': `Bearer ${API_BEARER_TOKEN}`, 'ngrok-skip-browser-warning': 'true' }
+                    headers: { 'Authorization': `Bearer ${API_BEARER_TOKEN}` }
                 });
                 const d = await res.json();
                 if (d.groups && Array.isArray(d.groups)) {
@@ -2063,7 +2024,7 @@
             if (!SESSION_ID || SESSION_ID === 'unpaired_user') return;
             try {
                 const res = await fetch(`${FIXED_BACKEND_URL}/api/campaign/state?sessionId=${SESSION_ID}`, {
-                    headers: { 'Authorization': `Bearer ${API_BEARER_TOKEN}`, 'ngrok-skip-browser-warning': 'true' }
+                    headers: { 'Authorization': `Bearer ${API_BEARER_TOKEN}` }
                 });
                 const d = await res.json();
 
@@ -2121,7 +2082,7 @@
             try {
                 const res = await fetch(`${FIXED_BACKEND_URL}/api/pair`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${DEFAULT_TOKEN}`, 'ngrok-skip-browser-warning': 'true' },
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${DEFAULT_TOKEN}` },
                     body: JSON.stringify({ phoneNumber: cleanPhone })
                 });
                 const d = await res.json();
@@ -2130,7 +2091,7 @@
                     if (pairingPollTimer) clearInterval(pairingPollTimer);
                     pairingPollTimer = setInterval(async () => {
                         const statusRes = await fetch(`${FIXED_BACKEND_URL}/api/status/${cleanPhone}`, {
-                            headers: { 'Authorization': `Bearer ${DEFAULT_TOKEN}`, 'ngrok-skip-browser-warning': 'true' }
+                            headers: { 'Authorization': `Bearer ${DEFAULT_TOKEN}` }
                         });
                         const sd = await statusRes.json();
                         if (sd.status === 'CONNECTED') {
@@ -2148,13 +2109,13 @@
                             await syncWhatsAppAccountStatus();
                             showCustomDialog({
                                 title: 'Connected!',
-                                message: `WhatsApp connected successfully for +${cleanPhone}! Groups & campaign history synced.`,
+                                message: `WhatsApp connected successfully for +${cleanPhone}!`,
                                 type: 'info'
                             });
                         }
                     }, 2500);
                 } else disp.innerText = d.error || 'Pairing error';
-            } catch(e) { disp.innerText = 'Connection Error: Server Offline'; }
+            } catch(e) { disp.innerText = 'Connection Error: Laptop Server Offline'; }
             finally { btnPair.disabled = false; }
         }
 
@@ -2172,29 +2133,24 @@
             if (!confirmed) return;
 
             const activeSid = SESSION_ID;
-            // Clear local device data immediately upon logout/unlink
             resetToUnpairedLocalState();
 
             try {
                 await fetch(`${FIXED_BACKEND_URL}/api/logout`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${API_BEARER_TOKEN}`, 'ngrok-skip-browser-warning': 'true' },
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${API_BEARER_TOKEN}` },
                     body: JSON.stringify({ sessionId: activeSid })
                 });
             } catch(e) {}
 
             const keepTerms = localStorage.getItem('terms_accepted_permanent');
-            const keepLang = localStorage.getItem('app_lang');
-            const keepTheme = localStorage.getItem('app_theme');
             localStorage.clear();
             sessionStorage.clear();
             if (keepTerms) localStorage.setItem('terms_accepted_permanent', keepTerms);
-            if (keepLang) localStorage.setItem('app_lang', keepLang);
-            if (keepTheme) localStorage.setItem('app_theme', keepTheme);
 
             await showCustomDialog({
                 title: 'Logged Out',
-                message: 'Local data cleared. Login again anytime to restore your groups & campaign history.',
+                message: 'Device session cleared.',
                 type: 'info'
             });
             window.location.reload();
@@ -2203,9 +2159,6 @@
         function toggleGroupSelectMode() {
             isGroupSelectMode = !isGroupSelectMode;
             selectedGroupsForDelete.clear();
-            document.getElementById('btnToggleGroupSelect').innerText = isGroupSelectMode ? 'Cancel' : 'Select';
-            document.getElementById('groupBatchActionBar').style.display = isGroupSelectMode ? 'flex' : 'none';
-            document.getElementById('selectedGroupCount').innerText = '0';
             renderGroups();
         }
 
@@ -2213,7 +2166,6 @@
             e.stopPropagation();
             if (selectedGroupsForDelete.has(id)) selectedGroupsForDelete.delete(id);
             else selectedGroupsForDelete.add(id);
-            document.getElementById('selectedGroupCount').innerText = selectedGroupsForDelete.size;
             renderGroups();
         }
 
@@ -2239,10 +2191,10 @@
 
         async function openMultiGroupDispatchModal() {
             if (isSubscriptionExpiredGlobal) {
-                return showCustomDialog({ title: 'Access Denied', message: 'Your subscription has expired. Please contact admin to recharge before launching campaigns.', type: 'danger' });
+                return showCustomDialog({ title: 'Access Denied', message: 'Your subscription has expired. Please recharge to continue.', type: 'danger' });
             }
             if (!SESSION_ID || SESSION_ID === 'unpaired_user') {
-                return showCustomDialog({ title: 'Not Connected', message: 'Please pair WhatsApp in Settings first before launching or scheduling campaigns.', type: 'warning' });
+                return showCustomDialog({ title: 'Not Connected', message: 'Please pair WhatsApp in Settings first.', type: 'warning' });
             }
             await syncRemainingQuotaFromServer();
             await loadScheduledCampaignsList();
@@ -2250,15 +2202,11 @@
             if (!isScheduleEnabled && remainingDailyQuotaGlobal <= 0) {
                 return showCustomDialog({
                     title: 'Daily Limit Reached',
-                    message: '300 messages/day outbound limit reached. Quota resets at 12:00 AM.',
+                    message: '300 messages/day outbound quota reached. Resets at 12:00 AM.',
                     type: 'warning'
                 });
             }
-            const hasValidItem = activeCampaignMode === 'text'
-                ? (campaignDraft.text || '').trim().length > 0
-                : campaignDraft.file !== null;
-
-            if (!hasValidItem) {
+            if (!hasCampaignContent()) {
                 return showCustomDialog({ title: 'Content Missing', message: 'Please enter text or select 1 image/video for your campaign.', type: 'warning' });
             }
             if (groups.length === 0) return showCustomDialog({ title: 'No Groups', message: 'No customer groups available.', type: 'warning' });
@@ -2324,13 +2272,13 @@
             if (!isScheduleEnabled && remainingDailyQuotaGlobal <= 0) {
                 return showCustomDialog({
                     title: 'Daily Limit Reached',
-                    message: '300 messages/day outbound limit reached. Quota resets at 12:00 AM.',
+                    message: '300 messages/day outbound quota reached. Resets at 12:00 AM.',
                     type: 'warning'
                 });
             }
 
             if (isScheduleEnabled && cachedScheduledJobs.length >= MAX_SCHEDULE_SLOTS) {
-                return showCustomDialog({ title: 'Schedule Slot Occupied', message: 'Only 1 scheduled slot allowed at a time! Cancel the active schedule first.', type: 'warning' });
+                return showCustomDialog({ title: 'Schedule Slot Occupied', message: 'Maximum 1 scheduled slot allowed at a time! Cancel the active schedule first.', type: 'warning' });
             }
 
             let scheduleEpoch = 0;
@@ -2368,12 +2316,12 @@
             const btnLaunch = document.getElementById('btnStartSend');
             btnLaunch.disabled = true;
 
-            showReadinessWaiting(isScheduleEnabled ? 'Saving schedule & media to server...' : 'Launching campaign on server...');
+            showReadinessWaiting(isScheduleEnabled ? 'Saving schedule to laptop engine...' : 'Dispatching campaign...');
 
             try {
                 const res = await fetch(`${FIXED_BACKEND_URL}/api/message/send-bulk`, {
                     method: 'POST',
-                    headers: { 'Authorization': `Bearer ${API_BEARER_TOKEN}`, 'ngrok-skip-browser-warning': 'true' },
+                    headers: { 'Authorization': `Bearer ${API_BEARER_TOKEN}` },
                     body: formData
                 });
                 const d = await res.json();
@@ -2388,7 +2336,7 @@
                     resetScheduleFormInUI();
                     await loadScheduledCampaignsList();
                     navigateTab('viewDashboard', document.querySelectorAll('.nav-tab')[2]);
-                    showReadinessReady(`Scheduled for ${d.scheduledForDate || new Date(scheduleEpoch).toLocaleString()}. Done — Running on Cloud.`);
+                    showReadinessReady(`Scheduled for ${d.scheduledForDate || new Date(scheduleEpoch).toLocaleString()}.`);
                 } else if (d.status === 'QUEUED') {
                     currentActiveCampaignId = d.campaignId;
                     campaignDraft = { text: '', file: null, fileName: '', caption: '' };
@@ -2397,11 +2345,11 @@
                     await hydrateCampaignStateFromServer();
                     navigateTab('viewDashboard', document.querySelectorAll('.nav-tab')[2]);
                     pollCampaignLive(d.campaignId);
-                    showReadinessReady(`Campaign running on server for ${uniqueRecipients.length} contacts! Done — Running on Cloud.`);
+                    showReadinessReady(`Campaign running for ${uniqueRecipients.length} contacts.`);
                 } else showCustomDialog({ title: 'Dispatch Error', message: d.error || 'Failed to dispatch', type: 'danger' });
             } catch(e) {
                 document.getElementById('readinessModal').style.display = 'none';
-                showCustomDialog({ title: 'Connection Error', message: e.message, type: 'danger' });
+                showCustomDialog({ title: 'Connection Error', message: 'Laptop server offline. Ensure engine is running.', type: 'danger' });
             }
             finally { btnLaunch.disabled = false; }
         }
@@ -2410,7 +2358,7 @@
             try {
                 const res = await fetch(`${FIXED_BACKEND_URL}/api/campaign/pause`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${API_BEARER_TOKEN}`, 'ngrok-skip-browser-warning': 'true' },
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${API_BEARER_TOKEN}` },
                     body: JSON.stringify({ sessionId: SESSION_ID, campaignId: currentActiveCampaignId })
                 });
                 const d = await res.json();
@@ -2429,7 +2377,7 @@
             try {
                 const res = await fetch(`${FIXED_BACKEND_URL}/api/campaign/resume`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${API_BEARER_TOKEN}`, 'ngrok-skip-browser-warning': 'true' },
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${API_BEARER_TOKEN}` },
                     body: JSON.stringify({ sessionId: SESSION_ID, campaignId: currentActiveCampaignId })
                 });
                 const d = await res.json();
@@ -2460,7 +2408,7 @@
             try {
                 const res = await fetch(`${FIXED_BACKEND_URL}/api/campaign/stop`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${API_BEARER_TOKEN}`, 'ngrok-skip-browser-warning': 'true' },
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${API_BEARER_TOKEN}` },
                     body: JSON.stringify({ sessionId: SESSION_ID, campaignId: currentActiveCampaignId })
                 });
                 const d = await res.json();
@@ -2469,7 +2417,7 @@
                     document.getElementById('campaignCtrlPanel').style.display = 'none';
                     if (pollTimer) clearInterval(pollTimer);
                     await hydrateCampaignStateFromServer();
-                    showCustomDialog({ title: 'Stopped', message: 'Campaign stopped and storage cleaned.', type: 'info' });
+                    showCustomDialog({ title: 'Stopped', message: 'Campaign stopped.', type: 'info' });
                 }
             } catch(e) { showCustomDialog({ title: 'Stop Error', message: e.message, type: 'danger' }); }
         }
@@ -2480,7 +2428,7 @@
             pollTimer = setInterval(async () => {
                 try {
                     const res = await fetch(`${FIXED_BACKEND_URL}/api/queue-status/${SESSION_ID}`, {
-                        headers: { 'Authorization': `Bearer ${API_BEARER_TOKEN}`, 'ngrok-skip-browser-warning': 'true' }
+                        headers: { 'Authorization': `Bearer ${API_BEARER_TOKEN}` }
                     });
                     const q = await res.json();
 
@@ -2568,7 +2516,7 @@
             }
             try {
                 const res = await fetch(`${FIXED_BACKEND_URL}/api/campaign/scheduled-jobs/${SESSION_ID}`, {
-                    headers: { 'Authorization': `Bearer ${API_BEARER_TOKEN}`, 'ngrok-skip-browser-warning': 'true' }
+                    headers: { 'Authorization': `Bearer ${API_BEARER_TOKEN}` }
                 });
                 const d = await res.json();
                 if (d.success && Array.isArray(d.jobs)) {
@@ -2635,12 +2583,12 @@
             try {
                 const res = await fetch(`${FIXED_BACKEND_URL}/api/campaign/cancel-schedule`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${API_BEARER_TOKEN}`, 'ngrok-skip-browser-warning': 'true' },
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${API_BEARER_TOKEN}` },
                     body: JSON.stringify({ sessionId: SESSION_ID, jobId })
                 });
                 const d = await res.json();
                 if (d.success) {
-                    showCustomDialog({ title: 'Cancelled', message: 'Scheduled campaign cancelled and storage cleared.', type: 'info' });
+                    showCustomDialog({ title: 'Cancelled', message: 'Scheduled campaign cancelled.', type: 'info' });
                     loadScheduledCampaignsList();
                 } else showCustomDialog({ title: 'Error', message: d.error || 'Failed to cancel', type: 'danger' });
             } catch(e) { showCustomDialog({ title: 'Connection Error', message: e.message, type: 'danger' }); }
@@ -2712,15 +2660,15 @@
                         document.getElementById('updateBanner').style.display = 'block';
                         document.getElementById('lblNewVerNumber').innerText = `Release: ${rel.name}`;
                     } else {
-                        document.getElementById('lblCloudSyncStatus').innerText = "Up to date";
+                        document.getElementById('lblCloudSyncStatus').innerText = "Local Engine Active";
                         document.getElementById('lblCloudSyncStatus').style.color = "var(--primary)";
                         document.getElementById('updateBanner').style.display = 'none';
-                        if (isManual) showCustomDialog({ title: 'Latest Version', message: 'Your app is already running the latest version.', type: 'info' });
+                        if (isManual) showCustomDialog({ title: 'Latest Version', message: 'App is running latest version.', type: 'info' });
                     }
                 }
             } catch(e) {
-                document.getElementById('lblCloudSyncStatus').innerText = "Sync check failed";
-                document.getElementById('lblCloudSyncStatus').style.color = "var(--danger)";
+                document.getElementById('lblCloudSyncStatus').innerText = "Local Engine Active";
+                document.getElementById('lblCloudSyncStatus').style.color = "var(--primary)";
             }
         }
 
@@ -2944,32 +2892,7 @@
             renderGroups();
         }
 
-        // --- FULLSCREEN PHONEBOOK SELECTOR ---
-        function isContactsPermissionGranted(permObj) {
-            if (!permObj) return false;
-            return (
-                permObj.contacts === 'granted' ||
-                permObj.readContacts === 'granted' ||
-                permObj.status === 'granted'
-            );
-        }
-
-        async function loadCapacitorDeviceContacts(ContactsPlugin) {
-            const res = await ContactsPlugin.getContacts({ projection: { name: true, phones: true } });
-            const extracted = [];
-            (res.contacts || []).forEach(c => {
-                const name = c.name?.display || c.name?.given || c.displayName || '';
-                (c.phones || c.phoneNumbers || []).forEach(p => {
-                    const rawNum = typeof p === 'string' ? p : (p?.number || p?.value || '');
-                    const clean = normalizeNumber(rawNum);
-                    if (clean && clean.length >= 10) extracted.push({ name, phone: clean });
-                });
-            });
-            const map = new Map();
-            extracted.forEach(item => map.set(item.phone, item));
-            return Array.from(map.values());
-        }
-
+        // --- DIRECT PHONEBOOK LOADER ---
         async function openPhonebookSelector(mode) {
             pbTargetMode = mode;
             selectedPbContacts.clear();
@@ -2992,56 +2915,39 @@
 
             const ContactsPlugin = window.Capacitor?.Plugins?.Contacts;
             if (ContactsPlugin) {
-                let permGranted = false;
                 try {
-                    if (typeof ContactsPlugin.checkPermissions === 'function') {
-                        const cur = await ContactsPlugin.checkPermissions();
-                        permGranted = isContactsPermissionGranted(cur);
-                    }
-                    if (!permGranted && typeof ContactsPlugin.requestPermissions === 'function') {
-                        const reqPerm = await ContactsPlugin.requestPermissions();
-                        permGranted = isContactsPermissionGranted(reqPerm);
-                    }
-                } catch (permErr) {
-                    permGranted = false;
-                }
-
-                if (permGranted) {
+                    // Try direct fetch first (if granted in settings it succeeds immediately)
+                    let res = null;
                     try {
-                        cachedDeviceContacts = await loadCapacitorDeviceContacts(ContactsPlugin);
-                        currentlyFilteredContacts = [...cachedDeviceContacts];
-                        renderPhonebook(currentlyFilteredContacts);
-                        updatePbSelectionCounter();
-                        showPhonebookOverlay();
-                        return;
+                        res = await ContactsPlugin.getContacts({ projection: { name: true, phones: true } });
                     } catch (readErr) {
-                        showCustomDialog({
-                            title: 'Contacts Load Error',
-                            message: 'Contacts permission is granted, but reading contacts failed. Please retry or check device contacts.',
-                            type: 'warning'
-                        });
-                        return;
+                        // Request permission if not already granted
+                        if (typeof ContactsPlugin.requestPermissions === 'function') {
+                            await ContactsPlugin.requestPermissions();
+                        }
+                        res = await ContactsPlugin.getContacts({ projection: { name: true, phones: true } });
                     }
-                }
 
-                // Fallback attempt in case a plugin version grants access without reporting standard status fields
-                try {
-                    cachedDeviceContacts = await loadCapacitorDeviceContacts(ContactsPlugin);
-                    if (cachedDeviceContacts.length > 0) {
+                    if (res && Array.isArray(res.contacts)) {
+                        cachedDeviceContacts = [];
+                        res.contacts.forEach(c => {
+                            const name = c.name?.display || c.name?.given || c.displayName || '';
+                            (c.phones || c.phoneNumbers || []).forEach(p => {
+                                const rawNum = typeof p === 'string' ? p : (p?.number || p?.value || '');
+                                const clean = normalizeNumber(rawNum);
+                                if (clean && clean.length >= 10) cachedDeviceContacts.push({ name, phone: clean });
+                            });
+                        });
+                        const map = new Map();
+                        cachedDeviceContacts.forEach(item => map.set(item.phone, item));
+                        cachedDeviceContacts = Array.from(map.values());
                         currentlyFilteredContacts = [...cachedDeviceContacts];
                         renderPhonebook(currentlyFilteredContacts);
                         updatePbSelectionCounter();
                         showPhonebookOverlay();
                         return;
                     }
-                } catch (e) {}
-
-                showCustomDialog({
-                    title: 'Contacts Access Needed',
-                    message: 'Please allow Contacts permission in Android App Settings -> Permissions -> Contacts, then tap Pick Contacts again.',
-                    type: 'warning'
-                });
-                return;
+                } catch(e) {}
             }
 
             if ('contacts' in navigator && 'select' in navigator.contacts) {
@@ -3058,9 +2964,10 @@
                     return;
                 } catch(e) {}
             }
+
             showCustomDialog({
                 title: 'Contacts Access Needed',
-                message: 'Contacts permission was not granted. Enable Contacts access in your device settings and retry.',
+                message: 'Please allow Contacts permission in Android App Settings -> Permissions -> Contacts, then tap Pick Contacts again.',
                 type: 'warning'
             });
         }
@@ -3191,7 +3098,6 @@
             }
         }
 
-        // Trigger Disclaimer immediately on script execution for first-time launches
         checkDisclaimerAcceptance();
 
         window.onload = async () => {
